@@ -45,7 +45,9 @@ Migração nova, sem mudar as funções e regras existentes de proposta, pedido 
 
 - `lojas.chave_pix text` — aceita CPF ou CNPJ (só dígitos), e-mail, celular (+55DDDNÚMERO) ou chave aleatória (UUID);
   validada no banco. Editável só por dono/gerente (como os demais dados da loja).
-- `profiles.documento text` — CPF (11) ou CNPJ (14) com dígitos verificadores válidos.
+- `construtor_documentos (user_id uuid primary key references auth.users on delete cascade, documento text not null)` —
+  CPF (11) ou CNPJ (14) com dígitos verificadores válidos; RLS deixa só o próprio construtor ler e gravar. (Na revisão saiu
+  de `profiles.documento`: as lojas que recebem proposta leem a linha inteira de `profiles`.)
 - `pedidos`: `pagador text check (pagador in ('proprio','cliente'))` (nulo até escolher), `pagador_nome text`,
   `pagador_whatsapp text` (10 a 13 dígitos), `link_codigo text unique` (aleatório, 22 caracteres URL-safe, só quando
   `pagador = 'cliente'`), `documento_informado_em timestamptz` (quando o documento de quem paga foi gravado; o construtor vê

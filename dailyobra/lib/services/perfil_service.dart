@@ -66,8 +66,14 @@ class PerfilService extends ChangeNotifier {
     try {
       final j = await _db
           .from('profiles')
-          .select('nome, empresa, cidade, uf, telefone, documento')
+          .select('nome, empresa, cidade, uf, telefone')
           .eq('id', id)
+          .maybeSingle();
+      // Fora de profiles: as lojas que recebem proposta leem o perfil, o documento só o próprio construtor
+      final doc = await _db
+          .from('construtor_documentos')
+          .select('documento')
+          .eq('user_id', id)
           .maybeSingle();
       final meta = _db.auth.currentUser?.userMetadata ?? const {};
       _nome = (j?['nome'] as String?) ?? (meta['nome'] as String?) ?? '';
@@ -75,7 +81,7 @@ class PerfilService extends ChangeNotifier {
       _cidade = j?['cidade'] as String?;
       _uf = (j?['uf'] as String?)?.trim();
       _telefone = j?['telefone'] as String?;
-      _documento = j?['documento'] as String?;
+      _documento = doc?['documento'] as String?;
       CatalogoService.instance.definirCidade(_cidade);
       notifyListeners();
     } catch (_) {
@@ -99,10 +105,15 @@ class PerfilService extends ChangeNotifier {
       'empresa': empresa.trim(),
       'cidade': (cidade?.trim().isEmpty ?? true) ? null : cidade!.trim(),
       'uf': (uf?.trim().isEmpty ?? true) ? null : uf!.trim().toUpperCase(),
-      'documento': doc.isEmpty ? null : doc,
     };
     try {
       await _db.from('profiles').upsert({'id': id, ...dados});
+      final documentos = _db.from('construtor_documentos');
+      if (doc.isEmpty) {
+        await documentos.delete().eq('user_id', id);
+      } else {
+        await documentos.upsert({'user_id': id, 'documento': doc});
+      }
     } catch (e) {
       throw Exception(mensagemDoServidor(e));
     }
@@ -110,7 +121,7 @@ class PerfilService extends ChangeNotifier {
     _empresa = dados['empresa']!;
     _cidade = dados['cidade'];
     _uf = dados['uf'];
-    _documento = dados['documento'];
+    _documento = doc.isEmpty ? null : doc;
     CatalogoService.instance.definirCidade(_cidade);
     notifyListeners();
   }

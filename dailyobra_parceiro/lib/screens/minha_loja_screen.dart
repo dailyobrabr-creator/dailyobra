@@ -63,7 +63,7 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
     final frete = _frete.text.trim().isEmpty ? 0.0 : lerNumero(_frete.text);
     final minimo = _minimo.text.trim().isEmpty ? 0.0 : lerNumero(_minimo.text);
     final zap = _whatsapp.text.replaceAll(RegExp(r'\D'), '');
-    final chave = _chavePix.text.trim();
+    final chave = normalizarChavePix(_chavePix.text);
     final erroChave = chave.isEmpty ? null : chavePixInvalida(chave);
     if (_nome.text.trim().length < 2) {
       return avisar(context, 'Informe o nome da loja.');

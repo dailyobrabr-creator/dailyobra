@@ -36,7 +36,7 @@ class QuemPaga extends StatefulWidget {
 }
 
 class _QuemPagaState extends State<QuemPaga> {
-  late final Future<String?> _pix = widget.pix();
+  late Future<String?> _pix = widget.pix();
   late Pagador? _escolha = widget.pedido.pagador;
   late final _documento = TextEditingController(
     text: widget.documentoDoPerfil ?? '',
@@ -157,6 +157,25 @@ class _QuemPagaState extends State<QuemPaga> {
           builder: (context, snap) {
             if (snap.connectionState != ConnectionState.done) {
               return const Center(child: CircularProgressIndicator());
+            }
+            // Falha de rede não é "loja sem chave PIX": avisa e deixa tentar de novo
+            if (snap.hasError) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Não deu para carregar o PIX da loja.',
+                    style: t.bodyMedium,
+                  ),
+                  const SizedBox(height: Espaco.s2),
+                  OutlinedButton(
+                    onPressed: () => setState(() {
+                      _pix = widget.pix();
+                    }),
+                    child: const Text('Tentar de novo'),
+                  ),
+                ],
+              );
             }
             final pix = snap.data;
             return Column(

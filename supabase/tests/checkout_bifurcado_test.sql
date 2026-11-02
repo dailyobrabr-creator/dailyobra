@@ -171,7 +171,6 @@ select pg_temp.conferir('eu pago sem nome no perfil e depois com nome',
   pg_temp.pegar('sem_nome') = 'Complete seu nome no Perfil.'
   and (select pagador = 'proprio' and link_codigo is null and pagador_nome = 'Marcos Silva' and documento_informado_em is not null
          from public.pedidos where id = pg_temp.pegar('pA')::uuid)
-  and (select documento = '11222333000181' from public.profiles where id = '00000000-0000-0000-0000-00000000c001')
   and (select documento = '11222333000181' from public.pedido_documentos where pedido_id = pg_temp.pegar('pA')::uuid),
   pg_temp.pegar('sem_nome'));
 
@@ -235,6 +234,48 @@ do $$ declare boas text[] := array['+5566999990000', '52998224725', 'loja@exempl
   perform pg_temp.conferir('chave pix validada', pg_temp.pegar('chave_ruim') = 'recusou' and n = 4,
     pg_temp.pegar('chave_ruim') || ', boas aceitas: ' || n);
 end $$;
+
+-- 18. O CPF/CNPJ que o construtor usou no "Eu pago" fica só com ele: a loja que recebeu proposta dele não lê
+select pg_temp.como('00000000-0000-0000-0000-00000000d001');
+select pg_temp.guardar('perfil_pela_loja', (select to_jsonb(p)::text from public.profiles p where p.id = '00000000-0000-0000-0000-00000000c001'));
+do $$ begin
+  perform pg_temp.guardar('docs_pela_loja', (select count(*) from public.construtor_documentos)::text);
+exception when others then perform pg_temp.guardar('docs_pela_loja', sqlerrm); end $$;
+select pg_temp.como('00000000-0000-0000-0000-00000000c001');
+do $$ begin
+  perform pg_temp.guardar('meu_doc', (select documento from public.construtor_documentos where user_id = '00000000-0000-0000-0000-00000000c001'));
+exception when others then perform pg_temp.guardar('meu_doc', sqlerrm); end $$;
+select pg_temp.admin();
+select pg_temp.conferir('documento do construtor só para ele',
+  pg_temp.pegar('perfil_pela_loja') is not null and position('11222333000181' in pg_temp.pegar('perfil_pela_loja')) = 0
+  and pg_temp.pegar('docs_pela_loja') = '0' and pg_temp.pegar('meu_doc') = '11222333000181',
+  concat_ws(' / ', pg_temp.pegar('perfil_pela_loja'), pg_temp.pegar('docs_pela_loja'), pg_temp.pegar('meu_doc')));
+
+-- 19. O Perfil do app grava o documento direto na tabela: só o próprio, e válido
+select pg_temp.como('00000000-0000-0000-0000-00000000c001');
+do $$ begin
+  insert into public.construtor_documentos (user_id, documento) values ('00000000-0000-0000-0000-00000000c001', '52998224725')
+    on conflict (user_id) do update set documento = excluded.documento;
+  perform pg_temp.guardar('grava_proprio', (select documento from public.construtor_documentos where user_id = '00000000-0000-0000-0000-00000000c001'));
+exception when others then perform pg_temp.guardar('grava_proprio', sqlerrm); end $$;
+do $$ begin
+  insert into public.construtor_documentos (user_id, documento) values ('00000000-0000-0000-0000-00000000c002', '52998224725');
+  perform pg_temp.guardar('grava_outro', 'gravou');
+exception when others then perform pg_temp.guardar('grava_outro', 'recusou'); end $$;
+do $$ begin
+  update public.construtor_documentos set documento = '11111111111' where user_id = '00000000-0000-0000-0000-00000000c001';
+  perform pg_temp.guardar('grava_invalido', 'gravou');
+exception when others then perform pg_temp.guardar('grava_invalido', 'recusou'); end $$;
+select pg_temp.admin();
+select pg_temp.conferir('construtor grava só o próprio documento, e válido',
+  pg_temp.pegar('grava_proprio') = '52998224725' and pg_temp.pegar('grava_outro') = 'recusou' and pg_temp.pegar('grava_invalido') = 'recusou',
+  concat_ws(' / ', pg_temp.pegar('grava_proprio'), pg_temp.pegar('grava_outro'), pg_temp.pegar('grava_invalido')));
+
+-- 20. BR Code só com ASCII: º, aspas curvas do celular e travessão saem, sem deixar espaço duplo
+select pg_temp.conferir('brcode só com ASCII',
+  private.brcode('+5566999990000', 'Depósito Nº 1 – D’Ávila', 'Santa Bárbara d’Oeste', 10, 'T') ~ '^[ -~]+$'
+  and private.brcode('+5566999990000', 'Depósito Nº 1 – D’Ávila', 'Santa Bárbara d’Oeste', 10, 'T') like '%5919DEPOSITO N 1 DAVILA6015SANTA BARBARA D62%',
+  private.brcode('+5566999990000', 'Depósito Nº 1 – D’Ávila', 'Santa Bárbara d’Oeste', 10, 'T'));
 
 select pg_temp.admin();
 do $$ declare total int; ok int; falhas text; begin

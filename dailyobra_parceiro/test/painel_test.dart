@@ -384,6 +384,26 @@ void main() {
         );
       });
 
+      testWidgets('chave pix com pontuação é salva só com números', (
+        tester,
+      ) async {
+        SharedPreferences.setMockInitialValues({});
+        final tema = await PreferenciaTema.carregar();
+        preparar();
+        await abrir(tester, MinhaLojaScreen(tema: tema), escuro: escuro);
+        final campo = find.byKey(const ValueKey('chave-pix'));
+        await rolarAte(tester, campo);
+        await tester.enterText(campo, '11.222.333/0001-81');
+        await rolarAte(tester, find.text('Salvar dados'));
+        await tester.tap(find.text('Salvar dados'));
+        await tester.pumpAndSettle();
+        expect(LojaService.instance.atualizacoesDeTeste, hasLength(1));
+        expect(
+          LojaService.instance.atualizacoesDeTeste.single['chave_pix'],
+          '11222333000181',
+        );
+      });
+
       testWidgets('promoção maior que o preço não é salva', (tester) async {
         preparar();
         var salvou = 0;

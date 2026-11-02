@@ -79,6 +79,15 @@ void main() {
     }
   });
 
+  test('chave PIX digitada com pontuação fica como o banco guarda', () {
+    expect(normalizarChavePix(' 11.222.333/0001-81 '), '11222333000181');
+    expect(normalizarChavePix('529.982.247-25'), '52998224725');
+    expect(normalizarChavePix('+55 (66) 99999-0000'), '+5566999990000');
+    expect(normalizarChavePix('123E4567-E12B-12D1-A456-426655440000'), '123e4567-e12b-12d1-a456-426655440000');
+    expect(normalizarChavePix(' Loja@Exemplo.com '), 'loja@exemplo.com');
+    expect(normalizarChavePix('loja'), 'loja');
+  });
+
   test('Loja.fromJson lê a chave PIX', () {
     final l = Loja.fromJson({'id': 'l1', 'nome': 'Loja A', 'cidade': 'Rondonópolis', 'uf': 'MT', 'frete_fixo': 0, 'pedido_minimo': 0, 'chave_pix': '+5566999990000'});
     expect(l.chavePix, '+5566999990000');

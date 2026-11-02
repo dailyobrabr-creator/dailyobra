@@ -38,6 +38,7 @@ Future<Chamadas> montar(
   required bool escuro,
   PedidoResumo? p,
   String? pix = pixDaLoja,
+  Future<String?> Function()? carregarPix,
   String? documentoDoPerfil,
 }) async {
   final ch = Chamadas();
@@ -50,7 +51,7 @@ Future<Chamadas> montar(
           pedido: p ?? pedido(),
           nomeLoja: 'Casa do Construtor',
           documentoDoPerfil: documentoDoPerfil,
-          pix: () async => pix,
+          pix: carregarPix ?? () async => pix,
           pagarEuMesmo: (doc) async => ch.documentos.add(doc),
           criarLink: (nome, zap) async {
             ch.links.add((nome, zap));
@@ -206,6 +207,39 @@ void main() {
         await tester.pumpAndSettle();
         expect(ch.documentos, ['52998224725']);
         expect(find.text('Combine o pagamento com a loja.'), findsOneWidget);
+      });
+
+      testWidgets('falha ao buscar o pix mostra tentar de novo', (
+        tester,
+      ) async {
+        var tentativas = 0;
+        await montar(
+          tester,
+          escuro: escuro,
+          carregarPix: () async {
+            if (++tentativas == 1) {
+              throw const FalhaComMensagem(
+                'Sem conexão. Confira a internet e tente de novo.',
+              );
+            }
+            return pixDaLoja;
+          },
+        );
+        expect(
+          find.text('Não deu para carregar o PIX da loja.'),
+          findsOneWidget,
+        );
+        expect(
+          find.text('A loja ainda não cadastrou a chave PIX.'),
+          findsNothing,
+        );
+        await tester.tap(find.text('Tentar de novo'));
+        await tester.pumpAndSettle();
+        expect(tentativas, 2);
+        final chip = tester.widget<ChoiceChip>(
+          find.widgetWithText(ChoiceChip, 'Enviar para o cliente'),
+        );
+        expect(chip.onSelected, isNotNull);
       });
     });
   }

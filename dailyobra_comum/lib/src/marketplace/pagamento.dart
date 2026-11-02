@@ -64,6 +64,16 @@ bool documentoValido(String documento) {
   return switch (d.length) { 11 => cpfValido(d), 14 => cnpjValido(d), _ => false };
 }
 
+final _uuid = RegExp(r'^[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$');
+
+/// Chave como o banco guarda: e-mail e chave aleatória em minúsculas; CPF, CNPJ e celular sem pontuação nem espaço.
+String normalizarChavePix(String chave) {
+  final c = chave.trim();
+  if (c.contains('@') || _uuid.hasMatch(c)) return c.toLowerCase();
+  final semPontuacao = c.replaceAll(RegExp(r'[\s.()/-]'), '');
+  return RegExp(r'^\+?\d+$').hasMatch(semPontuacao) ? semPontuacao : c;
+}
+
 const _chaveInvalida = 'Chave PIX inválida. Use CPF, CNPJ, e-mail, celular com +55 ou chave aleatória.';
 
 /// Mesmas regras do banco (private.chave_pix_valida); nulo quando a chave serve.

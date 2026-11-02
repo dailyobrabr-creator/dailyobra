@@ -35,13 +35,13 @@ insert into public.profiles (id, nome) values ('00000000-0000-0000-0000-00000000
 -- Loja A (com chave PIX, nome e cidade com acento) e loja B (sem chave)
 select pg_temp.como('00000000-0000-0000-0000-00000000d001');
 select pg_temp.guardar('A', public.criar_loja('{"nome":"Operário Construção e Acabamentos","cnpj":"11.222.333/0001-81","cidade":"Rondonópolis","uf":"MT"}'::jsonb)::text);
-update public.lojas set chave_pix = '+5566999990000' where id = pg_temp.pegar('A')::uuid;
+insert into public.loja_pix (loja_id, chave) values (pg_temp.pegar('A')::uuid, '+5566999990000');
 insert into public.ofertas (loja_id, item_id, preco) values (pg_temp.pegar('A')::uuid, 'cimento-cp2-50kg', 40.00);
 select pg_temp.como('00000000-0000-0000-0000-00000000f001');
 select pg_temp.guardar('B', public.criar_loja('{"nome":"Loja B","cnpj":"11444777000161","cidade":"Maringá","uf":"PR"}'::jsonb)::text);
 insert into public.ofertas (loja_id, item_id, preco) values (pg_temp.pegar('B')::uuid, 'cimento-cp2-50kg', 38.00);
 
--- Pedidos: dois na loja A (um será cancelado) e um na B
+-- Pedidos: três na loja A (um será cancelado e outro fica com total zero) e um na B
 select pg_temp.como('00000000-0000-0000-0000-00000000c001');
 select public.enviar_cotacao(jsonb_build_array(
   jsonb_build_object('item_id', 'cimento-cp2-50kg', 'loja_id', pg_temp.pegar('A'), 'quantidade', 10, 'preco_visto', 40.00),
@@ -50,18 +50,24 @@ select public.enviar_cotacao(jsonb_build_array(
 select public.enviar_cotacao(jsonb_build_array(
   jsonb_build_object('item_id', 'cimento-cp2-50kg', 'loja_id', pg_temp.pegar('A'), 'quantidade', 2, 'preco_visto', 40.00)),
   'pedido', null, false, null);
+select public.enviar_cotacao(jsonb_build_array(
+  jsonb_build_object('item_id', 'cimento-cp2-50kg', 'loja_id', pg_temp.pegar('A'), 'quantidade', 3, 'preco_visto', 40.00)),
+  'pedido', null, false, null);
 select pg_temp.admin();
 select pg_temp.guardar('propA', (select id from public.propostas where loja_id = pg_temp.pegar('A')::uuid and subtotal_anunciado = 400)::text);
 select pg_temp.guardar('propA2', (select id from public.propostas where loja_id = pg_temp.pegar('A')::uuid and subtotal_anunciado = 80)::text);
+select pg_temp.guardar('propA3', (select id from public.propostas where loja_id = pg_temp.pegar('A')::uuid and subtotal_anunciado = 120)::text);
 select pg_temp.guardar('propB', (select id from public.propostas where loja_id = pg_temp.pegar('B')::uuid)::text);
 select pg_temp.como('00000000-0000-0000-0000-00000000d001');
 select public.responder_proposta(pg_temp.pegar('propA')::uuid, 'aceitar', null, null, null, null, null);
 select public.responder_proposta(pg_temp.pegar('propA2')::uuid, 'aceitar', null, null, null, null, null);
+select public.responder_proposta(pg_temp.pegar('propA3')::uuid, 'aceitar', null, null, null, null, null);
 select pg_temp.como('00000000-0000-0000-0000-00000000f001');
 select public.responder_proposta(pg_temp.pegar('propB')::uuid, 'aceitar', null, null, null, null, null);
 select pg_temp.admin();
 select pg_temp.guardar('pA', (select id from public.pedidos where proposta_id = pg_temp.pegar('propA')::uuid)::text);
 select pg_temp.guardar('pA2', (select id from public.pedidos where proposta_id = pg_temp.pegar('propA2')::uuid)::text);
+select pg_temp.guardar('pA3', (select id from public.pedidos where proposta_id = pg_temp.pegar('propA3')::uuid)::text);
 select pg_temp.guardar('pB', (select id from public.pedidos where proposta_id = pg_temp.pegar('propB')::uuid)::text);
 
 -- 1-3. BR Code
@@ -220,15 +226,15 @@ end $$;
 -- 17. Chave PIX validada no banco
 select pg_temp.como('00000000-0000-0000-0000-00000000d001');
 do $$ begin
-  update public.lojas set chave_pix = '66999990000' where id = pg_temp.pegar('A')::uuid;
+  update public.loja_pix set chave = '66999990000' where loja_id = pg_temp.pegar('A')::uuid;
   perform pg_temp.guardar('chave_ruim', 'aceitou');
 exception when others then perform pg_temp.guardar('chave_ruim', 'recusou'); end $$;
 do $$ declare boas text[] := array['+5566999990000', '52998224725', 'loja@exemplo.com', '123e4567-e12b-12d1-a456-426655440000'];
   c text; n int := 0; begin
   foreach c in array boas loop
     begin
-      update public.lojas set chave_pix = c where id = pg_temp.pegar('A')::uuid;
-      n := n + 1;
+      update public.loja_pix set chave = c where loja_id = pg_temp.pegar('A')::uuid;
+      if found then n := n + 1; end if;
     exception when others then null; end;
   end loop;
   perform pg_temp.conferir('chave pix validada', pg_temp.pegar('chave_ruim') = 'recusou' and n = 4,
@@ -276,6 +282,50 @@ select pg_temp.conferir('brcode só com ASCII',
   private.brcode('+5566999990000', 'Depósito Nº 1 – D’Ávila', 'Santa Bárbara d’Oeste', 10, 'T') ~ '^[ -~]+$'
   and private.brcode('+5566999990000', 'Depósito Nº 1 – D’Ávila', 'Santa Bárbara d’Oeste', 10, 'T') like '%5919DEPOSITO N 1 DAVILA6015SANTA BARBARA D62%',
   private.brcode('+5566999990000', 'Depósito Nº 1 – D’Ávila', 'Santa Bárbara d’Oeste', 10, 'T'));
+
+-- 21. Chave PIX só para a equipe da loja: o construtor não lê nem na linha da loja nem em loja_pix
+select pg_temp.como('00000000-0000-0000-0000-00000000c001');
+select pg_temp.guardar('loja_pelo_construtor', (select to_jsonb(l)::text from public.lojas l where l.id = pg_temp.pegar('A')::uuid));
+do $$ begin
+  perform pg_temp.guardar('pix_pelo_construtor', (select count(*) from public.loja_pix)::text);
+exception when others then perform pg_temp.guardar('pix_pelo_construtor', sqlerrm); end $$;
+select pg_temp.como('00000000-0000-0000-0000-00000000d001');
+do $$ begin
+  perform pg_temp.guardar('pix_pela_loja', (select chave from public.loja_pix where loja_id = pg_temp.pegar('A')::uuid));
+exception when others then perform pg_temp.guardar('pix_pela_loja', sqlerrm); end $$;
+select pg_temp.admin();
+select pg_temp.conferir('chave pix só para a equipe da loja',
+  pg_temp.pegar('loja_pelo_construtor') is not null and position('chave_pix' in pg_temp.pegar('loja_pelo_construtor')) = 0
+  and pg_temp.pegar('pix_pelo_construtor') = '0' and coalesce(private.chave_pix_valida(pg_temp.pegar('pix_pela_loja')), false),
+  concat_ws(' / ', pg_temp.pegar('loja_pelo_construtor'), pg_temp.pegar('pix_pelo_construtor'), pg_temp.pegar('pix_pela_loja')));
+
+-- 22. Link do WhatsApp da loja na página, com o 55 uma vez só
+select pg_temp.como('00000000-0000-0000-0000-00000000d001');
+update public.lojas set whatsapp = '66999990000' where id = pg_temp.pegar('A')::uuid;
+select pg_temp.anonimo();
+do $$ begin perform pg_temp.guardar('zap1', coalesce(public.pedido_do_link(pg_temp.pegar('cod3'))->'loja'->>'whatsapp_link', 'nulo')); end $$;
+select pg_temp.como('00000000-0000-0000-0000-00000000d001');
+update public.lojas set whatsapp = '5566999990000' where id = pg_temp.pegar('A')::uuid;
+select pg_temp.anonimo();
+do $$ begin perform pg_temp.guardar('zap2', coalesce(public.pedido_do_link(pg_temp.pegar('cod3'))->'loja'->>'whatsapp_link', 'nulo')); end $$;
+select pg_temp.admin();
+select pg_temp.conferir('link do whatsapp da loja com 55',
+  pg_temp.pegar('zap1') = 'https://wa.me/5566999990000' and pg_temp.pegar('zap2') = 'https://wa.me/5566999990000',
+  pg_temp.pegar('zap1') || ' / ' || pg_temp.pegar('zap2'));
+
+-- 23. Pedido coberto pelo saldo (total zero) não gera PIX nem link
+select pg_temp.admin();
+update public.pedidos set total = 0 where id = pg_temp.pegar('pA3')::uuid;
+select pg_temp.como('00000000-0000-0000-0000-00000000c001');
+select pg_temp.guardar('pix_zero', coalesce(public.pix_do_pedido(pg_temp.pegar('pA3')::uuid), 'nulo'));
+do $$ begin
+  perform public.criar_link_pagamento(pg_temp.pegar('pA3')::uuid, 'Ana', '66999990000');
+  perform pg_temp.guardar('link_zero', 'criou');
+exception when others then perform pg_temp.guardar('link_zero', sqlerrm); end $$;
+select pg_temp.admin();
+select pg_temp.conferir('total zero não gera pix nem link',
+  pg_temp.pegar('pix_zero') = 'nulo' and pg_temp.pegar('link_zero') = 'O saldo DailyObra cobriu este pedido. Não há nada a pagar.',
+  pg_temp.pegar('pix_zero') || ' / ' || pg_temp.pegar('link_zero'));
 
 select pg_temp.admin();
 do $$ declare total int; ok int; falhas text; begin

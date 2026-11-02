@@ -52,7 +52,7 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
     _nome.text = loja.nome;
     _descricao.text = loja.descricao;
     _whatsapp.text = loja.whatsapp;
-    _chavePix.text = loja.chavePix ?? '';
+    _chavePix.text = _servico.dados.chavePix ?? '';
     _endereco.text = _servico.dados.endereco;
     _horario.text = _servico.dados.horario;
     _frete.text = numero.format(loja.freteFixo);
@@ -83,7 +83,6 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
             ? null
             : _descricao.text.trim(),
         'whatsapp': zap.isEmpty ? null : zap,
-        'chave_pix': chave.isEmpty ? null : chave,
         'endereco': _endereco.text.trim().isEmpty
             ? null
             : _endereco.text.trim(),
@@ -91,6 +90,9 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
         'frete_fixo': frete,
         'pedido_minimo': minimo,
       });
+      if (chave != (_servico.dados.chavePix ?? '')) {
+        await _servico.salvarChavePix(chave.isEmpty ? null : chave);
+      }
       _lojaPreenchida = null;
       if (mounted) avisar(context, 'Dados da loja salvos.');
     } on FalhaComMensagem catch (e) {

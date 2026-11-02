@@ -147,13 +147,15 @@ class _PedidoLojaScreenState extends State<PedidoLojaScreen> {
                     children: [
                       if (!pago && informado != null) ...[
                         Aviso(
-                          'Cliente informou o pagamento às ${hora(informado)}, confira no banco.',
+                          'Cliente informou o pagamento ${quando(informado)}, confira no banco.',
                         ),
                         const SizedBox(height: Espaco.s3),
                       ],
                       Text(
                         pago
                             ? 'Confirmado em ${dataHora(pedido.pagamentoConfirmadoEm!)}.'
+                            : pedido.pagador == Pagador.cliente
+                            ? 'O cliente do construtor paga por PIX direto à loja. Confirme aqui quando receber.'
                             : 'Combine com o construtor e confirme aqui quando receber.',
                         style: t.bodyMedium,
                       ),

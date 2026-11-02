@@ -26,6 +26,14 @@ String dataHora(DateTime d) =>
 /// "14:05"
 String hora(DateTime d) => '${_dois(d.hour)}:${_dois(d.minute)}';
 
+/// "às 14:05" se for hoje; "em 31/10 às 14:05" se for outro dia
+String quando(DateTime d, {DateTime? agora}) {
+  final hoje = agora ?? DateTime.now();
+  final mesmoDia =
+      d.year == hoje.year && d.month == hoje.month && d.day == hoje.day;
+  return mesmoDia ? 'às ${hora(d)}' : 'em ${dataHora(d)}';
+}
+
 /// "faltam 5 h" / "faltam 40 min" / "venceu"
 String prazo(DateTime ate, {DateTime? agora}) {
   final resto = ate.difference(agora ?? DateTime.now());

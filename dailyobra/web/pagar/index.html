@@ -114,11 +114,12 @@
       const total = Number(p.total);
       // Saldo da carteira que o construtor usou no pedido: é o que falta para os números fecharem
       const saldo = Math.round((soma - desconto + frete - total) * 100) / 100;
-      const zap = digitos(p.loja.whatsapp || '');
+      // Link pronto do banco: o 55 entra só quando a loja salvou DDD + número
+      const zap = p.loja.whatsapp_link;
       return `
         <div class="cartao">
           <h1>${escapar(p.loja.nome)}</h1>
-          <p class="suave">${escapar(p.loja.cidade)} - ${escapar(p.loja.uf)}${zap ? ` · <a href="https://wa.me/55${zap}" target="_blank" rel="noopener">Falar com a loja</a>` : ''}</p>
+          <p class="suave">${escapar(p.loja.cidade)} - ${escapar(p.loja.uf)}${zap ? ` · <a href="${escapar(zap)}" target="_blank" rel="noopener">Falar com a loja</a>` : ''}</p>
         </div>
         <div class="cartao">
           <h2>Materiais</h2>
@@ -216,12 +217,21 @@
       };
     }
 
+    // A situação do banco manda; com os dados já enviados e sem PIX (loja sem chave), não volta ao formulário
+    function tela(p) {
+      if (p.situacao === 'pago' || p.situacao === 'cancelado' || p.situacao === 'informado') return p.situacao;
+      if (p.pix) return 'pagamento';
+      return p.documento_informado ? 'sem_chave' : 'formulario';
+    }
+
     function mostrar(p) {
+      const t = tela(p);
       let corpo;
-      if (p.situacao === 'pago') corpo = estado('✅', 'Pagamento confirmado pela loja.', 'A loja segue com a separação e a entrega dos materiais.');
-      else if (p.situacao === 'cancelado') corpo = estado('⛔', 'Este pedido foi cancelado.', 'Fale com quem montou o orçamento para saber o que mudou.');
-      else if (p.situacao === 'informado') corpo = estado('⏳', 'Pronto! A loja vai conferir o pagamento e confirmar.', 'Você não precisa fazer mais nada por aqui.');
-      else corpo = p.pix ? pagamento(p) : formulario(p);
+      if (t === 'pago') corpo = estado('✅', 'Pagamento confirmado pela loja.', 'A loja segue com a separação e a entrega dos materiais.');
+      else if (t === 'cancelado') corpo = estado('⛔', 'Este pedido foi cancelado.', 'Fale com quem montou o orçamento para saber o que mudou.');
+      else if (t === 'informado') corpo = estado('⏳', 'Pronto! A loja vai conferir o pagamento e confirmar.', 'Você não precisa fazer mais nada por aqui.');
+      else if (t === 'sem_chave') corpo = estado('💬', 'A loja ainda não cadastrou a chave PIX.', 'Seus dados para a nota foram recebidos. Fale com a loja para combinar o pagamento.');
+      else corpo = t === 'pagamento' ? pagamento(p) : formulario(p);
       app.innerHTML = resumo(p) + corpo;
       if (document.getElementById('erro')) ligar(p);
     }

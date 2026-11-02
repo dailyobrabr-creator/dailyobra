@@ -26,11 +26,15 @@ class DadosLoja {
     this.endereco = '',
     this.horario = '',
     this.status = 'ativa',
+    this.chavePix,
   });
   final String cnpj;
   final String endereco;
   final String horario;
   final String status;
+
+  /// Fica em loja_pix: a equipe da loja lê, dono e gerente gravam (o construtor só vê o PIX do pedido).
+  final String? chavePix;
 }
 
 class MembroLoja {
@@ -64,6 +68,10 @@ class LojaService extends ChangeNotifier {
   @visibleForTesting
   final atualizacoesDeTeste = <Map<String, dynamic>>[];
 
+  /// O que [salvarChavePix] mandaria ao banco, quando montado por [definirParaTeste].
+  @visibleForTesting
+  final chavesDeTeste = <String?>[];
+
   Loja? get minhaLoja => _loja;
   DadosLoja get dados => _dados;
   PapelLoja get meuPapel => _papel;
@@ -86,6 +94,7 @@ class LojaService extends ChangeNotifier {
     _erro = null;
     _teste = true;
     atualizacoesDeTeste.clear();
+    chavesDeTeste.clear();
     notifyListeners();
   }
 
@@ -100,7 +109,7 @@ class LojaService extends ChangeNotifier {
 
   static const _colunas =
       'id, nome, cnpj, descricao, logo_path, capa_path, whatsapp, endereco, cidade, uf, horario, '
-      'frete_fixo, pedido_minimo, aberta, status, chave_pix, criada_em';
+      'frete_fixo, pedido_minimo, aberta, status, criada_em';
 
   Future<void> carregar() async {
     final uid = _db.auth.currentUser?.id;
@@ -118,11 +127,17 @@ class LojaService extends ChangeNotifier {
       } else {
         _loja = Loja.fromJson(j);
         _papel = PapelLoja.fromCodigo(vinculo!['papel'] as String?);
+        final pix = await _db
+            .from('loja_pix')
+            .select('chave')
+            .eq('loja_id', j['id'] as String)
+            .maybeSingle();
         _dados = DadosLoja(
           cnpj: (j['cnpj'] as String?)?.trim() ?? '',
           endereco: (j['endereco'] as String?) ?? '',
           horario: (j['horario'] as String?) ?? '',
           status: (j['status'] as String?) ?? 'ativa',
+          chavePix: pix?['chave'] as String?,
         );
       }
       _erro = null;
@@ -155,6 +170,25 @@ class LojaService extends ChangeNotifier {
   }
 
   Future<void> abrirOuFechar(bool aberta) => atualizar({'aberta': aberta});
+
+  /// Grava a chave PIX em loja_pix (nula apaga); o formato é conferido de novo pelo banco.
+  Future<void> salvarChavePix(String? chave) async {
+    final loja = _loja;
+    if (loja == null) return;
+    if (_teste) {
+      chavesDeTeste.add(chave);
+      return;
+    }
+    final tabela = _db.from('loja_pix');
+    await comMensagem(() async {
+      if (chave == null) {
+        await tabela.delete().eq('loja_id', loja.id);
+      } else {
+        await tabela.upsert({'loja_id': loja.id, 'chave': chave});
+      }
+    });
+    await carregar();
+  }
 
   /// Logo ou capa já reduzida pelo seletor (JPEG). Guarda em `lojas/{id}/logo.jpg` ou `capa.jpg`
   /// e devolve o endereço público com `?v=` para o app não mostrar a imagem antiga do cache.

@@ -20,10 +20,11 @@ PedidoResumo pedido({
   String? link,
   DateTime? documento,
   DateTime? informado,
+  double total = 450,
 }) => PedidoResumo(
   id: 'ped1',
   status: StatusPedido.confirmado,
-  total: 450,
+  total: total,
   criadoEm: DateTime(2026, 11, 2),
   pagador: pagador,
   pagadorNome: pagador == Pagador.cliente ? 'Ana' : null,
@@ -240,6 +241,118 @@ void main() {
           find.widgetWithText(ChoiceChip, 'Enviar para o cliente'),
         );
         expect(chip.onSelected, isNotNull);
+      });
+
+      testWidgets('trocar para eu pago depois do link pede confirmação', (
+        tester,
+      ) async {
+        Future<Chamadas> trocar(PedidoResumo p) async {
+          final ch = await montar(
+            tester,
+            escuro: escuro,
+            p: p,
+            documentoDoPerfil: '52998224725',
+          );
+          await tester.tap(find.text('Eu pago'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Confirmar'));
+          await tester.pumpAndSettle();
+          return ch;
+        }
+
+        // O cliente já tocou em "Já paguei": avisa do risco de pagar duas vezes
+        var ch = await trocar(
+          pedido(
+            pagador: Pagador.cliente,
+            link: 'COD',
+            documento: DateTime(2026, 11, 2, 13),
+            informado: DateTime(2026, 11, 2, 14, 32),
+          ),
+        );
+        expect(find.text('O cliente já avisou que pagou'), findsOneWidget);
+        await tester.tap(find.text('Voltar'));
+        await tester.pumpAndSettle();
+        expect(ch.documentos, isEmpty);
+        await tester.tap(find.text('Confirmar'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Trocar para Eu pago'));
+        await tester.pumpAndSettle();
+        expect(ch.documentos, ['52998224725']);
+
+        // Link enviado e ainda sem aviso: o link do cliente para de funcionar
+        ch = await trocar(pedido(pagador: Pagador.cliente, link: 'COD'));
+        expect(find.text('Trocar para "Eu pago"?'), findsOneWidget);
+        expect(
+          find.text('O link enviado para Ana vai parar de funcionar.'),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('pedido que muda em outro aparelho atualiza a tela', (
+        tester,
+      ) async {
+        Future<void> com(PedidoResumo p) => abrir(
+          tester,
+          Scaffold(
+            body: SingleChildScrollView(
+              child: QuemPaga(
+                key: const ValueKey('quem-paga'),
+                pedido: p,
+                nomeLoja: 'Casa do Construtor',
+                documentoDoPerfil: null,
+                pix: () async => pixDaLoja,
+                pagarEuMesmo: (_) async {},
+                criarLink: (_, _) async => 'COD',
+                abrirLink: (_) async {},
+              ),
+            ),
+          ),
+          escuro: escuro,
+        );
+        await com(pedido());
+        expect(find.text(pixDaLoja), findsNothing);
+        await com(
+          pedido(pagador: Pagador.proprio, documento: DateTime(2026, 11, 2)),
+        );
+        expect(find.text(pixDaLoja), findsOneWidget);
+        await com(pedido(pagador: Pagador.cliente, link: 'COD'));
+        expect(
+          find.text('Link enviado. Aguardando o cliente informar os dados.'),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('pedido coberto pelo saldo não tem nada a pagar', (
+        tester,
+      ) async {
+        final ch = await montar(
+          tester,
+          escuro: escuro,
+          p: pedido(total: 0),
+          pix: null,
+          documentoDoPerfil: '52998224725',
+        );
+        expect(
+          find.text(
+            'O saldo DailyObra cobriu este pedido. Não há nada a pagar.',
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.text('A loja ainda não cadastrou a chave PIX.'),
+          findsNothing,
+        );
+        final chip = tester.widget<ChoiceChip>(
+          find.widgetWithText(ChoiceChip, 'Enviar para o cliente'),
+        );
+        expect(chip.onSelected, isNull);
+        await tester.tap(find.text('Eu pago'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Confirmar'));
+        await tester.pumpAndSettle();
+        expect(ch.documentos, ['52998224725']);
+        expect(find.text('Combine o pagamento com a loja.'), findsNothing);
+        expect(find.text('A nota sai no seu nome.'), findsWidgets);
       });
     });
   }

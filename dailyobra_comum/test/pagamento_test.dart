@@ -87,10 +87,4 @@ void main() {
     expect(normalizarChavePix(' Loja@Exemplo.com '), 'loja@exemplo.com');
     expect(normalizarChavePix('loja'), 'loja');
   });
-
-  test('Loja.fromJson lê a chave PIX', () {
-    final l = Loja.fromJson({'id': 'l1', 'nome': 'Loja A', 'cidade': 'Rondonópolis', 'uf': 'MT', 'frete_fixo': 0, 'pedido_minimo': 0, 'chave_pix': '+5566999990000'});
-    expect(l.chavePix, '+5566999990000');
-    expect(Loja.fromJson({'id': 'l2', 'nome': 'Loja B', 'cidade': 'Maringá', 'uf': 'PR', 'frete_fixo': 0, 'pedido_minimo': 0}).chavePix, isNull);
-  });
 }

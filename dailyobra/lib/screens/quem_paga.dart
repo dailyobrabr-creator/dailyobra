@@ -60,6 +60,21 @@ class _QuemPagaState extends State<QuemPaga> {
     super.dispose();
   }
 
+  /// O pedido mudou no servidor (outro aparelho, o cliente ou a loja): a tela passa a seguir o que veio.
+  @override
+  void didUpdateWidget(QuemPaga antigo) {
+    super.didUpdateWidget(antigo);
+    final a = antigo.pedido;
+    final p = widget.pedido;
+    if (a.pagador != p.pagador || a.linkCodigo != p.linkCodigo) {
+      _escolha = p.pagador ?? _escolha;
+      _enviado = null;
+      _trocandoCliente = false;
+      _documentoConfirmado = false;
+      _pix = widget.pix();
+    }
+  }
+
   bool get _proprioConfirmado =>
       _documentoConfirmado ||
       (widget.pedido.pagador == Pagador.proprio &&
@@ -97,10 +112,43 @@ class _QuemPagaState extends State<QuemPaga> {
       return;
     }
     setState(() => _erroDocumento = null);
+    if (!await _podeTrocarParaEuPago() || !mounted) return;
     await _ocupar(() async {
       await widget.pagarEuMesmo(doc);
       if (mounted) setState(() => _documentoConfirmado = true);
     });
+  }
+
+  /// Com link enviado, "Eu pago" desliga o link do cliente (e o aviso de "Já paguei"): confirma antes.
+  Future<bool> _podeTrocarParaEuPago() async {
+    final p = widget.pedido;
+    if (p.pagador != Pagador.cliente || p.linkCodigo == null) return true;
+    final nome = p.pagadorNome ?? 'o cliente';
+    final informou = p.pagamentoInformadoEm != null;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text(
+          informou ? 'O cliente já avisou que pagou' : 'Trocar para "Eu pago"?',
+        ),
+        content: Text(
+          informou
+              ? '$nome tocou em "Já paguei". Se você pagar também, a loja pode receber duas vezes. Confira com a loja antes.'
+              : 'O link enviado para $nome vai parar de funcionar.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Voltar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Trocar para Eu pago'),
+          ),
+        ],
+      ),
+    );
+    return ok == true;
   }
 
   Future<void> _enviarLink() async {
@@ -155,7 +203,8 @@ class _QuemPagaState extends State<QuemPaga> {
         child: FutureBuilder<String?>(
           future: _pix,
           builder: (context, snap) {
-            if (snap.connectionState != ConnectionState.done) {
+            // Ao buscar de novo, segue mostrando o PIX que já tinha
+            if (snap.connectionState != ConnectionState.done && !snap.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
             // Falha de rede não é "loja sem chave PIX": avisa e deixa tentar de novo
@@ -177,7 +226,9 @@ class _QuemPagaState extends State<QuemPaga> {
                 ],
               );
             }
-            final pix = snap.data;
+            // Saldo DailyObra cobriu tudo: não há PIX nem link, só os dados da nota
+            final semValor = widget.pedido.total <= 0;
+            final pix = semValor ? null : snap.data;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -204,13 +255,15 @@ class _QuemPagaState extends State<QuemPaga> {
                 if (pix == null) ...[
                   const SizedBox(height: Espaco.s2),
                   Text(
-                    'A loja ainda não cadastrou a chave PIX.',
+                    semValor
+                        ? 'O saldo DailyObra cobriu este pedido. Não há nada a pagar.'
+                        : 'A loja ainda não cadastrou a chave PIX.',
                     style: t.bodySmall?.copyWith(color: c.textoSuave),
                   ),
                 ],
                 if (_escolha == Pagador.proprio) ...[
                   const SizedBox(height: Espaco.s4),
-                  ..._euPago(t, c, pix),
+                  ..._euPago(t, c, pix, semValor: semValor),
                 ],
                 if (_escolha == Pagador.cliente && pix != null) ...[
                   const SizedBox(height: Espaco.s4),
@@ -224,7 +277,12 @@ class _QuemPagaState extends State<QuemPaga> {
     );
   }
 
-  List<Widget> _euPago(TextTheme t, CoresDailyObra c, String? pix) {
+  List<Widget> _euPago(
+    TextTheme t,
+    CoresDailyObra c,
+    String? pix, {
+    required bool semValor,
+  }) {
     if (!_proprioConfirmado) {
       return [
         CampoTexto(
@@ -243,7 +301,14 @@ class _QuemPagaState extends State<QuemPaga> {
       ];
     }
     if (pix == null) {
-      return [Text('Combine o pagamento com a loja.', style: t.bodyMedium)];
+      return [
+        Text(
+          semValor
+              ? 'A nota sai no seu nome.'
+              : 'Combine o pagamento com a loja.',
+          style: t.bodyMedium,
+        ),
+      ];
     }
     return [
       Text('PIX da loja (copia e cola)', style: t.titleSmall),

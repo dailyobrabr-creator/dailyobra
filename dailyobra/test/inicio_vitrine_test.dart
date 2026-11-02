@@ -324,6 +324,27 @@ void main() {
     );
 
     testWidgets(
+      'loja com frete a combinar não aparece como frete grátis (${escuro ? 'escuro' : 'claro'})',
+      (tester) async {
+        preparar(
+          lojas: const [
+            Loja(
+              id: 'r',
+              nome: 'Comapa Materiais de Construção',
+              cidade: 'Rondonópolis',
+              uf: 'MT',
+              freteACombinar: true,
+            ),
+          ],
+        );
+        await abrirLargura(tester, 360, escuro: escuro);
+        await rolarAte(tester, find.byKey(const Key('lojas-perto')));
+        expect(find.textContaining('Frete a combinar'), findsOneWidget);
+        expect(find.textContaining('Frete grátis'), findsNothing);
+      },
+    );
+
+    testWidgets(
       'várias contrapropostas viram um aviso só (${escuro ? 'escuro' : 'claro'})',
       (tester) async {
         preparar(propostas: [proposta('p1'), proposta('p2'), proposta('p3')]);

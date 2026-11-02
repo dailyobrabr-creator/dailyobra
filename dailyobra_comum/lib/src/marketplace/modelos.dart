@@ -78,6 +78,7 @@ class Loja {
     this.aberta = true,
     this.nova = false,
     this.horario = '',
+    this.freteACombinar = false,
   });
   final String id;
   final String nome;
@@ -97,6 +98,10 @@ class Loja {
   /// Horário de atendimento como a loja escreveu ("Seg a sex 7h às 18h").
   final String horario;
 
+  /// Frete ainda não informado pela loja: aparece "a combinar", nunca "grátis".
+  /// O banco desliga sozinho quando a loja salva o frete no app Parceiros.
+  final bool freteACombinar;
+
   factory Loja.fromJson(Map<String, dynamic> j) {
     final criada = _data(j['criada_em']);
     return Loja(
@@ -113,6 +118,7 @@ class Loja {
       aberta: (j['aberta'] as bool?) ?? true,
       nova: criada != null && DateTime.now().difference(criada).inDays < 30,
       horario: (j['horario'] as String?) ?? '',
+      freteACombinar: (j['frete_a_combinar'] as bool?) ?? false,
     );
   }
 }

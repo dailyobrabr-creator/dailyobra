@@ -882,9 +882,7 @@ class _LinhaLoja extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.cores;
     final t = Theme.of(context).textTheme;
-    final frete = loja.freteFixo == 0
-        ? 'Frete grátis'
-        : 'Frete ${brl.format(loja.freteFixo)}';
+    final frete = textoFrete(loja);
     final detalhe = loja.aberta
         ? [
             frete,

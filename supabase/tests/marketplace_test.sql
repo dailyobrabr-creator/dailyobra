@@ -305,6 +305,17 @@ do $$ begin
   perform pg_temp.conferir('o limite de um não afeta outra pessoa', true);
 exception when others then perform pg_temp.conferir('o limite de um não afeta outra pessoa', false, sqlerrm); end $$;
 
+-- Frete a combinar: sai quando a loja salva frete ou pedido mínimo, não quando troca a logo
+select pg_temp.admin();
+update public.lojas set frete_a_combinar = true where id = pg_temp.pegar('A')::uuid;
+select pg_temp.como('00000000-0000-0000-0000-00000000d001');
+update public.lojas set logo_path = 'a/logo.png' where id = pg_temp.pegar('A')::uuid;
+select pg_temp.conferir('trocar a logo mantém o frete a combinar',
+  (select frete_a_combinar from public.lojas where id = pg_temp.pegar('A')::uuid));
+update public.lojas set frete_fixo = 50, pedido_minimo = 100 where id = pg_temp.pegar('A')::uuid;
+select pg_temp.conferir('salvar o frete pelo app tira o a combinar',
+  not (select frete_a_combinar from public.lojas where id = pg_temp.pegar('A')::uuid));
+
 select pg_temp.admin();
 select n, ok, teste, detalhe from r order by n;
 rollback;

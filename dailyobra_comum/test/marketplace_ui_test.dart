@@ -108,6 +108,17 @@ void main() {
     expect(tester.getSemantics(find.byType(ChipCategoria)), isSemantics(isSelected: true, isButton: true, label: 'Elétrica'));
   });
 
+  test('frete: grátis, valor ou a combinar com a loja', () {
+    const base = Loja(id: 'a', nome: 'Loja', cidade: 'Rondonópolis', uf: 'MT');
+    expect(freteEMinimo(base), 'Frete grátis');
+    expect(freteEMinimo(const Loja(id: 'a', nome: 'Loja', cidade: 'Rondonópolis', uf: 'MT', freteFixo: 30)), 'Frete ${brl.format(30)}');
+    const combinar = Loja(id: 'a', nome: 'Loja', cidade: 'Rondonópolis', uf: 'MT', freteACombinar: true);
+    expect(textoFrete(combinar), 'Frete a combinar');
+    expect(freteEMinimo(combinar), 'Frete a combinar');
+    const comMinimo = Loja(id: 'a', nome: 'Loja', cidade: 'Rondonópolis', uf: 'MT', freteACombinar: true, pedidoMinimo: 200);
+    expect(freteEMinimo(comMinimo), 'Frete a combinar · Pedido mínimo ${brl.format(200)}');
+  });
+
   group('vitrine', () {
     final semPromo = const Oferta(lojaId: 'a', itemId: 'p', preco: 1234567.89);
     for (final MapEntry(key: nome, value: tema) in temas.entries) {

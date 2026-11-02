@@ -48,6 +48,12 @@ void main() {
     expect(l.capaUrl, isNull);
     expect(l.pedidoMinimo, 100);
     expect(l.nova, isTrue);
+    expect(l.freteACombinar, isFalse, reason: 'sem a coluna, o frete vale como cadastrado');
+    final combinar = Loja.fromJson({
+      'id': 'l2', 'nome': 'Loja B', 'cidade': 'Rondonópolis', 'uf': 'MT', 'frete_fixo': 0, 'pedido_minimo': 0,
+      'frete_a_combinar': true,
+    });
+    expect(combinar.freteACombinar, isTrue);
 
     expect(Categoria.fromJson({'id': 'basico', 'nome': 'Básico', 'ordem': 1}).nome, 'Básico');
   });

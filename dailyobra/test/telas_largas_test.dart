@@ -393,6 +393,33 @@ void main() {
     });
   }
 
+  testWidgets('cotação mostra frete a combinar em vez de grátis', (
+    tester,
+  ) async {
+    CatalogoService.instance.definirParaTeste(
+      categorias: categoriasTeste,
+      itens: itensTeste,
+      lojas: [
+        Loja(
+          id: 'a',
+          nome: lojaA.nome,
+          cidade: lojaA.cidade,
+          uf: lojaA.uf,
+          pedidoMinimo: 100,
+          freteACombinar: true,
+        ),
+        lojaB,
+        lojaC,
+      ],
+      ofertas: ofertasTeste,
+    );
+    encherCarrinho();
+    await abrirLargura(tester, const OrcamentosScreen(), 360);
+    expect(find.text('Frete a combinar'), findsOneWidget);
+    expect(find.text('A combinar'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('categoria escolhida que some da busca não prende a grade', (
     tester,
   ) async {

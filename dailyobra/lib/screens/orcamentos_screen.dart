@@ -576,9 +576,7 @@ class _GrupoCotado extends StatelessWidget {
     return Painel(
       titulo: loja.nome,
       acao: Text(
-        loja.freteFixo == 0
-            ? 'Frete grátis'
-            : 'Frete ${brl.format(loja.freteFixo)}',
+        textoFrete(loja),
         style: t.bodySmall?.copyWith(color: c.textoSuave),
       ),
       child: Column(
@@ -604,7 +602,11 @@ class _GrupoCotado extends StatelessWidget {
                 LinhaValor('Produtos', brl.format(grupo.subtotal)),
                 LinhaValor(
                   'Frete',
-                  grupo.frete == 0 ? 'Grátis' : brl.format(grupo.frete),
+                  loja.freteACombinar
+                      ? 'A combinar'
+                      : grupo.frete == 0
+                      ? 'Grátis'
+                      : brl.format(grupo.frete),
                 ),
                 LinhaValor(
                   'Total nesta loja',

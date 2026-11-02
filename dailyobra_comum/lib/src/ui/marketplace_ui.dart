@@ -215,8 +215,14 @@ class CartaoProduto extends StatelessWidget {
   }
 }
 
+/// "Frete a combinar", "Frete grátis" ou "Frete R$ 30,00".
+String textoFrete(Loja loja) {
+  if (loja.freteACombinar) return 'Frete a combinar';
+  return loja.freteFixo == 0 ? 'Frete grátis' : 'Frete ${brl.format(loja.freteFixo)}';
+}
+
 String freteEMinimo(Loja loja) {
-  final frete = loja.freteFixo == 0 ? 'Frete grátis' : 'Frete ${brl.format(loja.freteFixo)}';
+  final frete = textoFrete(loja);
   return loja.pedidoMinimo > 0 ? '$frete · Pedido mínimo ${brl.format(loja.pedidoMinimo)}' : frete;
 }
 

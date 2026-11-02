@@ -64,6 +64,12 @@ void main() {
     expect(somenteDigitos('529.982.247-25'), '52998224725');
   });
 
+  test('CPF e CNPJ formatados para a nota', () {
+    expect(formatarDocumento('52998224725'), '529.982.247-25');
+    expect(formatarDocumento('11222333000181'), '11.222.333/0001-81');
+    expect(formatarDocumento('123'), '123');
+  });
+
   test('chave PIX: CPF, CNPJ, e-mail, celular com +55 ou aleatória', () {
     for (final boa in ['+5566999990000', '52998224725', '11222333000181', 'loja@exemplo.com', '123e4567-e12b-12d1-a456-426655440000']) {
       expect(chavePixInvalida(boa), isNull, reason: boa);

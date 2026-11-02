@@ -58,6 +58,11 @@ class LojaService extends ChangeNotifier {
   List<MembroLoja> _equipe = const [];
   bool _carregado = false;
   String? _erro;
+  bool _teste = false;
+
+  /// O que [atualizar] mandaria ao banco, quando montado por [definirParaTeste].
+  @visibleForTesting
+  final atualizacoesDeTeste = <Map<String, dynamic>>[];
 
   Loja? get minhaLoja => _loja;
   DadosLoja get dados => _dados;
@@ -79,6 +84,8 @@ class LojaService extends ChangeNotifier {
     _equipe = equipe;
     _carregado = true;
     _erro = null;
+    _teste = true;
+    atualizacoesDeTeste.clear();
     notifyListeners();
   }
 
@@ -93,7 +100,7 @@ class LojaService extends ChangeNotifier {
 
   static const _colunas =
       'id, nome, cnpj, descricao, logo_path, capa_path, whatsapp, endereco, cidade, uf, horario, '
-      'frete_fixo, pedido_minimo, aberta, status, criada_em';
+      'frete_fixo, pedido_minimo, aberta, status, chave_pix, criada_em';
 
   Future<void> carregar() async {
     final uid = _db.auth.currentUser?.id;
@@ -139,6 +146,10 @@ class LojaService extends ChangeNotifier {
   Future<void> atualizar(Map<String, dynamic> campos) async {
     final loja = _loja;
     if (loja == null) return;
+    if (_teste) {
+      atualizacoesDeTeste.add(campos);
+      return;
+    }
     await comMensagem(() => _db.from('lojas').update(campos).eq('id', loja.id));
     await carregar();
   }

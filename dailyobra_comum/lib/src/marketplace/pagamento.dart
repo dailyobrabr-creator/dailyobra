@@ -50,6 +50,14 @@ bool cpfValido(String cpf) {
   return verificador(9) == int.parse(d[9]) && verificador(10) == int.parse(d[10]);
 }
 
+/// 000.000.000-00 ou 00.000.000/0000-00; outro tamanho volta como veio.
+String formatarDocumento(String documento) {
+  final d = somenteDigitos(documento);
+  if (d.length == 14) return formatarCnpj(d);
+  if (d.length != 11) return documento;
+  return '${d.substring(0, 3)}.${d.substring(3, 6)}.${d.substring(6, 9)}-${d.substring(9)}';
+}
+
 /// CPF (11 dígitos) ou CNPJ (14), com ou sem pontuação.
 bool documentoValido(String documento) {
   final d = somenteDigitos(documento);

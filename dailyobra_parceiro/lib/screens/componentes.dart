@@ -23,6 +23,9 @@ String _dois(int n) => n.toString().padLeft(2, '0');
 String dataHora(DateTime d) =>
     '${_dois(d.day)}/${_dois(d.month)} às ${_dois(d.hour)}:${_dois(d.minute)}';
 
+/// "14:05"
+String hora(DateTime d) => '${_dois(d.hour)}:${_dois(d.minute)}';
+
 /// "faltam 5 h" / "faltam 40 min" / "venceu"
 String prazo(DateTime ate, {DateTime? agora}) {
   final resto = ate.difference(agora ?? DateTime.now());

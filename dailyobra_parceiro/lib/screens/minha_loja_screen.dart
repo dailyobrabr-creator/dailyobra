@@ -20,6 +20,7 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
   final _nome = TextEditingController();
   final _descricao = TextEditingController();
   final _whatsapp = TextEditingController();
+  final _chavePix = TextEditingController();
   final _endereco = TextEditingController();
   final _horario = TextEditingController();
   final _frete = TextEditingController();
@@ -34,6 +35,7 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
       _nome,
       _descricao,
       _whatsapp,
+      _chavePix,
       _endereco,
       _horario,
       _frete,
@@ -50,6 +52,7 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
     _nome.text = loja.nome;
     _descricao.text = loja.descricao;
     _whatsapp.text = loja.whatsapp;
+    _chavePix.text = loja.chavePix ?? '';
     _endereco.text = _servico.dados.endereco;
     _horario.text = _servico.dados.horario;
     _frete.text = numero.format(loja.freteFixo);
@@ -60,6 +63,8 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
     final frete = _frete.text.trim().isEmpty ? 0.0 : lerNumero(_frete.text);
     final minimo = _minimo.text.trim().isEmpty ? 0.0 : lerNumero(_minimo.text);
     final zap = _whatsapp.text.replaceAll(RegExp(r'\D'), '');
+    final chave = _chavePix.text.trim();
+    final erroChave = chave.isEmpty ? null : chavePixInvalida(chave);
     if (_nome.text.trim().length < 2) {
       return avisar(context, 'Informe o nome da loja.');
     }
@@ -69,6 +74,7 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
     if (zap.isNotEmpty && (zap.length < 10 || zap.length > 13)) {
       return avisar(context, 'WhatsApp com DDD, só números.');
     }
+    if (erroChave != null) return avisar(context, erroChave);
     setState(() => _salvando = true);
     try {
       await _servico.atualizar({
@@ -77,6 +83,7 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
             ? null
             : _descricao.text.trim(),
         'whatsapp': zap.isEmpty ? null : zap,
+        'chave_pix': chave.isEmpty ? null : chave,
         'endereco': _endereco.text.trim().isEmpty
             ? null
             : _endereco.text.trim(),
@@ -208,6 +215,14 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
                                     controller: _whatsapp,
                                     teclado: TextInputType.phone,
                                     dica: '(44) 99999-0000',
+                                  ),
+                                  const SizedBox(height: Espaco.s3),
+                                  CampoTexto(
+                                    key: const ValueKey('chave-pix'),
+                                    rotulo: 'Chave PIX',
+                                    controller: _chavePix,
+                                    maxLength: 77,
+                                    ajuda: 'CPF, CNPJ, e-mail, celular com +55 ou chave aleatória',
                                   ),
                                   const SizedBox(height: Espaco.s3),
                                   CampoTexto(

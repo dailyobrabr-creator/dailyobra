@@ -74,6 +74,7 @@ class _PedidoLojaScreenState extends State<PedidoLojaScreen> {
         final gere = LojaService.instance.meuPapel.gere;
         final proximo = pedido.status.proximo;
         final pago = pedido.pagamentoConfirmadoEm != null;
+        final informado = pedido.pagamentoInformadoEm;
         final podeCancelar =
             pedido.status == StatusPedido.confirmado ||
             pedido.status == StatusPedido.emSeparacao;
@@ -141,15 +142,36 @@ class _PedidoLojaScreenState extends State<PedidoLojaScreen> {
                 titulo: 'Pagamento',
                 child: Padding(
                   padding: const EdgeInsets.all(Espaco.s4),
-                  child: Text(
-                    pago
-                        ? 'Confirmado em ${dataHora(pedido.pagamentoConfirmadoEm!)}.'
-                        : 'Combine com o construtor e confirme aqui quando receber.',
-                    style: t.bodyMedium,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (!pago && informado != null) ...[
+                        Aviso(
+                          'Cliente informou o pagamento às ${hora(informado)}, confira no banco.',
+                        ),
+                        const SizedBox(height: Espaco.s3),
+                      ],
+                      Text(
+                        pago
+                            ? 'Confirmado em ${dataHora(pedido.pagamentoConfirmadoEm!)}.'
+                            : 'Combine com o construtor e confirme aqui quando receber.',
+                        style: t.bodyMedium,
+                      ),
+                    ],
                   ),
                 ),
               ),
               const SizedBox(height: Espaco.s3),
+              if (pedido.status != StatusPedido.cancelado) ...[
+                Painel(
+                  titulo: 'Dados para a nota',
+                  child: Padding(
+                    padding: const EdgeInsets.all(Espaco.s4),
+                    child: _DadosDaNota(pedido: pedido),
+                  ),
+                ),
+                const SizedBox(height: Espaco.s3),
+              ],
               Painel(
                 titulo: 'Produtos',
                 child: Padding(
@@ -244,6 +266,130 @@ class _PedidoLojaScreenState extends State<PedidoLojaScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+/// Quem paga e em nome de quem sai a nota. O CPF/CNPJ vem de pedido_documentos (só a equipe da loja lê).
+class _DadosDaNota extends StatefulWidget {
+  const _DadosDaNota({required this.pedido});
+  final PedidoResumo pedido;
+
+  @override
+  State<_DadosDaNota> createState() => _DadosDaNotaState();
+}
+
+class _DadosDaNotaState extends State<_DadosDaNota> {
+  String? _documento;
+  bool _falhou = false;
+  int _busca = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _buscar();
+  }
+
+  @override
+  void didUpdateWidget(_DadosDaNota antigo) {
+    super.didUpdateWidget(antigo);
+    if (antigo.pedido.id != widget.pedido.id ||
+        antigo.pedido.documentoInformadoEm !=
+            widget.pedido.documentoInformadoEm) {
+      _buscar();
+    }
+  }
+
+  /// Zera o que já tinha e busca de novo; só a busca mais recente atualiza a tela.
+  Future<void> _buscar() async {
+    final minha = ++_busca;
+    _documento = null;
+    _falhou = false;
+    if (widget.pedido.documentoInformadoEm == null) return;
+    try {
+      final doc = await PropostasLojaService.instance.documentoDoPagador(
+        widget.pedido.id,
+      );
+      if (mounted && minha == _busca) setState(() => _documento = doc);
+    } catch (_) {
+      if (mounted && minha == _busca) setState(() => _falhou = true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.pedido;
+    final pagador = p.pagador;
+    if (pagador == null) {
+      return Text(
+        'O construtor ainda não escolheu quem paga.',
+        style: Theme.of(context).textTheme.bodyMedium,
+      );
+    }
+    final documento = p.documentoInformadoEm == null
+        ? 'Aguardando o cliente'
+        : _falhou
+        ? 'Não carregou'
+        : _documento == null
+        ? '…'
+        : formatarDocumento(_documento!);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _Dado(
+          'Quem paga',
+          pagador == Pagador.proprio
+              ? 'O próprio construtor'
+              : 'Cliente do construtor',
+        ),
+        if (p.pagadorNome != null) _Dado('Nome', p.pagadorNome!),
+        _Dado('CPF/CNPJ', documento),
+        if (_falhou)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () {
+                setState(() => _falhou = false);
+                _buscar();
+              },
+              child: const Text('Tentar de novo'),
+            ),
+          ),
+        if (p.pagadorWhatsapp != null)
+          _Dado('WhatsApp', telefone(p.pagadorWhatsapp!)),
+      ],
+    );
+  }
+}
+
+/// Linha rótulo/valor que quebra nomes longos e deixa copiar o valor para a nota.
+class _Dado extends StatelessWidget {
+  const _Dado(this.rotulo, this.valor);
+  final String rotulo;
+  final String valor;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            rotulo,
+            style: t.bodyMedium?.copyWith(color: context.cores.textoSuave),
+          ),
+          const SizedBox(width: Espaco.s3),
+          Expanded(
+            child: SelectableText(
+              valor,
+              textAlign: TextAlign.end,
+              style: t.bodyMedium,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

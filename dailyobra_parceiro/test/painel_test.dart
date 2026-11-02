@@ -61,9 +61,11 @@ PedidoResumo pedido(StatusPedido status) => PedidoResumo(
 void preparar({
   PapelLoja papel = PapelLoja.dono,
   List<PropostaResumo>? propostas,
+  Map<String, String> documentos = const {},
 }) {
   LojaService.instance.definirParaTeste(loja: minhaLoja, papel: papel);
   PropostasLojaService.instance.definirParaTeste(
+    documentos: documentos,
     propostas:
         propostas ??
         [
@@ -242,6 +244,145 @@ void main() {
           expect(find.text('Confirmar pagamento'), findsNothing);
         },
       );
+
+      testWidgets('pedido mostra os dados para a nota', (tester) async {
+        preparar(
+          propostas: [
+            proposta(
+              'p3',
+              status: StatusProposta.aceita,
+              pedido: PedidoResumo(
+                id: 'ped1',
+                status: StatusPedido.confirmado,
+                total: 500,
+                criadoEm: DateTime.now(),
+                pagador: Pagador.cliente,
+                pagadorNome: 'Ana Paula',
+                pagadorWhatsapp: '66999990000',
+                linkCodigo: 'COD',
+                documentoInformadoEm: DateTime.now(),
+              ),
+            ),
+          ],
+          documentos: {'ped1': '52998224725'},
+        );
+        await abrir(
+          tester,
+          const PedidoLojaScreen(pedidoId: 'ped1'),
+          escuro: escuro,
+        );
+        await rolarAte(tester, find.text('529.982.247-25'));
+        expect(find.text('Dados para a nota'), findsOneWidget);
+        expect(find.text('Cliente do construtor'), findsOneWidget);
+        expect(find.text('Ana Paula'), findsOneWidget);
+        expect(find.text('529.982.247-25'), findsOneWidget);
+
+        preparar(
+          propostas: [
+            proposta(
+              'p3',
+              status: StatusProposta.aceita,
+              pedido: pedido(StatusPedido.confirmado),
+            ),
+          ],
+        );
+        await abrir(
+          tester,
+          const PedidoLojaScreen(pedidoId: 'ped1'),
+          escuro: escuro,
+        );
+        await rolarAte(
+          tester,
+          find.text('O construtor ainda não escolheu quem paga.'),
+        );
+        expect(
+          find.text('O construtor ainda não escolheu quem paga.'),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('aviso de pagamento informado', (tester) async {
+        final informado = DateTime(2026, 11, 2, 14, 32);
+        PedidoResumo pedidoInformado({DateTime? confirmado}) => PedidoResumo(
+          id: 'ped1',
+          status: StatusPedido.confirmado,
+          total: 500,
+          criadoEm: DateTime(2026, 11, 2, 9),
+          pagador: Pagador.cliente,
+          pagadorNome: 'Ana Paula',
+          documentoInformadoEm: DateTime(2026, 11, 2, 14),
+          pagamentoInformadoEm: informado,
+          pagamentoConfirmadoEm: confirmado,
+        );
+        preparar(
+          propostas: [
+            proposta(
+              'p3',
+              status: StatusProposta.aceita,
+              pedido: pedidoInformado(),
+            ),
+          ],
+        );
+        await abrir(
+          tester,
+          const PedidoLojaScreen(pedidoId: 'ped1'),
+          escuro: escuro,
+        );
+        expect(
+          find.text('Cliente informou o pagamento às 14:32, confira no banco.'),
+          findsOneWidget,
+        );
+
+        preparar(
+          propostas: [
+            proposta(
+              'p3',
+              status: StatusProposta.aceita,
+              pedido: pedidoInformado(confirmado: DateTime(2026, 11, 2, 15)),
+            ),
+          ],
+        );
+        await abrir(
+          tester,
+          const PedidoLojaScreen(pedidoId: 'ped1'),
+          escuro: escuro,
+        );
+        expect(
+          find.textContaining('Cliente informou o pagamento'),
+          findsNothing,
+        );
+      });
+
+      testWidgets('minha loja salva a chave pix', (tester) async {
+        SharedPreferences.setMockInitialValues({});
+        final tema = await PreferenciaTema.carregar();
+        preparar();
+        await abrir(tester, MinhaLojaScreen(tema: tema), escuro: escuro);
+        final campo = find.byKey(const ValueKey('chave-pix'));
+        await rolarAte(tester, campo);
+        await tester.enterText(campo, '66999990000');
+        await rolarAte(tester, find.text('Salvar dados'));
+        await tester.tap(find.text('Salvar dados'));
+        await tester.pump();
+        expect(
+          find.text(
+            'Chave PIX inválida. Use CPF, CNPJ, e-mail, celular com +55 ou chave aleatória.',
+          ),
+          findsOneWidget,
+        );
+        expect(LojaService.instance.atualizacoesDeTeste, isEmpty);
+        await tester.pump(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
+        await rolarAte(tester, campo);
+        await tester.enterText(campo, '+5566999990000');
+        await rolarAte(tester, find.text('Salvar dados'));
+        await tester.tap(find.text('Salvar dados'));
+        await tester.pumpAndSettle();
+        expect(
+          LojaService.instance.atualizacoesDeTeste.single['chave_pix'],
+          '+5566999990000',
+        );
+      });
 
       testWidgets('promoção maior que o preço não é salva', (tester) async {
         preparar();

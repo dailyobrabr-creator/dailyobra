@@ -100,19 +100,36 @@ class PropostasLojaService extends ChangeNotifier {
   void definirParaTeste({
     List<PropostaResumo> propostas = const [],
     List<Construtor> construtores = const [],
+    Map<String, String> documentos = const {},
   }) {
     _propostas = propostas;
     _construtores = {for (final c in construtores) c.id: c};
+    _documentosDeTeste = documentos;
     _carregado = true;
     _erro = null;
     notifyListeners();
+  }
+
+  Map<String, String>? _documentosDeTeste;
+
+  /// CPF/CNPJ que vai na nota (pedido_documentos: só a equipe da loja lê).
+  Future<String?> documentoDoPagador(String pedidoId) async {
+    final teste = _documentosDeTeste;
+    if (teste != null) return teste[pedidoId];
+    final linha = await _db
+        .from('pedido_documentos')
+        .select('documento')
+        .eq('pedido_id', pedidoId)
+        .maybeSingle();
+    return linha?['documento'] as String?;
   }
 
   static const _colunas =
       'id, orcamento_id, loja_id, construtor_id, modo, status, subtotal_anunciado, desconto, frete, total, '
       'cashback_previsto, saldo_aplicado, mensagem_construtor, mensagem_loja, motivo_recusa, valida_ate, criada_em, '
       'proposta_itens(item_id, nome, unidade, tier, quantidade, preco_anunciado, preco_ofertado), '
-      'pedidos(id, status, total, pagamento_confirmado_em, entregue_em, criado_em)';
+      'pedidos(id, status, total, pagamento_confirmado_em, entregue_em, criado_em, pagador, pagador_nome, '
+      'pagador_whatsapp, link_codigo, documento_informado_em, pagamento_informado_em)';
 
   void iniciar(String lojaId) {
     if (_lojaId == lojaId && _canal != null) return;

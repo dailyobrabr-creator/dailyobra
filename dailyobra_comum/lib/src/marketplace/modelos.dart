@@ -96,6 +96,7 @@ class Loja {
     this.horario = '',
     this.freteACombinar = false,
     this.endereco = '',
+    this.chavePix,
   });
   final String id;
   final String nome;
@@ -122,6 +123,9 @@ class Loja {
   /// Endereço como a loja escreveu (rua, número, bairro ou unidades).
   final String endereco;
 
+  /// Chave PIX da loja (CPF, CNPJ, e-mail, celular com +55 ou aleatória); sem ela não há link de pagamento.
+  final String? chavePix;
+
   factory Loja.fromJson(Map<String, dynamic> j) {
     final criada = _data(j['criada_em']);
     return Loja(
@@ -140,6 +144,7 @@ class Loja {
       horario: (j['horario'] as String?) ?? '',
       freteACombinar: (j['frete_a_combinar'] as bool?) ?? false,
       endereco: (j['endereco'] as String?) ?? '',
+      chavePix: j['chave_pix'] as String?,
     );
   }
 }

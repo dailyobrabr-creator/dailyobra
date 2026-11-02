@@ -9,6 +9,7 @@ export 'src/marketplace/cotacao.dart';
 export 'src/marketplace/materiais_catalogo.dart';
 export 'src/marketplace/horario.dart';
 export 'src/marketplace/modelos.dart';
+export 'src/marketplace/pagamento.dart';
 export 'src/marketplace/planilha_precos.dart';
 export 'src/marketplace/propostas.dart';
 export 'src/marketplace/smart_list.dart';

@@ -1,4 +1,5 @@
 import 'modelos.dart';
+import 'pagamento.dart';
 
 /// Proposta, itens e pedido como os dois apps leem do banco (tabelas propostas, proposta_itens
 /// e pedidos). Toda mudança de estado é feita pelas funções do servidor.
@@ -47,6 +48,12 @@ class PedidoResumo {
     required this.criadoEm,
     this.pagamentoConfirmadoEm,
     this.entregueEm,
+    this.pagador,
+    this.pagadorNome,
+    this.pagadorWhatsapp,
+    this.linkCodigo,
+    this.documentoInformadoEm,
+    this.pagamentoInformadoEm,
   });
   final String id;
   final StatusPedido status;
@@ -55,6 +62,27 @@ class PedidoResumo {
   final DateTime? pagamentoConfirmadoEm;
   final DateTime? entregueEm;
 
+  /// Quem paga (nulo até o construtor escolher). O CPF/CNPJ de quem paga fica em pedido_documentos, só para a loja.
+  final Pagador? pagador;
+  final String? pagadorNome;
+  final String? pagadorWhatsapp;
+
+  /// Código do link de pagamento enviado ao cliente; nulo quando o construtor paga ou o link foi trocado.
+  final String? linkCodigo;
+  final DateTime? documentoInformadoEm;
+
+  /// Quando o cliente apertou "Já paguei" na página (a loja ainda confere e confirma).
+  final DateTime? pagamentoInformadoEm;
+
+  SituacaoPagamento get situacaoPagamento {
+    if (status == StatusPedido.cancelado) return SituacaoPagamento.cancelado;
+    if (pagamentoConfirmadoEm != null) return SituacaoPagamento.pago;
+    if (pagamentoInformadoEm != null) return SituacaoPagamento.informado;
+    if (pagador != null && documentoInformadoEm != null) return SituacaoPagamento.aguardandoPagamento;
+    if (pagador == Pagador.cliente) return SituacaoPagamento.aguardandoDados;
+    return SituacaoPagamento.semPagador;
+  }
+
   factory PedidoResumo.fromJson(Map<String, dynamic> j) => PedidoResumo(
     id: j['id'] as String,
     status: StatusPedido.fromCodigo(j['status'] as String?),
@@ -62,6 +90,12 @@ class PedidoResumo {
     criadoEm: DateTime.parse(j['criado_em'] as String).toLocal(),
     pagamentoConfirmadoEm: _data(j['pagamento_confirmado_em']),
     entregueEm: _data(j['entregue_em']),
+    pagador: Pagador.fromCodigo(j['pagador'] as String?),
+    pagadorNome: j['pagador_nome'] as String?,
+    pagadorWhatsapp: j['pagador_whatsapp'] as String?,
+    linkCodigo: j['link_codigo'] as String?,
+    documentoInformadoEm: _data(j['documento_informado_em']),
+    pagamentoInformadoEm: _data(j['pagamento_informado_em']),
   );
 }
 

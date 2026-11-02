@@ -36,6 +36,8 @@ class NegociacaoService extends ChangeNotifier {
   RealtimeChannel? _canal;
   Timer? _recarga;
   ResultadoEnvio? _resultadoTeste;
+  bool _teste = false;
+  String? _pixTeste;
   int _pedido = 0;
 
   List<PropostaResumo> get propostas => _propostas;
@@ -65,10 +67,13 @@ class NegociacaoService extends ChangeNotifier {
     List<PropostaResumo> propostas = const [],
     ResultadoEnvio? resultadoEnvio,
     String? erro,
+    String? pix,
   }) {
     _propostas = propostas;
     _resultadoTeste = resultadoEnvio;
     _erro = erro;
+    _teste = true;
+    _pixTeste = pix;
     _carregado = true;
     notifyListeners();
   }
@@ -79,7 +84,8 @@ class NegociacaoService extends ChangeNotifier {
       'valida_ate, criada_em, '
       'lojas(id, nome, descricao, logo_path, capa_path, whatsapp, cidade, uf, frete_fixo, pedido_minimo, aberta, criada_em), '
       'proposta_itens(item_id, nome, unidade, tier, quantidade, preco_anunciado, preco_ofertado), '
-      'pedidos(id, status, total, pagamento_confirmado_em, entregue_em, criado_em)';
+      'pedidos(id, status, total, pagamento_confirmado_em, entregue_em, criado_em, pagador, pagador_nome, '
+      'pagador_whatsapp, link_codigo, documento_informado_em, pagamento_informado_em)';
 
   /// Chamado ao entrar: carrega e passa a ouvir as mudanças das propostas e pedidos do usuário.
   void iniciar() {
@@ -227,4 +233,33 @@ class NegociacaoService extends ChangeNotifier {
     'p_pedido': pedidoId,
     'p_status': 'cancelado',
   });
+
+  /// PIX copia e cola da loja para o pedido (função pix_do_pedido); nulo quando a loja não tem chave PIX.
+  Future<String?> pixDoPedido(String pedidoId) async {
+    if (_teste) return _pixTeste;
+    final pix = await comMensagem(
+      () => _db.rpc('pix_do_pedido', params: {'p_pedido': pedidoId}),
+    );
+    return pix as String?;
+  }
+
+  /// "Eu pago": a nota sai no CPF/CNPJ do construtor (fica salvo no perfil).
+  Future<void> pagarEuMesmo(String pedidoId, String documento) =>
+      _acao('pagar_eu_mesmo', {'p_pedido': pedidoId, 'p_documento': documento});
+
+  /// Cria (ou troca) o link de pagamento do cliente e devolve o código.
+  Future<String> criarLink(
+    String pedidoId, {
+    required String nome,
+    required String whatsapp,
+  }) async {
+    final codigo = await comMensagem(
+      () => _db.rpc(
+        'criar_link_pagamento',
+        params: {'p_pedido': pedidoId, 'p_nome': nome, 'p_whatsapp': whatsapp},
+      ),
+    );
+    await carregar();
+    return codigo as String;
+  }
 }

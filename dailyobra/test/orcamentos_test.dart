@@ -170,6 +170,58 @@ void main() {
         expect(find.widgetWithText(OutlinedButton, 'Recusar'), findsOneWidget);
       });
 
+      testWidgets('pedido sem pagamento pergunta quem paga', (tester) async {
+        preparar();
+        NegociacaoService.instance.definirParaTeste(
+          propostas: [
+            proposta(
+              status: StatusProposta.aceita,
+              pedido: PedidoResumo(
+                id: 'ped1',
+                status: StatusPedido.confirmado,
+                total: 450,
+                criadoEm: DateTime.now(),
+              ),
+            ),
+          ],
+        );
+        await abrir(
+          tester,
+          const PedidoScreen(pedidoId: 'ped1'),
+          escuro: escuro,
+        );
+        expect(find.text('Quem paga este pedido?'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('pedido pago não pergunta quem paga', (tester) async {
+        preparar();
+        NegociacaoService.instance.definirParaTeste(
+          propostas: [
+            proposta(
+              status: StatusProposta.aceita,
+              pedido: PedidoResumo(
+                id: 'ped1',
+                status: StatusPedido.confirmado,
+                total: 450,
+                criadoEm: DateTime.now(),
+                pagamentoConfirmadoEm: DateTime.now(),
+              ),
+            ),
+          ],
+        );
+        await abrir(
+          tester,
+          const PedidoScreen(pedidoId: 'ped1'),
+          escuro: escuro,
+        );
+        expect(find.text('Quem paga este pedido?'), findsNothing);
+        expect(
+          find.textContaining('A loja confirmou o pagamento'),
+          findsOneWidget,
+        );
+      });
+
       testWidgets('pedido saiu para entrega marca o terceiro passo', (
         tester,
       ) async {

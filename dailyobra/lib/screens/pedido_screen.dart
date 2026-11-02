@@ -1,8 +1,11 @@
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/negociacao_service.dart';
+import '../services/perfil_service.dart';
 import 'componentes.dart';
+import 'quem_paga.dart';
 
 const _passos = [
   StatusPedido.confirmado,
@@ -29,6 +32,11 @@ class PedidoScreen extends StatefulWidget {
 
 class _PedidoScreenState extends State<PedidoScreen> {
   bool _ocupado = false;
+
+  Future<void> _abrirLink(Uri uri) async {
+    final abriu = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!abriu && mounted) avisar(context, 'Não deu para abrir o WhatsApp.');
+  }
 
   Future<void> _cancelar(PropostaResumo p) async {
     final ok = await showDialog<bool>(
@@ -205,18 +213,32 @@ class _PedidoScreenState extends State<PedidoScreen> {
             ),
           ),
         const SizedBox(height: Espaco.s3),
-        Painel(
-          titulo: 'Pagamento',
-          child: Padding(
-            padding: const EdgeInsets.all(Espaco.s4),
-            child: Text(
-              pago
-                  ? 'A loja confirmou o pagamento em ${dataHora(pedido.pagamentoConfirmadoEm!)}.'
-                  : 'Combine o pagamento direto com a loja. Ela confirma aqui quando receber.',
-              style: t.bodyMedium,
+        if (pago)
+          Painel(
+            titulo: 'Pagamento',
+            child: Padding(
+              padding: const EdgeInsets.all(Espaco.s4),
+              child: Text(
+                'A loja confirmou o pagamento em ${dataHora(pedido.pagamentoConfirmadoEm!)}.',
+                style: t.bodyMedium,
+              ),
             ),
+          )
+        else if (pedido.status != StatusPedido.cancelado)
+          QuemPaga(
+            pedido: pedido,
+            nomeLoja: p.lojaNome,
+            documentoDoPerfil: PerfilService.instance.documento,
+            pix: () => NegociacaoService.instance.pixDoPedido(pedido.id),
+            pagarEuMesmo: (doc) =>
+                NegociacaoService.instance.pagarEuMesmo(pedido.id, doc),
+            criarLink: (nome, zap) => NegociacaoService.instance.criarLink(
+              pedido.id,
+              nome: nome,
+              whatsapp: zap,
+            ),
+            abrirLink: _abrirLink,
           ),
-        ),
         if (p.cashbackPrevisto > 0 &&
             pedido.status != StatusPedido.cancelado) ...[
           const SizedBox(height: Espaco.s3),

@@ -21,6 +21,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
   late final _nome = TextEditingController(text: _perfil.nome);
   late final _empresa = TextEditingController(text: _perfil.empresa);
   late final _cidade = TextEditingController(text: _perfil.cidade ?? '');
+  late final _documento = TextEditingController(text: _perfil.documento ?? '');
   late String? _uf = _perfil.uf;
   bool _salvando = false;
 
@@ -36,6 +37,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
     _nome.dispose();
     _empresa.dispose();
     _cidade.dispose();
+    _documento.dispose();
     super.dispose();
   }
 
@@ -44,12 +46,18 @@ class _PerfilScreenState extends State<PerfilScreen> {
     if (_nome.text.isEmpty) _nome.text = _perfil.nome;
     if (_empresa.text.isEmpty) _empresa.text = _perfil.empresa;
     if (_cidade.text.isEmpty) _cidade.text = _perfil.cidade ?? '';
+    if (_documento.text.isEmpty) _documento.text = _perfil.documento ?? '';
     setState(() => _uf ??= _perfil.uf);
   }
 
   Future<void> _salvar() async {
     if (_nome.text.trim().length < 2) {
       avisar(context, 'Informe seu nome.');
+      return;
+    }
+    if (_documento.text.trim().isNotEmpty &&
+        !documentoValido(_documento.text)) {
+      avisar(context, 'CPF ou CNPJ inválido. Confira os números.');
       return;
     }
     setState(() => _salvando = true);
@@ -59,6 +67,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
         empresa: _empresa.text,
         cidade: _cidade.text,
         uf: _uf,
+        documento: _documento.text,
       );
       if (mounted) avisar(context, 'Perfil salvo.');
     } catch (e) {
@@ -160,6 +169,14 @@ class _PerfilScreenState extends State<PerfilScreen> {
                         rotulo: 'Empresa',
                         controller: _empresa,
                         dica: 'Construtora ou nome profissional',
+                      ),
+                      const SizedBox(height: Espaco.s3),
+                      CampoTexto(
+                        key: const ValueKey('perfil-documento'),
+                        rotulo: 'CPF ou CNPJ',
+                        controller: _documento,
+                        teclado: TextInputType.number,
+                        ajuda: 'Vai na nota quando você mesmo paga o pedido.',
                       ),
                       const SizedBox(height: Espaco.s3),
                       Row(

@@ -122,6 +122,35 @@ void main() {
     });
   }
 
+  testWidgets('perfil recusa CPF ou CNPJ inválido', (tester) async {
+    final tema = await PreferenciaTema.carregar();
+    tester.view.physicalSize = const Size(1080, 2340);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      AppComTema(
+        titulo: 'DailyObra',
+        tema: tema,
+        claro: AppTheme.claro(ThemeData.light().textTheme),
+        escuro: AppTheme.escuro(ThemeData.dark().textTheme),
+        home: PerfilScreen(tema: tema),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('CPF ou CNPJ'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('perfil-documento')),
+      '123',
+    );
+    await tester.ensureVisible(find.text('Salvar'));
+    await tester.tap(find.text('Salvar'));
+    await tester.pump();
+    expect(
+      find.text('CPF ou CNPJ inválido. Confira os números.'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('perfil troca o tema do app para escuro', (tester) async {
     final tema = await PreferenciaTema.carregar();
     tester.view.physicalSize = const Size(1080, 2340);

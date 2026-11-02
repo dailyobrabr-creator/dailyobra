@@ -18,12 +18,16 @@ class PerfilService extends ChangeNotifier {
   String? _uf;
   String? _telefone;
   String? _emailTeste;
+  String? _documento;
 
   String get nome => _nome;
   String get empresa => _empresa;
   String? get cidade => _cidade;
   String? get uf => _uf;
   String? get telefone => _telefone;
+
+  /// CPF ou CNPJ só com dígitos; vai na nota quando o construtor mesmo paga o pedido.
+  String? get documento => _documento;
   String get email => _emailTeste ?? _db.auth.currentUser?.email ?? '';
 
   String get primeiroNome {
@@ -38,11 +42,13 @@ class PerfilService extends ChangeNotifier {
     String? cidade,
     String? uf,
     String? email,
+    String? documento,
   }) {
     _nome = nome;
     _empresa = empresa;
     _cidade = cidade;
     _uf = uf;
+    _documento = documento;
     _emailTeste = email ?? 'ana@exemplo.com';
     CatalogoService.instance.definirCidade(cidade);
     notifyListeners();
@@ -50,7 +56,7 @@ class PerfilService extends ChangeNotifier {
 
   void limpar() {
     _nome = _empresa = '';
-    _cidade = _uf = _telefone = null;
+    _cidade = _uf = _telefone = _documento = null;
     notifyListeners();
   }
 
@@ -60,7 +66,7 @@ class PerfilService extends ChangeNotifier {
     try {
       final j = await _db
           .from('profiles')
-          .select('nome, empresa, cidade, uf, telefone')
+          .select('nome, empresa, cidade, uf, telefone, documento')
           .eq('id', id)
           .maybeSingle();
       final meta = _db.auth.currentUser?.userMetadata ?? const {};
@@ -69,6 +75,7 @@ class PerfilService extends ChangeNotifier {
       _cidade = j?['cidade'] as String?;
       _uf = (j?['uf'] as String?)?.trim();
       _telefone = j?['telefone'] as String?;
+      _documento = j?['documento'] as String?;
       CatalogoService.instance.definirCidade(_cidade);
       notifyListeners();
     } catch (_) {
@@ -82,14 +89,17 @@ class PerfilService extends ChangeNotifier {
     required String empresa,
     String? cidade,
     String? uf,
+    String? documento,
   }) async {
     final id = _db.auth.currentUser?.id;
     if (id == null) throw Exception('Entre de novo para salvar o perfil.');
+    final doc = somenteDigitos(documento ?? '');
     final dados = {
       'nome': nome.trim(),
       'empresa': empresa.trim(),
       'cidade': (cidade?.trim().isEmpty ?? true) ? null : cidade!.trim(),
       'uf': (uf?.trim().isEmpty ?? true) ? null : uf!.trim().toUpperCase(),
+      'documento': doc.isEmpty ? null : doc,
     };
     try {
       await _db.from('profiles').upsert({'id': id, ...dados});
@@ -100,6 +110,7 @@ class PerfilService extends ChangeNotifier {
     _empresa = dados['empresa']!;
     _cidade = dados['cidade'];
     _uf = dados['uf'];
+    _documento = dados['documento'];
     CatalogoService.instance.definirCidade(_cidade);
     notifyListeners();
   }

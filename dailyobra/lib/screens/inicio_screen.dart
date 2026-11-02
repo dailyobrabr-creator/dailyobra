@@ -1022,9 +1022,9 @@ class _ListaInteligenteState extends State<_ListaInteligente> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Cotar agora'),
+            RaioReto(),
             SizedBox(width: Espaco.s2),
-            Icon(Icons.arrow_forward_rounded, size: 18),
+            Text('Cotar agora'),
           ],
         ),
       ),

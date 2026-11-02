@@ -385,3 +385,43 @@ class SeloAberta extends StatelessWidget {
     );
   }
 }
+
+/// Raio desenhado e centralizado na própria caixa (o ícone `bolt` do Material fica inclinado
+/// e deslocado). Usa a cor do ícone ao redor, como um `Icon`.
+class RaioReto extends StatelessWidget {
+  const RaioReto({super.key, this.tamanho = 18, this.cor});
+  final double tamanho;
+  final Color? cor;
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = IconTheme.of(context);
+    return CustomPaint(
+      size: Size.square(tamanho),
+      painter: _PintorRaio(cor ?? tema.color ?? DefaultTextStyle.of(context).style.color ?? Colors.black),
+    );
+  }
+}
+
+class _PintorRaio extends CustomPainter {
+  _PintorRaio(this.cor);
+  final Color cor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Raio numa grade 24 × 24, com a caixa do desenho (x 5 a 19, y 2 a 22) no centro
+    final e = size.width / 24;
+    final raio = Path()
+      ..moveTo(13.5 * e, 2 * e)
+      ..lineTo(5 * e, 13.5 * e)
+      ..lineTo(11.5 * e, 13.5 * e)
+      ..lineTo(10.5 * e, 22 * e)
+      ..lineTo(19 * e, 10.5 * e)
+      ..lineTo(12.5 * e, 10.5 * e)
+      ..close();
+    canvas.drawPath(raio, Paint()..color = cor..isAntiAlias = true);
+  }
+
+  @override
+  bool shouldRepaint(_PintorRaio antigo) => antigo.cor != cor;
+}

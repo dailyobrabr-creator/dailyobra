@@ -173,14 +173,24 @@ void main() {
           expect(find.text('Contraproposta'), findsOneWidget);
           expect(find.textContaining('Responda em'), findsOneWidget);
           expect(find.text('Pedido saiu para entrega'), findsOneWidget);
-          // Botão da lista inteligente: seta à direita, sem o raio desalinhado
+          // Botão da lista inteligente: raio desenhado e centralizado, não o glifo torto
           expect(find.byIcon(Icons.bolt), findsNothing);
+          final raio = find.descendant(
+            of: find.byKey(const Key('cotar-agora')),
+            matching: find.byType(RaioReto),
+          );
+          expect(raio, findsOneWidget);
+          final texto = find.descendant(
+            of: find.byKey(const Key('cotar-agora')),
+            matching: find.text('Cotar agora'),
+          );
           expect(
-            find.descendant(
-              of: find.byKey(const Key('cotar-agora')),
-              matching: find.byIcon(Icons.arrow_forward_rounded),
-            ),
-            findsOneWidget,
+            tester.getCenter(raio).dy,
+            moreOrLessEquals(tester.getCenter(texto).dy, epsilon: 1),
+          );
+          expect(
+            tester.getCenter(raio).dx,
+            lessThan(tester.getCenter(texto).dx),
           );
 
           final etapas = Calculo.de(parametros).resultado!.etapas;

@@ -17,6 +17,8 @@ dependencies:
   intl: ^0.20.3
   http: ^1.2.0
   shared_preferences: ^2.5.3
+  archive: ^4.0.0
+  xml: ^7.0.0
 
 dev_dependencies:
   flutter_test:

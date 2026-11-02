@@ -30,6 +30,29 @@ void main() {
     expect(claro.colorScheme.primary, const Color(0xFFA43F05));
   });
 
+  testWidgets('campo de senha tem o olho para mostrar e esconder', (tester) async {
+    final controle = TextEditingController(text: 'segredo123');
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.claro(ThemeData.light().textTheme),
+      home: Scaffold(body: CampoTexto(rotulo: 'Senha', controller: controle, senha: true)),
+    ));
+    bool escondida() => tester.widget<EditableText>(find.byType(EditableText)).obscureText;
+    expect(escondida(), isTrue);
+    await tester.tap(find.byTooltip('Mostrar senha'));
+    await tester.pump();
+    expect(escondida(), isFalse);
+    await tester.tap(find.byTooltip('Esconder senha'));
+    await tester.pump();
+    expect(escondida(), isTrue);
+  });
+
+  testWidgets('campo comum não tem o olho', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(body: CampoTexto(rotulo: 'Nome', controller: TextEditingController())),
+    ));
+    expect(find.byTooltip('Mostrar senha'), findsNothing);
+  });
+
   testWidgets('PreferenciaTema guarda a escolha', (tester) async {
     TestWidgetsFlutterBinding.ensureInitialized();
     SharedPreferences.setMockInitialValues({});

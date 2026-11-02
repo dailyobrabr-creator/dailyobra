@@ -169,6 +169,15 @@ void main() {
           expect(find.text('Contraproposta'), findsOneWidget);
           expect(find.textContaining('Responda em'), findsOneWidget);
           expect(find.text('Pedido saiu para entrega'), findsOneWidget);
+          // Botão da lista inteligente: seta à direita, sem o raio desalinhado
+          expect(find.byIcon(Icons.bolt), findsNothing);
+          expect(
+            find.descendant(
+              of: find.byKey(const Key('cotar-agora')),
+              matching: find.byIcon(Icons.arrow_forward_rounded),
+            ),
+            findsOneWidget,
+          );
 
           final etapas = Calculo.de(parametros).resultado!.etapas;
           final percentual = progresso(etapas, statusObra);

@@ -972,10 +972,24 @@ class _ListaInteligenteState extends State<_ListaInteligente> {
         hintText: 'Cole a lista da obra: 100 sacos de cimento…',
       ),
     );
-    final botao = FilledButton.icon(
-      onPressed: _cotar,
-      icon: const Icon(Icons.bolt),
-      label: const Text('Cotar agora'),
+    final botao = SizedBox(
+      height: 48,
+      child: FilledButton(
+        key: const Key('cotar-agora'),
+        onPressed: _cotar,
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: Espaco.s5),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Cotar agora'),
+            SizedBox(width: Espaco.s2),
+            Icon(Icons.arrow_forward_rounded, size: 18),
+          ],
+        ),
+      ),
     );
     return _Cartao(
       child: widget.compacta

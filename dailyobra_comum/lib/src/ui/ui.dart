@@ -175,7 +175,7 @@ class Rotulo extends StatelessWidget {
   }
 }
 
-class CampoTexto extends StatelessWidget {
+class CampoTexto extends StatefulWidget {
   const CampoTexto({
     super.key,
     required this.rotulo,
@@ -208,21 +208,42 @@ class CampoTexto extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
 
   @override
+  State<CampoTexto> createState() => _CampoTextoState();
+}
+
+class _CampoTextoState extends State<CampoTexto> {
+  /// Senha à mostra pelo botão do olho
+  bool _visivel = false;
+
+  @override
   Widget build(BuildContext context) {
+    final w = widget;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Rotulo(rotulo, obrigatorio: obrigatorio),
+        Rotulo(w.rotulo, obrigatorio: w.obrigatorio),
         TextField(
-          controller: controller,
-          keyboardType: teclado,
-          textInputAction: acao,
-          obscureText: senha,
-          autofillHints: autofill,
-          maxLength: maxLength,
-          onChanged: onChanged,
-          onSubmitted: onSubmitted,
-          decoration: InputDecoration(hintText: dica, helperText: erro == null ? ajuda : null, errorText: erro, counterText: ''),
+          controller: w.controller,
+          keyboardType: w.teclado,
+          textInputAction: w.acao,
+          obscureText: w.senha && !_visivel,
+          autofillHints: w.autofill,
+          maxLength: w.maxLength,
+          onChanged: w.onChanged,
+          onSubmitted: w.onSubmitted,
+          decoration: InputDecoration(
+            hintText: w.dica,
+            helperText: w.erro == null ? w.ajuda : null,
+            errorText: w.erro,
+            counterText: '',
+            suffixIcon: w.senha
+                ? IconButton(
+                    tooltip: _visivel ? 'Esconder senha' : 'Mostrar senha',
+                    onPressed: () => setState(() => _visivel = !_visivel),
+                    icon: Icon(_visivel ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                  )
+                : null,
+          ),
         ),
       ],
     );

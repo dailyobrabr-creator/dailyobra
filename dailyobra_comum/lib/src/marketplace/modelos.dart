@@ -38,6 +38,8 @@ class ItemCatalogo {
     required this.tier,
     this.sinonimos = const [],
     this.imagemUrl,
+    this.precoReferencia,
+    this.fonteReferencia,
   });
   final String id;
   final String nome;
@@ -47,15 +49,29 @@ class ItemCatalogo {
   final List<String> sinonimos;
   final String? imagemUrl;
 
-  factory ItemCatalogo.fromJson(Map<String, dynamic> j) => ItemCatalogo(
-        id: j['id'] as String,
-        nome: j['nome'] as String,
-        unidade: j['unidade'] as String,
-        categoriaId: j['categoria_id'] as String,
-        tier: (j['tier_cashback'] as num).toInt(),
-        sinonimos: [for (final s in (j['sinonimos'] as List? ?? const [])) s as String],
-        imagemUrl: urlPublica(j['imagem_path'] as String?),
-      );
+  /// Preço de referência na unidade do item (ex.: SINAPI), mostrado só quando nenhuma loja oferta. Não entra em cotação.
+  final double? precoReferencia;
+  final String? fonteReferencia;
+
+  factory ItemCatalogo.fromJson(Map<String, dynamic> j) {
+    // O PostgREST embute catalogo_referencias como objeto (1 para 1) ou como lista
+    final ref = switch (j['catalogo_referencias']) {
+      Map m => m,
+      [Map m, ...] => m,
+      _ => null,
+    };
+    return ItemCatalogo(
+      id: j['id'] as String,
+      nome: j['nome'] as String,
+      unidade: j['unidade'] as String,
+      categoriaId: j['categoria_id'] as String,
+      tier: (j['tier_cashback'] as num).toInt(),
+      sinonimos: [for (final s in (j['sinonimos'] as List? ?? const [])) s as String],
+      imagemUrl: urlPublica(j['imagem_path'] as String?),
+      precoReferencia: _valorOuNulo(ref?['preco']),
+      fonteReferencia: ref?['fonte'] as String?,
+    );
+  }
 
   @override
   bool operator ==(Object other) => other is ItemCatalogo && other.id == id;

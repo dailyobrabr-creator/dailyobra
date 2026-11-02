@@ -60,6 +60,19 @@ void main() {
     expect(Categoria.fromJson({'id': 'basico', 'nome': 'Básico', 'ordem': 1}).nome, 'Básico');
   });
 
+  test('item do catálogo lê a referência SINAPI embutida (objeto ou lista)', () {
+    Map<String, dynamic> item(Object? ref) => {
+          'id': 'cimento-cp2-50kg', 'nome': 'Cimento CP II 50 kg', 'unidade': 'saco', 'categoria_id': 'basico',
+          'tier_cashback': 1, 'sinonimos': const [], 'imagem_path': null, 'catalogo_referencias': ref,
+        };
+    final objeto = ItemCatalogo.fromJson(item({'preco': 55, 'fonte': 'SINAPI MT set/26'}));
+    expect(objeto.precoReferencia, 55.0);
+    expect(objeto.fonteReferencia, 'SINAPI MT set/26');
+    expect(ItemCatalogo.fromJson(item([{'preco': '1.15', 'fonte': 'SINAPI MT set/26'}])).precoReferencia, 1.15);
+    expect(ItemCatalogo.fromJson(item(null)).precoReferencia, isNull);
+    expect(ItemCatalogo.fromJson(item(const [])).precoReferencia, isNull);
+  });
+
   test('status têm código do banco e rótulo em português', () {
     expect(StatusPedido.fromCodigo('saiu_entrega'), StatusPedido.saiuEntrega);
     expect(StatusPedido.emSeparacao.rotulo, 'Em separação');

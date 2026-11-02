@@ -191,7 +191,12 @@ class CartaoProduto extends StatelessWidget {
                     Text(item.nome, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.titleSmall),
                     const SizedBox(height: Espaco.s1),
                     if (oferta == null)
-                      Text('Sem oferta no momento', style: t.bodySmall?.copyWith(color: c.textoSuave))
+                      Text(
+                        item.precoReferencia == null
+                            ? 'Sem oferta no momento'
+                            : '${'Referência ${item.fonteReferencia ?? ''}'.trim()}: ${brl.format(item.precoReferencia)}',
+                        style: t.bodySmall?.copyWith(color: c.textoSuave),
+                      )
                     else ...[
                       PrecoOferta(oferta: oferta, hoje: hoje, unidade: item.unidade, aPartirDe: lojas > 1),
                       if (lojas > 0)

@@ -54,7 +54,7 @@ class CartaoOferta extends StatelessWidget {
   const CartaoOferta({super.key, required this.item, required this.oferta, required this.hoje, this.nomeLoja, this.onTap, this.largura});
   final ItemCatalogo item;
 
-  /// Sem oferta, o cartão mostra "Sem oferta no momento" no lugar do preço.
+  /// Sem oferta, o cartão mostra o preço de referência do item (ex.: SINAPI) ou "Sem oferta no momento".
   final Oferta? oferta;
   final DateTime hoje;
   final String? nomeLoja;
@@ -70,6 +70,8 @@ class CartaoOferta extends StatelessWidget {
     final promo = oferta?.emPromocao(hoje) ?? false;
     final vigente = oferta == null ? null : oferta.precoVigente(hoje) ?? oferta.preco;
     final desconto = promo ? ((1 - vigente! / oferta!.preco) * 100).round() : 0;
+    // Sem oferta, o preço de referência do item (ex.: SINAPI) entra no lugar do aviso, em cor suave
+    final referencia = vigente == null ? item.precoReferencia : null;
     final estiloNome = t.titleSmall?.copyWith(fontWeight: FontWeight.w600, height: 1.3);
     final alturaNome = MediaQuery.textScalerOf(context).scale(estiloNome?.fontSize ?? 14) * 1.3 * 2;
     final icone = Icon(iconeDaCategoria(item.categoriaId), size: 40, color: cor.icone);
@@ -118,14 +120,16 @@ class CartaoOferta extends StatelessWidget {
                   Text(nomeLoja ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: t.bodySmall?.copyWith(color: c.textoSuave)),
                   const SizedBox(height: Espaco.s2),
                   Text(
-                    promo ? brl.format(oferta!.preco) : '',
-                    style: t.bodySmall?.copyWith(color: c.textoSuave, decoration: TextDecoration.lineThrough, fontFeatures: numerosTabulares),
+                    promo ? brl.format(oferta!.preco) : referencia != null ? 'Referência ${item.fonteReferencia ?? ''}'.trim() : '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: t.bodySmall?.copyWith(color: c.textoSuave, decoration: promo ? TextDecoration.lineThrough : null, fontFeatures: numerosTabulares),
                   ),
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      vigente == null ? 'Sem oferta no momento' : brl.format(vigente),
+                      vigente != null ? brl.format(vigente) : referencia != null ? brl.format(referencia) : 'Sem oferta no momento',
                       style: t.titleMedium?.copyWith(color: vigente == null ? c.textoSuave : c.acao, fontWeight: FontWeight.w700, fontFeatures: numerosTabulares),
                     ),
                   ),

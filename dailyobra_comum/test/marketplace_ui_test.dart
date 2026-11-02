@@ -9,6 +9,10 @@ final temas = {
 
 final nomeLongo = 'Porcelanato retificado acetinado bege areia 60 x 60 cm caixa com 2,16 m² extra'.padRight(80, 'x');
 final item = ItemCatalogo(id: 'p', nome: nomeLongo, unidade: 'm²', categoriaId: 'acabamento', tier: 4);
+const itemComReferencia = ItemCatalogo(
+  id: 'cimento-cp2-50kg', nome: 'Cimento CP II 50 kg', unidade: 'saco', categoriaId: 'basico', tier: 1,
+  precoReferencia: 55, fonteReferencia: 'SINAPI MT set/26',
+);
 final hoje = DateTime(2026, 10, 31);
 final promo = Oferta(lojaId: 'a', itemId: 'p', preco: 89.90, precoPromocional: 74.50, promoAte: DateTime(2026, 11, 5));
 const loja = Loja(
@@ -43,6 +47,27 @@ void main() {
         await montar(tester, tema, CartaoProduto(item: item, hoje: hoje));
         expect(tester.takeException(), isNull);
         expect(find.text('Sem oferta no momento'), findsOneWidget);
+      });
+
+      testWidgets('sem oferta, os cartões mostram a referência SINAPI', (tester) async {
+        await montar(tester, tema, Column(children: [
+          CartaoProduto(item: itemComReferencia, hoje: hoje),
+          SizedBox(width: 180, child: CartaoOferta(item: itemComReferencia, oferta: null, hoje: hoje)),
+        ]));
+        expect(tester.takeException(), isNull);
+        expect(find.text('Referência SINAPI MT set/26: ${brl.format(55)}'), findsOneWidget);
+        expect(find.text('Referência SINAPI MT set/26'), findsOneWidget);
+        expect(find.text(brl.format(55)), findsOneWidget);
+        expect(find.text('Sem oferta no momento'), findsNothing);
+      });
+
+      testWidgets('com oferta, a referência SINAPI não aparece', (tester) async {
+        await montar(tester, tema, Column(children: [
+          CartaoProduto(item: itemComReferencia, melhorOferta: promo, lojas: 1, hoje: hoje),
+          SizedBox(width: 180, child: CartaoOferta(item: itemComReferencia, oferta: promo, hoje: hoje)),
+        ]));
+        expect(tester.takeException(), isNull);
+        expect(find.textContaining('Referência'), findsNothing);
       });
 
       testWidgets('cartão de loja com nome longo cabe em 360 px', (tester) async {

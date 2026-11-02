@@ -12,6 +12,7 @@ Painel da loja no marketplace DailyObra, no estilo dos apps de parceiros de deli
   - Pedido direto: confirmar ou recusar.
   - Pedido: marcar Em separação, Saiu para entrega e Entregue; confirmar o pagamento (libera o cashback do construtor junto com a entrega); cancelar enquanto não saiu.
 - **Produtos**: o catálogo mestre do DailyObra com o preço da loja em cada item, busca, filtro e categoria. Em cada produto: preço, promoção com data final, disponibilidade (disponível, sob consulta, sem estoque) e pausa.
+- **Importar planilha** (ícone no topo de Produtos, para dono e gerente): a loja escolhe o CSV ou o Excel (.xlsx) exportado do sistema dela, até 3.000 produtos. O app acha as colunas pelo cabeçalho (ou pede para apontar produto e preço), liga cada produto ao catálogo como a lista inteligente, e mostra a revisão: ligados já marcados, "qual destes?" quando há dúvida, unidade diferente e preço inválido desmarcados, repetidos com só o mais barato marcado. Grava tudo de uma vez; os preços que não estão na planilha não mudam. No fim, a lista do que ficou fora do catálogo.
 - **Minha loja**: capa e logo (galeria, reduzidas antes de enviar, até 2 MB), dados da loja, tema claro ou escuro e equipe.
 - **Equipe** (só o dono): convida por e-mail quem já tem conta, como gerente ou vendedor, e remove integrantes.
 

@@ -107,6 +107,10 @@ As regras do banco são conferidas por `supabase/tests/marketplace_test.sql` (ro
 
 O Avast examina conexões HTTPS e o Java do Gradle não confia no certificado dele. Os dois apps já apontam o Gradle para `C:\Users\luizh\.gradle\dailyobra-certificados.jks` (criado por `dailyobra\tool\certificados_gradle.ps1`), em `android\gradle.properties`. Nada no Windows, no Avast ou no Java foi alterado. Em outro computador sem Avast, apague as duas opções `-Djavax.net.ssl.*` desse arquivo; com Avast, rode o script lá também.
 
+## Importar planilha de preços (app Parceiros)
+
+Em **Produtos e preços**, o ícone de enviar arquivo abre a importação (só para dono e gerente). Aceita CSV (separado por `;`, `,` ou tabulação, em UTF-8 ou no padrão do Excel) e Excel `.xlsx` (primeira planilha), até 3.000 produtos. O cabeçalho pode ter "Produto"/"Descrição", "Preço"/"Valor", "Preço promocional", "Unidade" e "Código" em qualquer ordem; se não tiver, a loja aponta as colunas. Cada produto é ligado ao catálogo pelo mesmo reconhecimento da lista inteligente, e a loja confere antes de gravar. A leitura fica em `dailyobra_comum/lib/src/marketplace/planilha_precos.dart`; a tela, em `dailyobra_parceiro/lib/screens/importar_planilha_screen.dart`.
+
 ## Lojas cadastradas pelo suporte
 
 Operário, Comapa e Taipa (Rondonópolis-MT) foram cadastradas com os dados públicos dos sites delas, sem conta dona, sem preços e com **frete a combinar** (o app mostra "Frete a combinar" até a loja salvar o frete). Quando cada loja criar a conta no app Parceiros (sem cadastrar a loja de novo, porque o CNPJ já existe), ligue a conta à loja no **SQL Editor** do Supabase:
@@ -117,7 +121,7 @@ select l.id, u.id, 'dono' from public.lojas l, auth.users u
 where l.cnpj = '04769422000187' and u.email = 'email-da-loja@exemplo.com';
 ```
 
-CNPJs: Operário `36931301000186`, Comapa `04769422000187`, Taipa `33651993000463`. A partir daí a loja edita o perfil, o frete e os preços pelo app Parceiros. As logos e capas delas (montadas a partir das logos oficiais) ficam em `dailyobra/web/lojas/` e são servidas pelo site; quando a loja trocar a logo pelo app, passa a valer a dela.
+CNPJs: Operário `36931301000186`, Comapa `04769422000187`, Taipa `33651993000463`. A partir daí a loja edita o perfil, o frete e os preços pelo app Parceiros, e pode subir a planilha de preços de uma vez (Produtos e preços > Importar planilha). As logos e capas delas (montadas a partir das logos oficiais) ficam em `dailyobra/web/lojas/` e são servidas pelo site; quando a loja trocar a logo pelo app, passa a valer a dela.
 
 O selo **aberta / fechada** sai do horário que a loja escreve ("Seg a sex 7h às 18h; sáb 7h às 12h"), no fuso do estado dela. O interruptor do app Parceiros pausa os pedidos (a loja sai da cotação) sem apagar o horário.
 

@@ -32,6 +32,18 @@ class LojaScreen extends StatelessWidget {
     final hoje = DateTime.now();
     final carrinho = CarrinhoService.instance;
     final formato = formatoDoContexto(context);
+    final situacao = situacaoDaLoja(loja, hoje);
+    Widget linha(IconData icone, String texto) => Padding(
+      padding: const EdgeInsets.only(top: Espaco.s2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icone, size: 18, color: c.textoSuave),
+          const SizedBox(width: Espaco.s2),
+          Expanded(child: Text(texto, style: t.bodyMedium)),
+        ],
+      ),
+    );
     final dados = <Widget>[
       Text(loja.nome, style: t.headlineSmall),
       const SizedBox(height: 2),
@@ -39,11 +51,24 @@ class LojaScreen extends StatelessWidget {
         '${loja.cidade} · ${loja.uf}',
         style: t.bodyMedium?.copyWith(color: c.textoSuave),
       ),
-      const SizedBox(height: Espaco.s1),
-      Text(
-        freteEMinimo(loja),
-        style: t.bodyMedium?.copyWith(fontFeatures: numerosTabulares),
-      ),
+      if (situacao.estado != EstadoLoja.semHorario) ...[
+        const SizedBox(height: Espaco.s2),
+        Row(
+          children: [
+            SeloSituacao(situacao: situacao),
+            if (situacao.detalhe.isNotEmpty) ...[
+              const SizedBox(width: Espaco.s2),
+              Text(
+                situacao.detalhe,
+                style: t.bodySmall?.copyWith(color: c.textoSuave),
+              ),
+            ],
+          ],
+        ),
+      ],
+      linha(Icons.local_shipping_outlined, freteEMinimo(loja)),
+      if (loja.endereco.isNotEmpty) linha(Icons.place_outlined, loja.endereco),
+      if (loja.horario.isNotEmpty) linha(Icons.schedule_outlined, loja.horario),
       if (loja.descricao.isNotEmpty) ...[
         const SizedBox(height: Espaco.s3),
         Text(
@@ -63,7 +88,7 @@ class LojaScreen extends StatelessWidget {
       ],
     ];
     const fechada = Aviso(
-      'Loja fechada agora. Os preços aparecem, mas ela não entra na cotação.',
+      'Esta loja pausou os pedidos pelo app. Os preços aparecem, mas ela não entra na cotação.',
       tom: TomSelo.aviso,
     );
     const semProdutos = EstadoVazio(

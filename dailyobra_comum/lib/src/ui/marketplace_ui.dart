@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../marketplace/horario.dart';
 import '../marketplace/modelos.dart';
 import '../tema/categorias.dart';
 import '../tema/cores.dart';
@@ -227,9 +228,12 @@ String freteEMinimo(Loja loja) {
 }
 
 class CartaoLoja extends StatelessWidget {
-  const CartaoLoja({super.key, required this.loja, this.onTap, this.detalhe, this.ofertas});
+  const CartaoLoja({super.key, required this.loja, this.onTap, this.detalhe, this.ofertas, this.agora});
   final Loja loja;
   final VoidCallback? onTap;
+
+  /// Instante usado no selo aberta/fechada (testes); por padrão, agora.
+  final DateTime? agora;
 
   /// Linha extra, como "12 produtos em oferta".
   final String? detalhe;
@@ -271,7 +275,7 @@ class CartaoLoja extends StatelessWidget {
                       Transform.translate(offset: const Offset(0, -20), child: LogoLoja(loja: loja, tamanho: 52)),
                       const Spacer(),
                       if (loja.nova && loja.aberta) ...[const Selo('Nova', tom: TomSelo.info), const SizedBox(width: Espaco.s2)],
-                      Padding(padding: const EdgeInsets.only(top: Espaco.s2), child: SeloAberta(aberta: loja.aberta)),
+                      Padding(padding: const EdgeInsets.only(top: Espaco.s2), child: SeloSituacao(situacao: situacaoDaLoja(loja, agora ?? DateTime.now()))),
                     ],
                   ),
                   Transform.translate(

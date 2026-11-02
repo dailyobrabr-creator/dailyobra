@@ -7,6 +7,7 @@ export 'src/marketplace/busca.dart';
 export 'src/marketplace/cnpj.dart';
 export 'src/marketplace/cotacao.dart';
 export 'src/marketplace/materiais_catalogo.dart';
+export 'src/marketplace/horario.dart';
 export 'src/marketplace/modelos.dart';
 export 'src/marketplace/propostas.dart';
 export 'src/marketplace/smart_list.dart';

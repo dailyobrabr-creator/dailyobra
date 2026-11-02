@@ -341,6 +341,12 @@ void main() {
         await rolarAte(tester, find.byKey(const Key('lojas-perto')));
         expect(find.textContaining('Frete a combinar'), findsOneWidget);
         expect(find.textContaining('Frete grátis'), findsNothing);
+        expect(find.textContaining('ainda sem preços'), findsOneWidget);
+        expect(
+          find.text('aberta'),
+          findsNothing,
+          reason: 'sem horário, não afirma que está aberta',
+        );
       },
     );
 

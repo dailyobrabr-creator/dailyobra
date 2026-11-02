@@ -176,11 +176,28 @@ void main() {
       }
     });
 
-    testWidgets('loja fechada mostra o selo', (tester) async {
+    testWidgets('loja que pausou os pedidos mostra o selo', (tester) async {
       await montar(tester, temas['escuro']!, const CartaoLoja(loja: Loja(id: 'f', nome: 'Ferragens Sarandi', cidade: 'Sarandi', uf: 'PR', aberta: false), ofertas: 2));
       expect(tester.takeException(), isNull);
-      expect(find.text('fechada'), findsOneWidget);
+      expect(find.text('pedidos pausados'), findsOneWidget);
       expect(find.textContaining('2 ofertas'), findsOneWidget);
+    });
+
+    testWidgets('selo segue o horário da loja, não um aberta fixo', (tester) async {
+      const loja = Loja(id: 'c', nome: 'Comapa', cidade: 'Rondonópolis', uf: 'MT', horario: 'Seg a sex 7h às 17h30; sáb 7h às 12h30');
+      // Domingo 22h52 em Rondonópolis
+      await montar(tester, temas['claro']!, CartaoLoja(loja: loja, agora: DateTime.utc(2026, 11, 2, 2, 52)));
+      expect(find.text('fechada'), findsOneWidget);
+      expect(find.text('aberta'), findsNothing);
+      // Segunda 10h
+      await montar(tester, temas['claro']!, CartaoLoja(loja: loja, agora: DateTime.utc(2026, 11, 2, 14)));
+      expect(find.text('aberta'), findsOneWidget);
+    });
+
+    testWidgets('loja sem horário não diz que está aberta', (tester) async {
+      await montar(tester, temas['claro']!, const CartaoLoja(loja: Loja(id: 'o', nome: 'Operário', cidade: 'Rondonópolis', uf: 'MT')));
+      expect(find.text('aberta'), findsNothing);
+      expect(find.text('fechada'), findsNothing);
     });
   });
 }

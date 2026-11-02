@@ -271,7 +271,7 @@ class _PrecoNaLoja extends StatelessWidget {
                     Text(
                       [
                         if (melhor) 'Menor preço',
-                        if (!loja.aberta) 'Fechada agora',
+                        if (!loja.aberta) 'Pedidos pausados',
                         if (oferta.disponibilidade ==
                             Disponibilidade.sobConsulta)
                           'Estoque sob consulta',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../marketplace/horario.dart';
 import '../marketplace/modelos.dart';
 import '../tema/categorias.dart';
 import '../tema/cores.dart';
@@ -344,22 +345,28 @@ class BarraPassos extends StatelessWidget {
   }
 }
 
-/// Selo aberta/fechada das lojas.
-class SeloAberta extends StatelessWidget {
-  const SeloAberta({super.key, required this.aberta});
-  final bool aberta;
+/// Selo da situação da loja pelo horário dela: aberta, fechada ou pedidos pausados. Sem horário
+/// legível, não mostra nada (não afirma que está aberta).
+class SeloSituacao extends StatelessWidget {
+  const SeloSituacao({super.key, required this.situacao});
+  final SituacaoLoja situacao;
 
   @override
   Widget build(BuildContext context) {
+    if (situacao.estado == EstadoLoja.semHorario) return const SizedBox.shrink();
     final c = context.cores;
     final escuro = Theme.of(context).brightness == Brightness.dark;
-    final fundo = aberta ? (escuro ? const Color(0xFF16301F) : const Color(0xFFE3F5EA)) : c.superficieSutil;
+    final (fundo, cor) = switch (situacao.estado) {
+      EstadoLoja.aberta => (escuro ? const Color(0xFF16301F) : const Color(0xFFE3F5EA), c.sucesso),
+      EstadoLoja.pausada => (escuro ? const Color(0xFF33270F) : const Color(0xFFFFF1D6), c.aviso),
+      _ => (c.superficieSutil, c.textoSuave),
+    };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(color: fundo, borderRadius: BorderRadius.circular(8)),
       child: Text(
-        aberta ? 'aberta' : 'fechada',
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: aberta ? c.sucesso : c.textoSuave, fontWeight: FontWeight.w600),
+        situacao.selo,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: cor, fontWeight: FontWeight.w600),
       ),
     );
   }

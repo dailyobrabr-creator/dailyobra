@@ -220,6 +220,8 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
                                     rotulo: 'Horário de atendimento',
                                     controller: _horario,
                                     maxLength: 120,
+                                    dica: 'Seg a sex 7h às 18h; sáb 7h às 12h',
+                                    ajuda: 'Escreva assim: Seg a sex 7h às 18h; sáb 7h às 12h. O app mostra aos construtores quando a loja está aberta.',
                                   ),
                                   const SizedBox(height: Espaco.s3),
                                   Row(

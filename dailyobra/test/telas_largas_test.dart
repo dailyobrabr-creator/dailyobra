@@ -393,6 +393,63 @@ void main() {
     });
   }
 
+  for (final largura in [360.0, 1366.0]) {
+    testWidgets(
+      'página da loja mostra endereço, horário e situação em ${largura.toInt()} px',
+      (tester) async {
+        CatalogoService.instance.definirParaTeste(
+          categorias: categoriasTeste,
+          itens: itensTeste,
+          lojas: const [
+            Loja(
+              id: 'c',
+              nome: 'Comapa Materiais de Construção',
+              cidade: 'Rondonópolis',
+              uf: 'MT',
+              endereco: 'R. Fernando Corrêa da Costa, 2623 - Vila Andréia',
+              horario: 'Seg a sex 7h às 17h30; sáb 7h às 12h30',
+              freteACombinar: true,
+            ),
+          ],
+          ofertas: const [],
+        );
+        await abrirLargura(tester, const LojaScreen(lojaId: 'c'), largura);
+        expect(
+          find.textContaining('R. Fernando Corrêa da Costa, 2623'),
+          findsOneWidget,
+        );
+        expect(find.textContaining('Seg a sex 7h às 17h30'), findsOneWidget);
+        expect(find.byType(SeloSituacao), findsOneWidget);
+        expect(find.textContaining('Frete a combinar'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets('loja que pausou os pedidos avisa na página e no produto', (
+    tester,
+  ) async {
+    CatalogoService.instance.definirParaTeste(
+      categorias: categoriasTeste,
+      itens: itensTeste,
+      lojas: [
+        Loja(
+          id: 'a',
+          nome: lojaA.nome,
+          cidade: lojaA.cidade,
+          uf: lojaA.uf,
+          aberta: false,
+        ),
+        lojaB,
+      ],
+      ofertas: ofertasTeste,
+    );
+    await abrirLargura(tester, const LojaScreen(lojaId: 'a'), 360);
+    expect(find.textContaining('pausou os pedidos'), findsOneWidget);
+    await abrirLargura(tester, ProdutoScreen(itemId: tijolo.id), 360);
+    expect(find.textContaining('Pedidos pausados'), findsOneWidget);
+  });
+
   testWidgets('cotação mostra frete a combinar em vez de grátis', (
     tester,
   ) async {

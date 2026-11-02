@@ -882,14 +882,14 @@ class _LinhaLoja extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.cores;
     final t = Theme.of(context).textTheme;
-    final frete = textoFrete(loja);
-    final detalhe = loja.aberta
-        ? [
-            frete,
-            if (produtos > 0)
-              produtos == 1 ? '1 produto' : '$produtos produtos',
-          ].join(' · ')
-        : [loja.cidade, if (loja.horario.isNotEmpty) loja.horario].join(' · ');
+    final detalhe = [
+      textoFrete(loja),
+      produtos == 0
+          ? 'ainda sem preços'
+          : produtos == 1
+          ? '1 produto'
+          : '$produtos produtos',
+    ].join(' · ');
     return Row(
       children: [
         LogoLoja(loja: loja, tamanho: 40),
@@ -914,7 +914,7 @@ class _LinhaLoja extends StatelessWidget {
           ),
         ),
         const SizedBox(width: Espaco.s2),
-        SeloAberta(aberta: loja.aberta),
+        SeloSituacao(situacao: situacaoDaLoja(loja, DateTime.now())),
       ],
     );
   }

@@ -117,7 +117,9 @@ select l.id, u.id, 'dono' from public.lojas l, auth.users u
 where l.cnpj = '04769422000187' and u.email = 'email-da-loja@exemplo.com';
 ```
 
-CNPJs: Operário `36931301000186`, Comapa `04769422000187`, Taipa `33651993000463`. A partir daí a loja edita o perfil, o frete e os preços pelo app Parceiros.
+CNPJs: Operário `36931301000186`, Comapa `04769422000187`, Taipa `33651993000463`. A partir daí a loja edita o perfil, o frete e os preços pelo app Parceiros. As logos e capas delas (montadas a partir das logos oficiais) ficam em `dailyobra/web/lojas/` e são servidas pelo site; quando a loja trocar a logo pelo app, passa a valer a dela.
+
+O selo **aberta / fechada** sai do horário que a loja escreve ("Seg a sex 7h às 18h; sáb 7h às 12h"), no fuso do estado dela. O interruptor do app Parceiros pausa os pedidos (a loja sai da cotação) sem apagar o horário.
 
 ## Pendências no painel do Supabase
 

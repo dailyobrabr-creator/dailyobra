@@ -79,6 +79,7 @@ class Loja {
     this.nova = false,
     this.horario = '',
     this.freteACombinar = false,
+    this.endereco = '',
   });
   final String id;
   final String nome;
@@ -102,6 +103,9 @@ class Loja {
   /// O banco desliga sozinho quando a loja salva o frete no app Parceiros.
   final bool freteACombinar;
 
+  /// Endereço como a loja escreveu (rua, número, bairro ou unidades).
+  final String endereco;
+
   factory Loja.fromJson(Map<String, dynamic> j) {
     final criada = _data(j['criada_em']);
     return Loja(
@@ -119,6 +123,7 @@ class Loja {
       nova: criada != null && DateTime.now().difference(criada).inDays < 30,
       horario: (j['horario'] as String?) ?? '',
       freteACombinar: (j['frete_a_combinar'] as bool?) ?? false,
+      endereco: (j['endereco'] as String?) ?? '',
     );
   }
 }

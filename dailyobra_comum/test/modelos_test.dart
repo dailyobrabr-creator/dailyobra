@@ -51,9 +51,11 @@ void main() {
     expect(l.freteACombinar, isFalse, reason: 'sem a coluna, o frete vale como cadastrado');
     final combinar = Loja.fromJson({
       'id': 'l2', 'nome': 'Loja B', 'cidade': 'Rondonópolis', 'uf': 'MT', 'frete_fixo': 0, 'pedido_minimo': 0,
-      'frete_a_combinar': true,
+      'frete_a_combinar': true, 'endereco': 'R. Fernando Corrêa da Costa, 2623',
     });
     expect(combinar.freteACombinar, isTrue);
+    expect(combinar.endereco, 'R. Fernando Corrêa da Costa, 2623');
+    expect(l.endereco, '');
 
     expect(Categoria.fromJson({'id': 'basico', 'nome': 'Básico', 'ordem': 1}).nome, 'Básico');
   });

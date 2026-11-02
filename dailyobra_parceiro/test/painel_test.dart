@@ -266,6 +266,19 @@ void main() {
         expect(salvou, 0);
       });
 
+      testWidgets('horário traz um exemplo no formato que o app lê', (
+        tester,
+      ) async {
+        SharedPreferences.setMockInitialValues({});
+        final tema = await PreferenciaTema.carregar();
+        preparar();
+        await abrir(tester, MinhaLojaScreen(tema: tema), escuro: escuro);
+        const exemplo = 'Seg a sex 7h às 18h; sáb 7h às 12h';
+        await rolarAte(tester, find.textContaining('Escreva assim'));
+        expect(find.textContaining('Escreva assim: $exemplo'), findsOneWidget);
+        expect(lerHorario(exemplo), isNotNull);
+      });
+
       testWidgets('vendedor vê a loja sem editar', (tester) async {
         SharedPreferences.setMockInitialValues({});
         final tema = await PreferenciaTema.carregar();

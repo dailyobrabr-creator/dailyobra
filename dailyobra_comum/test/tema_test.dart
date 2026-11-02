@@ -92,7 +92,7 @@ void main() {
 
     test('arquivos da marca existem e são PNG', () async {
       TestWidgetsFlutterBinding.ensureInitialized();
-      for (final nome in ['simbolo.png', 'simbolo_claro.png', 'logo_tela.png']) {
+      for (final nome in ['simbolo.png', 'simbolo_claro.png', 'logo_tela.png', 'logo_tela_claro.png']) {
         final dados = await rootBundle.load('assets/marca/$nome');
         expect(dados.getUint32(0), 0x89504E47, reason: nome);
       }

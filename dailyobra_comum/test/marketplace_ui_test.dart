@@ -145,14 +145,16 @@ void main() {
       expect(find.text('Louças e metais'), findsOneWidget);
     });
 
-    testWidgets('marca: logo no claro e nome escrito no escuro', (tester) async {
-      bool logo(Widget w) => w is Image && w.image is AssetImage && (w.image as AssetImage).assetName.endsWith('logo_tela.png');
+    testWidgets('marca: a mesma logo nos dois temas, com o texto claro no escuro', (tester) async {
+      Finder logo(String arquivo) => find.byWidgetPredicate(
+          (w) => w is Image && w.image is AssetImage && (w.image as AssetImage).assetName.endsWith('/$arquivo'));
       await montar(tester, temas['claro']!, const MarcaDailyObra(soSimbolo: false));
-      expect(find.byWidgetPredicate(logo), findsOneWidget);
+      expect(logo('logo_tela.png'), findsOneWidget);
       await montar(tester, temas['escuro']!, const MarcaDailyObra(soSimbolo: false));
       await tester.pumpAndSettle();
-      expect(find.byWidgetPredicate(logo), findsNothing);
-      expect(find.textContaining('Obra'), findsOneWidget);
+      expect(logo('logo_tela_claro.png'), findsOneWidget);
+      expect(logo('logo_tela.png'), findsNothing);
+      expect(find.textContaining('Obra'), findsNothing, reason: 'sem nome montado em texto');
     });
 
     testWidgets('gráfico mostra os seis meses', (tester) async {

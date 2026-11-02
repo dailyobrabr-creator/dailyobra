@@ -187,7 +187,7 @@ class TileCategoria extends StatelessWidget {
   }
 }
 
-/// Marca oficial: logo completo no claro, símbolo branco e laranja com o nome escrito no escuro,
+/// Marca oficial: o mesmo logo nos dois temas (texto grafite no claro, texto claro no escuro),
 /// ou só o símbolo (trilho do tablet, tela de abertura).
 class MarcaDailyObra extends StatelessWidget {
   const MarcaDailyObra({super.key, required this.soSimbolo, this.altura = 30});
@@ -199,28 +199,7 @@ class MarcaDailyObra extends StatelessWidget {
     final escuro = Theme.of(context).brightness == Brightness.dark;
     Image imagem(String nome, double h) => Image.asset('assets/marca/$nome', package: 'dailyobra_comum', height: h, semanticLabel: 'DailyObra');
     if (soSimbolo) return imagem(escuro ? 'simbolo_claro.png' : 'simbolo.png', altura);
-    if (!escuro) return imagem('logo_tela.png', altura);
-    return Semantics(
-      label: 'DailyObra',
-      excludeSemantics: true,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          imagem('simbolo_claro.png', altura),
-          const SizedBox(width: Espaco.s2),
-          Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text.rich(
-                TextSpan(text: 'Daily', children: [TextSpan(text: 'Obra', style: TextStyle(color: context.cores.acento))]),
-                style: TextStyle(fontSize: altura * 0.63, fontWeight: FontWeight.w700, color: context.cores.texto, height: 1),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    return imagem(escuro ? 'logo_tela_claro.png' : 'logo_tela.png', altura);
   }
 }
 

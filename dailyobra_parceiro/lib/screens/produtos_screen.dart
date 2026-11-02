@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/loja_service.dart';
 import '../services/ofertas_service.dart';
 import 'componentes.dart';
+import 'importar_planilha_screen.dart';
 import 'oferta_screen.dart';
 
 /// Catálogo mestre com o preço da loja em cada produto. Dono e gerente editam; vendedor só consulta.
@@ -31,7 +32,22 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
   Widget build(BuildContext context) {
     final ofertas = OfertasService.instance;
     return Scaffold(
-      appBar: AppBar(title: const Text('Produtos e preços')),
+      appBar: AppBar(
+        title: const Text('Produtos e preços'),
+        actions: [
+          if (LojaService.instance.meuPapel.gere)
+            IconButton(
+              tooltip: 'Importar planilha',
+              icon: const Icon(Icons.upload_file_outlined),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ImportarPlanilhaScreen(),
+                ),
+              ),
+            ),
+        ],
+      ),
       body: ListenableBuilder(
         listenable: Listenable.merge([ofertas, LojaService.instance]),
         builder: (context, _) {

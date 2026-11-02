@@ -111,6 +111,26 @@ class OfertasService extends ChangeNotifier {
     await carregar(lojaId);
   }
 
+  /// Grava vários preços de uma vez (importação de planilha), num upsert só. Disponibilidade e pausa
+  /// ficam como estavam. Lança [FalhaComMensagem].
+  Future<void> salvarVarias(List<Oferta> ofertas) async {
+    if (ofertas.isEmpty) return;
+    final lojaId = _lojaId ?? ofertas.first.lojaId;
+    await comMensagem(
+      () => _db.from('ofertas').upsert([
+        for (final o in ofertas)
+          {
+            'loja_id': lojaId,
+            'item_id': o.itemId,
+            'preco': o.preco,
+            'preco_promocional': o.precoPromocional,
+            'promo_ate': o.promoAte == null ? null : _data(o.promoAte!),
+          },
+      ], onConflict: 'loja_id,item_id'),
+    );
+    await carregar(lojaId);
+  }
+
   Future<void> pausar(String itemId, bool pausada) async {
     final lojaId = _lojaId;
     if (lojaId == null) return;

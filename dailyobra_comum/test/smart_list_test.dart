@@ -133,4 +133,23 @@ void main() {
     final linhas = interpretarLista('10 sacos cimento\n5 cimento\nferro\nparafuso', catalogo);
     expect(somarPorItem(linhas), {cimento.id: 15});
   });
+
+  group('ReconhecedorDeProdutos', () {
+    test('liga nome de planilha ao catálogo, sem ler quantidade no começo', () {
+      final r = ReconhecedorDeProdutos(catalogo);
+      expect(r.reconhecer('CIMENTO CP II 50KG VOTORAN').item?.id, 'cimento-cp2-50kg');
+      final ferro = r.reconhecer('VERGALHAO CA-50 BARRA 12M');
+      expect(ferro.tipo, TipoLinha.escolher);
+      expect(ferro.candidatos.map((i) => i.id), containsAll(['vergalhao-5-16', 'vergalhao-3-8']));
+      expect(r.reconhecer('MANGUEIRA DE JARDIM 20M').tipo, TipoLinha.naoReconhecido);
+      expect(r.reconhecer('100 TIJOLO 8 FUROS').item?.id, 'tijolo-8-furos');
+    });
+
+    test('unidade canônica iguala os jeitos de escrever', () {
+      expect(unidadeCanonica('m²'), unidadeCanonica('M2'));
+      expect(unidadeCanonica('unidade'), unidadeCanonica('UN'));
+      expect(unidadeCanonica('Saco'), unidadeCanonica('SC'));
+      expect(unidadeCanonica('caixa'), isNot(unidadeCanonica('m²')));
+    });
+  });
 }

@@ -162,6 +162,18 @@ class _Indice {
 String _canonica(String u) => _unidades[_singular(u)] ?? _unidades[u] ?? u;
 bool _ehUnidade(String t) => _unidades.containsKey(t);
 
+/// Unidade num jeito só ("m²" e "M2", "unidade" e "UN", "Saco" e "SC"), para comparar a da planilha com a do catálogo.
+String unidadeCanonica(String unidade) => _canonica(normalizar(unidade));
+
+/// Liga nomes de produto (de uma planilha, por exemplo) ao catálogo com a mesma pontuação da lista inteligente,
+/// sem ler quantidade no começo do nome. Monta os índices uma vez para muitos nomes.
+class ReconhecedorDeProdutos {
+  ReconhecedorDeProdutos(List<ItemCatalogo> catalogo) : _indices = [for (final i in catalogo) _Indice(i)];
+  final List<_Indice> _indices;
+
+  LinhaSmartList reconhecer(String nome) => _decidir(nome.trim(), null, null, normalizar(nome), _indices);
+}
+
 List<LinhaSmartList> interpretarLista(String texto, List<ItemCatalogo> catalogo) {
   final indices = [for (final i in catalogo) _Indice(i)];
   final linhas = <LinhaSmartList>[];

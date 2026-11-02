@@ -101,7 +101,16 @@ cd ../dailyobra_parceiro && flutter analyze && flutter test
 
 Os testes de tela do `dailyobra` passam por 360, 800 e 1366 px de largura, nos temas claro e escuro.
 
-As regras do banco são conferidas por `supabase/tests/marketplace_test.sql` (roda numa transação desfeita no fim; cada linha do resultado tem `ok = true`).
+As regras do banco são conferidas por `supabase/tests/marketplace_test.sql` (roda numa transação desfeita no fim; cada linha do resultado tem `ok = true`) e por `supabase/tests/checkout_bifurcado_test.sql` (também desfeito no fim; termina com a contagem de verificações ok).
+
+## Pagamento pelo cliente (link PIX)
+
+Depois que a loja aceita, o construtor escolhe no pedido quem paga:
+
+- **Eu pago**: informa o CPF ou CNPJ dele (fica salvo no **Perfil**), a nota sai no nome dele e o app mostra o PIX copia e cola da loja.
+- **Enviar para o cliente**: informa nome e WhatsApp do dono da obra e o app abre o WhatsApp com o link `https://dailyobrabr-creator.github.io/dailyobra/pagar/?c=...`. A página (`dailyobra/web/pagar/`) não pede conta nem app: o cliente vê os materiais, informa nome e CPF/CNPJ para a nota, paga pelo QR ou pelo copia e cola direto à loja e toca em **Já paguei**. "Trocar cliente" gera outro link e o antigo para de funcionar.
+
+A loja cadastra a chave PIX em **Minha loja > Chave PIX** no app Parceiros (CPF, CNPJ, e-mail, celular com +55 ou chave aleatória); sem ela, só o "Eu pago" fica disponível. No pedido, o bloco **Dados para a nota** mostra quem paga, nome, CPF/CNPJ e WhatsApp, e aparece o aviso quando o cliente informou o pagamento. A loja confere no banco e toca em **Confirmar pagamento**; o cashback do construtor continua liberando com pedido pago e entregue. Não há gateway: o dinheiro vai direto para a conta da loja.
 
 ## Avast neste computador
 

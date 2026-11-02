@@ -56,6 +56,17 @@ O endereço leva o nome do repositório (`--base-href "/nome-do-repositorio/"`).
 
 Só a chave publicável do Supabase vai no site (a mesma dos apps); as regras ficam no banco. Nunca coloque a chave secreta (`service_role` ou `sb_secret_...`) no código nem nos segredos do workflow.
 
+## Ler a lista de um PDF ou foto
+
+Na lista inteligente do Início, o clipe dentro do campo aceita PDF, JPG, PNG ou WEBP de até 10 MB (PDF com até 20 páginas). A função `ler-lista` do Supabase (`supabase/functions/ler-lista`) manda o arquivo para o Claude (Anthropic), que devolve os materiais com as quantidades; o texto abre na revisão da lista inteligente antes de cotar. Cada pessoa tem 30 leituras a cada 24 horas (`public.registrar_leitura_lista`). Nada do arquivo fica guardado.
+
+Para ligar, uma vez:
+
+1. Crie uma chave em https://console.anthropic.com (**API Keys**).
+2. No Supabase: **Edge Functions > Secrets > Add new secret**, nome `ANTHROPIC_API_KEY`, valor a chave.
+
+Sem a chave, o clipe avisa que a leitura ainda não está ligada. A chave fica só no Supabase: nunca no app, no site ou no GitHub. Testes das regras da função: `node --test supabase/functions/ler-lista/regras.test.ts`.
+
 ## Abrir e rodar pelo VS Code
 
 1. **File > Open Folder** e escolha esta pasta (`D:\dev\dailyobra_app`). Se aparecer "Restricted Mode", clique em **Trust**.

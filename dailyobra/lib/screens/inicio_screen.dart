@@ -5,6 +5,7 @@ import '../services/carrinho_service.dart';
 import '../services/carteira_service.dart';
 import '../services/catalogo_service.dart';
 import '../services/economia_service.dart';
+import '../services/leitura_lista_service.dart';
 import '../services/negociacao_service.dart';
 import '../services/novidades_service.dart';
 import '../services/obras_service.dart';
@@ -932,6 +933,9 @@ class _ListaInteligente extends StatefulWidget {
 class _ListaInteligenteState extends State<_ListaInteligente> {
   final _texto = TextEditingController();
 
+  /// Lendo a lista de um PDF ou foto
+  bool _lendo = false;
+
   @override
   void dispose() {
     _texto.dispose();
@@ -951,6 +955,24 @@ class _ListaInteligenteState extends State<_ListaInteligente> {
     );
   }
 
+  /// PDF ou foto com a lista: o servidor lê os materiais e a revisão da lista inteligente abre.
+  Future<void> _anexar() async {
+    final servico = LeituraListaService.instance;
+    try {
+      final arquivo = await servico.escolher();
+      if (arquivo == null || !mounted) return;
+      setState(() => _lendo = true);
+      final texto = await servico.ler(arquivo);
+      if (!mounted) return;
+      _texto.text = texto;
+      _cotar();
+    } on FalhaComMensagem catch (e) {
+      if (mounted) avisar(context, e.mensagem);
+    } finally {
+      if (mounted) setState(() => _lendo = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.cores;
@@ -965,11 +987,27 @@ class _ListaInteligenteState extends State<_ListaInteligente> {
     );
     final campo = TextField(
       controller: _texto,
+      enabled: !_lendo,
       minLines: 1,
       maxLines: 5,
       keyboardType: TextInputType.multiline,
-      decoration: const InputDecoration(
-        hintText: 'Cole a lista da obra: 100 sacos de cimento…',
+      decoration: InputDecoration(
+        hintText: _lendo
+            ? 'Lendo o arquivo…'
+            : 'Cole a lista ou anexe um PDF ou foto',
+        suffixIcon: _lendo
+            ? const Padding(
+                padding: EdgeInsets.all(14),
+                child: SizedBox.square(
+                  dimension: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            : IconButton(
+                tooltip: 'Adicionar arquivo (PDF ou foto)',
+                onPressed: _anexar,
+                icon: const Icon(Icons.attach_file_rounded),
+              ),
       ),
     );
     final botao = SizedBox(

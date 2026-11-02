@@ -1,8 +1,12 @@
+import 'dart:typed_data';
+
 import 'package:dailyobra/screens/inicio_screen.dart';
+import 'package:dailyobra/screens/smart_list_screen.dart';
 import 'package:dailyobra/services/carrinho_service.dart';
 import 'package:dailyobra/services/carteira_service.dart';
 import 'package:dailyobra/services/catalogo_service.dart';
 import 'package:dailyobra/services/economia_service.dart';
+import 'package:dailyobra/services/leitura_lista_service.dart';
 import 'package:dailyobra/services/negociacao_service.dart';
 import 'package:dailyobra/services/novidades_service.dart';
 import 'package:dailyobra/services/obras_service.dart';
@@ -257,6 +261,55 @@ void main() {
           find.textContaining('Não deu para carregar a economia'),
         );
         expect(find.byType(EsqueletoBrilho), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'arquivo com a lista abre a revisão da lista inteligente (${escuro ? 'escuro' : 'claro'})',
+      (tester) async {
+        preparar();
+        LeituraListaService.instance.definirParaTeste(
+          escolher: () async =>
+              ArquivoLista('lista.pdf', 'application/pdf', Uint8List(10)),
+          ler: (_) async => '10 sacos de cimento',
+        );
+        addTearDown(LeituraListaService.instance.definirParaTeste);
+        await abrirLargura(tester, 360, escuro: escuro);
+        await rolarAte(
+          tester,
+          find.byTooltip('Adicionar arquivo (PDF ou foto)'),
+        );
+        await tester.tap(find.byTooltip('Adicionar arquivo (PDF ou foto)'));
+        await tester.pumpAndSettle();
+        expect(find.byType(SmartListScreen), findsOneWidget);
+        expect(find.text('Cimento CP II 50 kg'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'arquivo que não deu para ler avisa e não sai da tela (${escuro ? 'escuro' : 'claro'})',
+      (tester) async {
+        preparar();
+        LeituraListaService.instance.definirParaTeste(
+          escolher: () async =>
+              ArquivoLista('foto.jpg', 'image/jpeg', Uint8List(10)),
+          ler: (_) async => throw const FalhaComMensagem(
+            'Não encontramos materiais de construção neste arquivo.',
+          ),
+        );
+        addTearDown(LeituraListaService.instance.definirParaTeste);
+        await abrirLargura(tester, 360, escuro: escuro);
+        await rolarAte(
+          tester,
+          find.byTooltip('Adicionar arquivo (PDF ou foto)'),
+        );
+        await tester.tap(find.byTooltip('Adicionar arquivo (PDF ou foto)'));
+        await tester.pumpAndSettle();
+        expect(find.byType(SmartListScreen), findsNothing);
+        expect(
+          find.text('Não encontramos materiais de construção neste arquivo.'),
+          findsOneWidget,
+        );
       },
     );
 

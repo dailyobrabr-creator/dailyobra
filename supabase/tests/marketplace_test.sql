@@ -288,6 +288,23 @@ exception when others then
   perform pg_temp.conferir('visitante sem login não envia cotação', sqlstate in ('42501', 'P0001'), sqlerrm);
 end $$;
 
+-- Leitura de lista por arquivo: 30 por dia por construtor
+select pg_temp.como('00000000-0000-0000-0000-00000000c001');
+do $$ declare i int; begin
+  for i in 1..30 loop perform public.registrar_leitura_lista(); end loop;
+  perform pg_temp.conferir('30 leituras de arquivo no dia passam', true);
+exception when others then perform pg_temp.conferir('30 leituras de arquivo no dia passam', false, sqlerrm); end $$;
+do $$ begin
+  perform public.registrar_leitura_lista();
+  perform pg_temp.conferir('a 31ª leitura do dia é recusada', false);
+exception when others then perform pg_temp.conferir('a 31ª leitura do dia é recusada', sqlstate = 'P0001', sqlerrm); end $$;
+select pg_temp.conferir('construtor não lê as leituras de ninguém', (select count(*) from public.leituras_lista) = 0);
+select pg_temp.como('00000000-0000-0000-0000-00000000d001');
+do $$ begin
+  perform public.registrar_leitura_lista();
+  perform pg_temp.conferir('o limite de um não afeta outra pessoa', true);
+exception when others then perform pg_temp.conferir('o limite de um não afeta outra pessoa', false, sqlerrm); end $$;
+
 select pg_temp.admin();
 select n, ok, teste, detalhe from r order by n;
 rollback;

@@ -1,0 +1,32 @@
+/// Código compartilhado pelos apps DailyObra (construtor) e DailyObra Parceiros (lojas).
+library;
+
+export 'src/auth/login_screen.dart';
+export 'src/auth/nova_senha_screen.dart';
+export 'src/marketplace/busca.dart';
+export 'src/marketplace/cnpj.dart';
+export 'src/marketplace/cotacao.dart';
+export 'src/marketplace/materiais_catalogo.dart';
+export 'src/marketplace/modelos.dart';
+export 'src/marketplace/propostas.dart';
+export 'src/marketplace/smart_list.dart';
+export 'src/marketplace/texto.dart';
+export 'src/marketplace/vitrine_dados.dart';
+export 'src/obras/obra.dart';
+export 'src/orcamento/materiais.dart';
+export 'src/orcamento/orcamento.dart';
+export 'src/orcamento/tabelas.dart';
+export 'src/supabase/auth_service.dart';
+export 'src/supabase/erros.dart';
+export 'src/supabase/supabase_config.dart';
+export 'src/tema/app_com_tema.dart';
+export 'src/tema/categorias.dart';
+export 'src/tema/cores.dart';
+export 'src/tema/preferencia_tema.dart';
+export 'src/tema/tema.dart';
+export 'src/ui/faixa_obra.dart';
+export 'src/ui/marketplace_ui.dart';
+export 'src/ui/parametros_form.dart';
+export 'src/ui/resultado.dart';
+export 'src/ui/ui.dart';
+export 'src/ui/vitrine.dart';

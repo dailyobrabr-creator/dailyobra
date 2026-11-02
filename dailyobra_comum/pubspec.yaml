@@ -1,0 +1,28 @@
+name: dailyobra_comum
+description: "Código compartilhado pelos apps DailyObra e DailyObra Parceiros: tema, componentes, modelos, Supabase, motor de orçamento, Smart List e cotação."
+publish_to: 'none'
+version: 1.0.0
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  supabase_flutter: ^2.18.3
+  # 8.x: a 9.0 passou a usar o pacote material_ui e o TextTheme dela não é o do Flutter
+  google_fonts: 8.0.0
+  intl: ^0.20.3
+  http: ^1.2.0
+  shared_preferences: ^2.5.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  assets:
+    - assets/marca/

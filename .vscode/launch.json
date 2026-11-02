@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "DailyObra",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "dailyobra",
+      "program": "lib/main.dart",
+      "flutterMode": "debug"
+    },
+    {
+      "name": "DailyObra Parceiros",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "dailyobra_parceiro",
+      "program": "lib/main.dart",
+      "flutterMode": "debug"
+    }
+  ]
+}

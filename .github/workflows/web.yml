@@ -1,0 +1,65 @@
+# Testa e publica o site do DailyObra (app do construtor) no GitHub Pages.
+# Ativar uma vez: Settings > Pages > Build and deployment > Source: GitHub Actions.
+name: Site no GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Uma publicação por vez; a mais nova substitui a que estiver na fila
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  construir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.0
+          cache: true
+
+      - name: Pacote comum (análise e testes)
+        working-directory: dailyobra_comum
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test
+
+      - name: App do construtor (análise e testes)
+        working-directory: dailyobra
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test
+
+      # O site fica em https://<usuario>.github.io/<repositorio>/
+      - name: Gerar o site
+        working-directory: dailyobra
+        run: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dailyobra/build/web
+
+  publicar:
+    needs: construir
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.publicacao.outputs.page_url }}
+    steps:
+      - id: publicacao
+        uses: actions/deploy-pages@v4

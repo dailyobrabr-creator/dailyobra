@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DailyObra · Início (protótipo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+  body.claro {
+    --fundo: #F6F7F9; --superficie: #FFFFFF; --sutil: #F1F2F4; --borda: #E4E6EA; --borda-forte: #D5D8DD;
+    --texto: #252832; --suave: #535965; --acao: #A43F05; --sobre-acao: #FFFFFF; --acento: #F36E21;
+    --acento-fundo: #FDE9DC; --sucesso: #166534; --sucesso-fundo: #E3F5EA; --info: #1D4ED8;
+    --cartao-escuro: #252832; --cartao-escuro-texto: #FFFFFF; --cartao-escuro-suave: #B8BBC4;
+    --barra-vazia: #E4E6EA;
+    --c1f: #FDE3D2; --c1t: #8A3504; --c2f: #EDE7F6; --c2t: #4C2F94; --c3f: #E6ECF4; --c3t: #3B4A63;
+    --c4f: #DCEBFB; --c4t: #1D4ED8; --c5f: #FDF1C7; --c5t: #7A4F00; --c6f: #E3F5EA; --c6t: #166534;
+    --c7f: #F6E3EC; --c7t: #8E2453; --c8f: #E0F4F4; --c8t: #0F5F5F;
+  }
+  body.escuro {
+    --fundo: #141519; --superficie: #1C1E23; --sutil: #24272E; --borda: #2C2F37; --borda-forte: #343741;
+    --texto: #F2F3F5; --suave: #A8ACB6; --acao: #F36E21; --sobre-acao: #1A0F07; --acento: #F36E21;
+    --acento-fundo: #3A2416; --sucesso: #4CC38A; --sucesso-fundo: #16301F; --info: #8AB4FF;
+    --cartao-escuro: #2A2D35; --cartao-escuro-texto: #F2F3F5; --cartao-escuro-suave: #A8ACB6;
+    --barra-vazia: #343741;
+    --c1f: #3A2416; --c1t: #FFB98F; --c2f: #2A2340; --c2t: #C4B2F2; --c3f: #232A36; --c3t: #B4C3DA;
+    --c4f: #1C2A44; --c4t: #8AB4FF; --c5f: #3A3015; --c5t: #F0C75E; --c6f: #16301F; --c6t: #7FD6A4;
+    --c7f: #3A1C2A; --c7t: #F2A5C6; --c8f: #143233; --c8t: #7FD3D3;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fundo); color: var(--texto); font: 14px/1.45 Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  button { font: inherit; cursor: pointer; }
+  .app { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
+
+  .lateral { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 4px; padding: 20px 16px; background: var(--superficie); border-right: 1px solid var(--borda); }
+  .marca { display: flex; align-items: center; min-height: 40px; padding: 4px 8px 20px; }
+  .marca .logo-inteiro { height: 30px; width: auto; }
+  .marca .logo-escuro { display: none; align-items: center; gap: 8px; font-size: 19px; font-weight: 700; letter-spacing: -0.2px; }
+  .marca .logo-escuro img { width: 30px; height: 30px; }
+  .marca .logo-escuro span { color: var(--acento); }
+  .marca .simbolo { display: none; width: 38px; height: 38px; }
+  body.escuro .marca .logo-inteiro { display: none; }
+  body.escuro .marca .logo-escuro { display: flex; }
+  .item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; color: var(--suave); font-weight: 500; text-decoration: none; }
+  .item i { font-size: 20px; }
+  .item.ativo { background: var(--acento-fundo); color: var(--acao); }
+  .item .num { margin-left: auto; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: var(--acento); color: #1A0F07; font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+  .clube { margin-top: auto; padding: 16px; border-radius: 16px; background: var(--cartao-escuro); color: var(--cartao-escuro-texto); }
+  .clube small { color: var(--cartao-escuro-suave); display: block; }
+  .clube strong { display: block; font-size: 22px; margin: 2px 0 2px; font-variant-numeric: tabular-nums; }
+  .clube .mais { color: #FFB98F; font-size: 12px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--acao); color: var(--sobre-acao); font-weight: 600; white-space: nowrap; }
+  .btn.claro { background: var(--acento); color: #1A0F07; }
+  .btn.cheio { width: 100%; margin-top: 12px; }
+
+  .topo { background: var(--acento); color: #252832; padding: 18px 32px; display: flex; align-items: center; gap: 24px; }
+  .ola { min-width: 0; }
+  .ola h1 { margin: 0; font-size: 22px; line-height: 1.2; font-weight: 700; letter-spacing: -0.3px; }
+  .ola p { margin: 2px 0 0; display: flex; align-items: center; gap: 4px; font-weight: 500; }
+  .busca { flex: 1; max-width: 620px; display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 16px; border-radius: 14px; background: #FFFFFF; color: #6B7280; }
+  .busca i { font-size: 20px; color: #535965; }
+  .acoes { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .redondo { position: relative; width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(255,255,255,0.28); color: #252832; display: grid; place-items: center; font-size: 22px; }
+  .redondo .num { position: absolute; top: 4px; right: 4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: #252832; color: #FFFFFF; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+  .avatar { width: 44px; height: 44px; border-radius: 50%; background: #252832; color: #FFFFFF; display: grid; place-items: center; font-weight: 700; }
+
+  .conteudo { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; padding: 24px 32px 48px; max-width: 1320px; }
+  .coluna { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+  .lado { position: sticky; top: 24px; align-self: start; }
+  .cartao { background: var(--superficie); border: 1px solid var(--borda); border-radius: 16px; padding: 18px; }
+  .titulo { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
+  .titulo h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.2px; }
+  .titulo a { color: var(--acao); font-weight: 600; text-decoration: none; font-size: 13px; white-space: nowrap; }
+  .suave { color: var(--suave); }
+  .dupla { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .rotulo { color: var(--suave); font-size: 13px; }
+  .grande { font-size: 24px; font-weight: 700; letter-spacing: -0.4px; margin: 2px 0 10px; font-variant-numeric: tabular-nums; }
+  .barra { height: 8px; border-radius: 4px; background: var(--barra-vazia); overflow: hidden; }
+  .barra b { display: block; height: 100%; background: var(--acento); border-radius: 4px; }
+  .etapas { display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px; color: var(--suave); }
+  .verde { color: var(--sucesso); }
+  .grafico { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; align-items: end; height: 64px; }
+  .grafico div { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; font-size: 11px; color: var(--suave); }
+  .grafico span { width: 100%; max-width: 28px; border-radius: 6px 6px 3px 3px; background: var(--barra-vazia); }
+  .grafico .atual span { background: var(--acento); }
+  .grafico .atual { color: var(--texto); font-weight: 600; }
+
+  .lista { display: flex; align-items: center; gap: 14px; }
+  .lista .icone { flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--acento-fundo); color: var(--acao); display: grid; place-items: center; font-size: 22px; }
+  .lista .campo { flex: 1; min-width: 0; height: 46px; display: flex; align-items: center; padding: 0 14px; border: 1.5px dashed var(--borda-forte); border-radius: 12px; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .categorias { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .categoria { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 14px; background: var(--superficie); border: 1px solid var(--borda); font-size: 13px; font-weight: 600; min-width: 0; }
+  .categoria i { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 21px; }
+  .categoria span { min-width: 0; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  .ofertas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  .oferta { display: flex; flex-direction: column; background: var(--superficie); border: 1px solid var(--borda); border-radius: 16px; overflow: hidden; }
+  .foto { position: relative; height: 112px; display: grid; place-items: center; font-size: 40px; }
+  .selo { position: absolute; top: 10px; left: 10px; padding: 3px 8px; border-radius: 8px; background: var(--acao); color: var(--sobre-acao); font-size: 12px; font-weight: 700; }
+  .oferta .corpo { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px 14px; flex: 1; }
+  .oferta .nome { font-weight: 600; line-height: 1.3; min-height: 2.6em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .oferta .loja { font-size: 12px; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .oferta .preco { margin-top: auto; padding-top: 8px; display: flex; flex-direction: column; }
+  .oferta .preco s { order: -1; line-height: 1.2; }
+  .oferta .preco b { color: var(--acao); font-size: 17px; font-variant-numeric: tabular-nums; }
+  .oferta .preco s { color: var(--suave); font-size: 12px; }
+
+  .tabela { display: flex; flex-direction: column; }
+  .linha { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 16px; padding: 12px 0; border-top: 1px solid var(--borda); }
+  .linha:first-child { border-top: 0; padding-top: 0; }
+  .linha .nome { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .linha .faixa { color: var(--suave); font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .linha .melhor { color: var(--acao); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .aviso { border: 1.5px solid var(--acento); }
+  .aviso .cab { display: flex; align-items: center; gap: 8px; color: var(--acao); font-weight: 700; }
+  .aviso .cab i { font-size: 20px; }
+  .prazo { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; padding: 3px 8px; border-radius: 8px; background: var(--acento-fundo); color: var(--acao); font-size: 12px; font-weight: 600; }
+  .entrega { background: var(--cartao-escuro); color: var(--cartao-escuro-texto); border: 0; }
+  .entrega .cab { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+  .entrega .cab i { color: var(--acento); font-size: 22px; }
+  .entrega p { margin: 2px 0 12px; color: var(--cartao-escuro-suave); }
+  .passos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .passos span { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.18); }
+  .passos .feito { background: var(--acento); }
+  .passos-rotulo { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--cartao-escuro-suave); }
+
+  .loja-linha { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--borda); }
+  .loja-linha:first-child { border-top: 0; padding-top: 0; }
+  .logo { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: #FFFFFF; font-weight: 700; font-size: 13px; }
+  .loja-linha .info { flex: 1; min-width: 0; }
+  .loja-linha .info b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .loja-linha .info small { color: var(--suave); }
+  .estado { flex: none; padding: 3px 8px; border-radius: 8px; font-size: 12px; font-weight: 600; }
+  .estado.aberta { background: var(--sucesso-fundo); color: var(--sucesso); }
+  .estado.fechada { background: var(--sutil); color: var(--suave); }
+
+  .abas { display: none; }
+
+  @media (max-width: 1199px) {
+    .conteudo { display: flex; flex-direction: column; padding: 24px; }
+    .coluna, .lado { display: contents; }
+    .aviso { order: 1; } .entrega { order: 2; } .lista { order: 3; } .dupla { order: 4; }
+    .sec-categorias { order: 5; } .sec-ofertas { order: 6; } .barato { order: 7; } .lojas { order: 8; }
+    .ofertas { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .ofertas .oferta:nth-child(4) { display: none; }
+    .categoria { flex-direction: column; gap: 6px; padding: 12px 6px; text-align: center; }
+    .categoria span { width: 100%; }
+  }
+  @media (max-width: 1023px) {
+    .app { grid-template-columns: 80px minmax(0, 1fr); }
+    .lateral { padding: 20px 12px; align-items: center; }
+    .marca { padding: 4px 0 20px; }
+    .item span, .clube { display: none; }
+    .marca .logo-inteiro, body.escuro .marca .logo-escuro { display: none; }
+    body.claro .marca .so-claro, body.escuro .marca .so-escuro { display: block; }
+    .item { justify-content: center; padding: 12px; position: relative; }
+    .item .num { position: absolute; top: 2px; left: calc(50% + 6px); margin: 0; min-width: 18px; height: 18px; font-size: 11px; }
+    .topo { padding: 16px 24px; gap: 16px; }
+  }
+  @media (max-width: 599px) {
+    body { font-size: 14px; }
+    .app { display: block; padding-bottom: 76px; }
+    .lateral { display: none; }
+    .topo { flex-wrap: wrap; padding: 18px 16px 20px; border-radius: 0 0 24px 24px; gap: 14px; }
+    .ola h1 { font-size: 20px; }
+    .acoes { gap: 8px; }
+    .avatar { display: none; }
+    .busca { order: 3; flex-basis: 100%; max-width: none; }
+    .conteudo { padding: 16px; gap: 16px; }
+    .coluna { gap: 16px; }
+    .dupla { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    .lista { flex-wrap: wrap; }
+    .lista .campo { flex-basis: calc(100% - 58px); height: auto; min-height: 46px; padding: 10px 14px; white-space: normal; line-height: 1.35; }
+    .lista .btn { flex-basis: 100%; }
+    .categorias { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 84px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+    .categoria { flex-direction: column; gap: 6px; padding: 10px 4px; text-align: center; font-weight: 500; font-size: 12px; }
+    .categoria span { width: 100%; }
+    .ofertas { display: flex; overflow-x: auto; gap: 12px; padding-bottom: 4px; scrollbar-width: none; }
+    .ofertas .oferta { flex: none; width: 168px; }
+    .ofertas .oferta:nth-child(4) { display: flex; }
+    .linha { grid-template-columns: minmax(0, 1fr) auto; row-gap: 2px; }
+    .linha .faixa { grid-column: 1; grid-row: 2; }
+    .linha .melhor { grid-row: 1 / span 2; grid-column: 2; }
+    .abas { display: flex; position: fixed; left: 0; right: 0; bottom: 0; height: 68px; background: var(--superficie); border-top: 1px solid var(--borda); }
+    .abas a { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--suave); font-size: 12px; font-weight: 500; text-decoration: none; position: relative; }
+    .abas a i { font-size: 24px; }
+    .abas a.ativo { color: var(--acao); }
+    .abas .num { position: absolute; top: 8px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--acento); color: #1A0F07; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+  }
+</style>
+</head>
+<body class="claro">
+<div class="app">
+  <aside class="lateral">
+    <div class="marca">
+      <img class="logo-inteiro" src="marca/logo.png" alt="DailyObra">
+      <div class="logo-escuro"><img src="marca/simbolo_claro.png" alt=""><b>Daily<span>Obra</span></b></div>
+      <img class="simbolo so-claro" src="marca/simbolo.png" alt="DailyObra">
+      <img class="simbolo so-escuro" src="marca/simbolo_claro.png" alt="DailyObra">
+    </div>
+    <a class="item ativo" href="#"><i class="ti ti-building-store" aria-hidden="true"></i><span>Início</span></a>
+    <a class="item" href="#"><i class="ti ti-file-invoice" aria-hidden="true"></i><span>Orçamentos</span><em class="num">3</em></a>
+    <a class="item" href="#"><i class="ti ti-wallet" aria-hidden="true"></i><span>Carteira</span></a>
+    <a class="item" href="#"><i class="ti ti-home-2" aria-hidden="true"></i><span>Minhas obras</span></a>
+    <a class="item" href="#"><i class="ti ti-user-circle" aria-hidden="true"></i><span>Perfil</span></a>
+    <div class="clube">
+      <small>Clube DailyObra</small>
+      <strong>R$ 125,50</strong>
+      <span class="mais">+ R$ 12,50 a liberar</span>
+      <button class="btn claro cheio">Usar no orçamento</button>
+    </div>
+  </aside>
+
+  <main>
+    <header class="topo">
+      <div class="ola">
+        <h1>Olá, Ana</h1>
+        <p><i class="ti ti-map-pin" aria-hidden="true"></i>Maringá · PR</p>
+      </div>
+      <div class="busca"><i class="ti ti-search" aria-hidden="true"></i>Buscar cimento, tijolo, torneira…</div>
+      <div class="acoes">
+        <button class="redondo" id="tema" aria-label="Trocar tema"><i class="ti ti-moon" aria-hidden="true"></i></button>
+        <button class="redondo" aria-label="Novidades"><i class="ti ti-bell" aria-hidden="true"></i><span class="num">2</span></button>
+        <div class="avatar">AS</div>
+      </div>
+    </header>
+
+    <div class="conteudo">
+      <div class="coluna">
+        <div class="dupla">
+          <section class="cartao">
+            <div class="rotulo">Obra ativa · Residência Silva</div>
+            <div class="grande">42% concluída</div>
+            <div class="barra"><b style="width: 42%"></b></div>
+            <div class="etapas"><span>Etapa atual: alvenaria</span><span>6 de 15 etapas</span></div>
+          </section>
+          <section class="cartao">
+            <div class="rotulo">Você economizou em outubro</div>
+            <div class="grande verde">R$ 1.284,00</div>
+            <div class="grafico" aria-label="Economia por mês">
+              <div><span style="height: 30%"></span>mai</div>
+              <div><span style="height: 46%"></span>jun</div>
+              <div><span style="height: 38%"></span>jul</div>
+              <div><span style="height: 60%"></span>ago</div>
+              <div><span style="height: 52%"></span>set</div>
+              <div class="atual"><span style="height: 80%"></span>out</div>
+            </div>
+          </section>
+        </div>
+
+        <section class="cartao lista">
+          <div class="icone"><i class="ti ti-sparkles" aria-hidden="true"></i></div>
+          <div class="campo">Cole a lista da obra: 100 sacos de cimento…</div>
+          <button class="btn"><i class="ti ti-bolt" aria-hidden="true"></i>Cotar agora</button>
+        </section>
+
+        <section class="sec-categorias">
+          <div class="titulo"><h2>Categorias</h2><a href="#">Ver todas</a></div>
+          <div class="categorias">
+            <div class="categoria"><i class="ti ti-building" style="background: var(--c1f); color: var(--c1t)" aria-hidden="true"></i><span>Básico</span></div>
+            <div class="categoria"><i class="ti ti-columns-3" style="background: var(--c2f); color: var(--c2t)" aria-hidden="true"></i><span>Estrutura</span></div>
+            <div class="categoria"><i class="ti ti-wall" style="background: var(--c3f); color: var(--c3t)" aria-hidden="true"></i><span>Alvenaria</span></div>
+            <div class="categoria"><i class="ti ti-droplet" style="background: var(--c4f); color: var(--c4t)" aria-hidden="true"></i><span>Hidráulica</span></div>
+            <div class="categoria"><i class="ti ti-bolt" style="background: var(--c5f); color: var(--c5t)" aria-hidden="true"></i><span>Elétrica</span></div>
+            <div class="categoria"><i class="ti ti-paint" style="background: var(--c6f); color: var(--c6t)" aria-hidden="true"></i><span>Pintura</span></div>
+            <div class="categoria"><i class="ti ti-bath" style="background: var(--c7f); color: var(--c7t)" aria-hidden="true"></i><span>Louças e metais</span></div>
+            <div class="categoria"><i class="ti ti-tools" style="background: var(--c8f); color: var(--c8t)" aria-hidden="true"></i><span>Ferramentas</span></div>
+          </div>
+        </section>
+
+        <section class="sec-ofertas">
+          <div class="titulo"><h2>Ofertas do dia</h2><a href="#">Ver todas</a></div>
+          <div class="ofertas">
+            <article class="oferta">
+              <div class="foto" style="background: var(--c1f); color: var(--c1t)"><i class="ti ti-building" aria-hidden="true"></i><span class="selo">-15%</span></div>
+              <div class="corpo"><div class="nome">Cimento CP II 50 kg</div><div class="loja">Depósito Bom Preço</div><div class="preco"><b>R$ 38,00</b><s>R$ 45,00</s></div></div>
+            </article>
+            <article class="oferta">
+              <div class="foto" style="background: var(--c7f); color: var(--c7t)"><i class="ti ti-bath" aria-hidden="true"></i><span class="selo">-10%</span></div>
+              <div class="corpo"><div class="nome">Torneira de banheiro cromada</div><div class="loja">Casa do Construtor</div><div class="preco"><b>R$ 189,90</b><s>R$ 210,00</s></div></div>
+            </article>
+            <article class="oferta">
+              <div class="foto" style="background: var(--c5f); color: var(--c5t)"><i class="ti ti-bolt" aria-hidden="true"></i><span class="selo">-8%</span></div>
+              <div class="corpo"><div class="nome">Cabo flexível 2,5 mm rolo 100 m</div><div class="loja">Elétrica Paraná</div><div class="preco"><b>R$ 219,00</b><s>R$ 238,00</s></div></div>
+            </article>
+            <article class="oferta">
+              <div class="foto" style="background: var(--c6f); color: var(--c6t)"><i class="ti ti-paint" aria-hidden="true"></i><span class="selo">-12%</span></div>
+              <div class="corpo"><div class="nome">Tinta acrílica 18 l branco neve</div><div class="loja">Casa do Construtor</div><div class="preco"><b>R$ 329,00</b><s>R$ 374,00</s></div></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="cartao barato">
+          <div class="titulo"><h2>Mais barato hoje</h2><a href="#">Comparar mais</a></div>
+          <div class="tabela">
+            <div class="linha"><span class="nome">Cimento CP II 50 kg <span class="suave" style="font-weight: 400">· 3 lojas</span></span><span class="faixa">de R$ 38,00 a R$ 45,00</span><span class="melhor">R$ 38,00</span></div>
+            <div class="linha"><span class="nome">Tijolo cerâmico 8 furos <span class="suave" style="font-weight: 400">· 4 lojas</span></span><span class="faixa">de R$ 1,20 a R$ 1,40</span><span class="melhor">R$ 1,20</span></div>
+            <div class="linha"><span class="nome">Vergalhão CA-50 8 mm <span class="suave" style="font-weight: 400">· 2 lojas</span></span><span class="faixa">de R$ 42,90 a R$ 47,50</span><span class="melhor">R$ 42,90</span></div>
+          </div>
+        </section>
+      </div>
+
+      <aside class="coluna lado">
+        <section class="cartao aviso">
+          <div class="cab"><i class="ti ti-arrows-exchange" aria-hidden="true"></i>Contraproposta</div>
+          <div style="margin-top: 6px; font-weight: 600">Casa do Construtor</div>
+          <div class="suave">10 sacos de cimento por R$ 450,00</div>
+          <span class="prazo"><i class="ti ti-clock" aria-hidden="true"></i>Responda em 5 h</span>
+          <button class="btn cheio">Ver proposta</button>
+        </section>
+
+        <section class="cartao entrega">
+          <div class="cab"><i class="ti ti-truck-delivery" aria-hidden="true"></i>Pedido saiu para entrega</div>
+          <p>Depósito Bom Preço · R$ 1.250,00</p>
+          <div class="passos"><span class="feito"></span><span class="feito"></span><span class="feito"></span><span></span></div>
+          <div class="passos-rotulo"><span>Confirmado</span><span>Entregue</span></div>
+        </section>
+
+        <section class="cartao lojas">
+          <div class="titulo"><h2>Lojas perto</h2><a href="#">Ver todas</a></div>
+          <div class="loja-linha"><div class="logo" style="background: #A43F05">CC</div><div class="info"><b>Casa do Construtor</b><small>Frete R$ 50,00 · 3 ofertas</small></div><span class="estado aberta">aberta</span></div>
+          <div class="loja-linha"><div class="logo" style="background: #1D4ED8">DB</div><div class="info"><b>Depósito Bom Preço</b><small>Frete grátis · 2 ofertas</small></div><span class="estado aberta">aberta</span></div>
+          <div class="loja-linha"><div class="logo" style="background: #535965">FS</div><div class="info"><b>Ferragens Sarandi</b><small>Sarandi · abre às 7h</small></div><span class="estado fechada">fechada</span></div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <nav class="abas">
+    <a class="ativo" href="#"><i class="ti ti-building-store" aria-hidden="true"></i>Início</a>
+    <a href="#"><i class="ti ti-file-invoice" aria-hidden="true"></i>Orçamentos<span class="num">3</span></a>
+    <a href="#"><i class="ti ti-wallet" aria-hidden="true"></i>Carteira</a>
+    <a href="#"><i class="ti ti-user-circle" aria-hidden="true"></i>Perfil</a>
+  </nav>
+</div>
+<script>
+  document.getElementById('tema').addEventListener('click', function () {
+    var escuro = document.body.classList.toggle('escuro');
+    document.body.classList.toggle('claro', !escuro);
+    this.querySelector('i').className = escuro ? 'ti ti-sun' : 'ti ti-moon';
+  });
+</script>
+</body>
+</html>

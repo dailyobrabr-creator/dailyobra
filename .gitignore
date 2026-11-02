@@ -1,0 +1,10 @@
+# Gerados pelo Flutter e pelas IDEs
+build/
+.dart_tool/
+*.iml
+.idea/
+**/android/local.properties
+
+# APKs prontos (publicados à parte) e rascunhos de trabalho
+apk/
+.superpowers/

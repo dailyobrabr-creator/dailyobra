@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <!-- Trocado pelo valor de flutter build web --base-href (no GitHub Pages: /nome-do-repositorio/) -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Compare preços de material de construção entre as lojas, negocie e ganhe cashback.">
+  <meta name="theme-color" content="#F36E21">
+
+  <!-- iOS -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="DailyObra">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <link rel="icon" type="image/png" href="icons/Icon-192.png">
+
+  <title>DailyObra</title>
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    html, body { margin: 0; height: 100%; background: #F6F7F9; }
+    #abertura {
+      position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+      background: #F6F7F9; transition: opacity 200ms ease-out;
+    }
+    #abertura img { width: 96px; height: 96px; animation: pulso 1.4s ease-in-out infinite; }
+    #abertura .escuro { display: none; }
+    #abertura.saindo { opacity: 0; }
+    @keyframes pulso { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(.94); opacity: .75; } }
+    @media (prefers-color-scheme: dark) {
+      html, body, #abertura { background: #141519; }
+      #abertura .claro { display: none; }
+      #abertura .escuro { display: block; }
+    }
+    @media (prefers-reduced-motion: reduce) { #abertura img { animation: none; } }
+  </style>
+</head>
+<body>
+  <div id="abertura" aria-label="Carregando o DailyObra" role="img">
+    <img class="claro" src="marca/simbolo.png" alt="">
+    <img class="escuro" src="marca/simbolo_claro.png" alt="">
+  </div>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

@@ -62,6 +62,11 @@ void main() {
       expect(lerCsv('Produto\tPreço\nCal\t12,5\n'), [['Produto', 'Preço'], ['Cal', '12,5']]);
     });
 
+    test('aspa de polegada no meio do texto não abre citação', () {
+      expect(lerCsv('Produto;Preço\nTUBO PVC 3/4";12,50\nREGISTRO 1/2";30\n'),
+          [['Produto', 'Preço'], ['TUBO PVC 3/4"', '12,50'], ['REGISTRO 1/2"', '30']]);
+    });
+
     test('aspas duplas dentro do texto', () {
       expect(lerCsv('Produto;Preço\n"Tubo ""100""";30\n')[1], ['Tubo "100"', '30']);
     });
@@ -77,6 +82,11 @@ void main() {
       expect(lerPreco('45,9'), 45.9);
     });
 
+    test('ponto decimal com três casas começando em zero não é milhar', () {
+      expect(lerPreco('0.125'), 0.125);
+      expect(lerPreco('0.350'), 0.35);
+    });
+
     test('sem número ou zero é inválido', () {
       expect(lerPreco('0'), isNull);
       expect(lerPreco(''), isNull);
@@ -89,6 +99,11 @@ void main() {
       final c = detectarColunas([['SKU', 'Descrição', 'UN', 'Valor unitário', 'Preço promocional']]);
       expect([c.codigo, c.nome, c.unidade, c.preco, c.promocao, c.linhaCabecalho], [0, 1, 2, 3, 4, 0]);
       expect(c.completas, isTrue);
+    });
+
+    test('coluna Item numerada não vira o nome quando há Descrição', () {
+      final c = detectarColunas([['Item', 'Código', 'Descrição', 'Un', 'Valor']]);
+      expect([c.nome, c.codigo, c.unidade, c.preco], [2, 1, 3, 4]);
     });
 
     test('título e linha vazia antes do cabeçalho', () {

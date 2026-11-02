@@ -25,11 +25,16 @@ String _separador(String texto) {
   for (final linha in linhas) {
     final contagem = {';': 0, ',': 0, '\t': 0};
     var aspas = false;
+    var campoVazio = true;
     for (final ch in linha.split('')) {
-      if (ch == '"') {
+      if (ch == '"' && (aspas || campoVazio)) {
         aspas = !aspas;
+        campoVazio = false;
       } else if (!aspas && contagem.containsKey(ch)) {
         contagem[ch] = contagem[ch]! + 1;
+        campoVazio = true;
+      } else if (ch.trim().isNotEmpty) {
+        campoVazio = false;
       }
     }
     final maior = contagem.entries.reduce((a, b) => b.value > a.value ? b : a);
@@ -38,8 +43,8 @@ String _separador(String texto) {
   return ';';
 }
 
-/// Linhas e células de um CSV: separador ";", "," ou tabulação, aspas (com "" dentro), BOM do Excel e quebra de linha
-/// do Windows. Células sem espaço nas pontas.
+/// Linhas e células de um CSV: separador ";", "," ou tabulação, aspas no começo da célula (com "" dentro), BOM do Excel
+/// e quebra de linha do Windows. Aspa no meio do texto é texto ("TUBO 3/4""). Células sem espaço nas pontas.
 List<List<String>> lerCsv(String texto) {
   if (texto.startsWith('﻿')) texto = texto.substring(1);
   final sep = _separador(texto);
@@ -63,7 +68,8 @@ List<List<String>> lerCsv(String texto) {
       } else {
         aspas = false;
       }
-    } else if (ch == '"') {
+    } else if (ch == '"' && celula.toString().trim().isEmpty) {
+      // Aspa abre citação só no começo da célula; no meio é texto (polegada: TUBO 3/4")
       aspas = true;
     } else if (ch == sep) {
       fecharCelula();
@@ -228,7 +234,9 @@ ColunasPlanilha _colunasDe(List<String> cabecalho, int linha) {
   final preco = achar((c) => (c.contains('preco') || c.contains('valor')) && c.contains('venda'), semPromocao) ??
       achar((c) => const {'preco', 'valor', 'preco unitario', 'valor unitario', 'preco un', 'valor un', 'preco r', 'valor r'}.contains(c), semPromocao) ??
       achar((c) => (c.startsWith('preco') || c.startsWith('valor')) && !c.contains('custo') && !c.contains('total'), semPromocao);
-  final nome = achar((c) => const {'produto', 'descricao', 'nome', 'item'}.contains(c) || c.startsWith('descricao') || c.startsWith('produto') || c.startsWith('nome do produto'));
+  // "Item" costuma ser a numeração das linhas: vale como nome só sem coluna de produto, descrição ou nome
+  final nome = achar((c) => const {'produto', 'descricao', 'nome'}.contains(c) || c.startsWith('descricao') || c.startsWith('produto') || c.startsWith('nome do produto')) ??
+      achar((c) => c == 'item');
   final unidade = achar((c) => const {'unidade', 'un', 'und', 'unid', 'unidade de medida', 'unidade medida'}.contains(c));
   final codigo = achar((c) => const {'codigo', 'sku', 'ref', 'referencia', 'cod'}.contains(c) || c.startsWith('codigo'));
   return ColunasPlanilha(linhaCabecalho: linha, nome: nome, preco: preco, promocao: promocao, unidade: unidade, codigo: codigo);
@@ -248,8 +256,8 @@ final _numeroDoPreco = RegExp(r'\d[\d.,]*');
 final _separadorNoFim = RegExp(r'[.,]+$');
 
 /// Primeiro número do texto como preço: "R$ 1.234,56", "1234,56", "45.90", "1.234" e "45,90 / sc". Com ponto e vírgula, o
-/// último é o decimal; só ponto é milhar quando todos os grupos depois do primeiro têm 3 dígitos. Sem número, ou zero,
-/// é inválido (null).
+/// último é o decimal; só ponto é milhar quando todos os grupos depois do primeiro têm 3 dígitos e o primeiro não é zero
+/// ("0.125" é decimal). Sem número, ou zero, é inválido (null).
 double? lerPreco(String texto) {
   final achado = _numeroDoPreco.firstMatch(texto);
   if (achado == null) return null;
@@ -263,7 +271,7 @@ double? lerPreco(String texto) {
     s = '${partes.sublist(0, partes.length - 1).join()}.${partes.last}';
   } else if (ponto >= 0) {
     final partes = s.split('.');
-    final milhar = partes.skip(1).every((p) => p.length == 3);
+    final milhar = partes.first != '0' && partes.skip(1).every((p) => p.length == 3);
     s = milhar ? partes.join() : '${partes.sublist(0, partes.length - 1).join()}.${partes.last}';
   }
   final valor = double.tryParse(s);

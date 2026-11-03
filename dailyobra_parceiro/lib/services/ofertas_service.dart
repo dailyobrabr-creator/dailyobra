@@ -2,6 +2,8 @@ import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'loja_service.dart';
+
 /// Catálogo mestre e os preços da loja. A loja não cria produto: escolhe do catálogo e põe preço,
 /// promoção, disponibilidade ou pausa (o catálogo é o mesmo para todas as lojas).
 class OfertasService extends ChangeNotifier {
@@ -40,13 +42,76 @@ class OfertasService extends ChangeNotifier {
     List<Categoria> categorias = const [],
     List<ItemCatalogo> catalogo = const [],
     List<Oferta> minhas = const [],
+    List<LigacaoProduto> ligacoes = const [],
   }) {
     _categorias = categorias;
     _catalogo = catalogo;
     _minhas = {for (final o in minhas) o.itemId: o};
+    _teste = true;
+    _ligacoesDeTeste = ligacoes;
+    importacoesDeTeste.clear();
     _carregado = true;
     _erro = null;
     notifyListeners();
+  }
+
+  bool _teste = false;
+  List<LigacaoProduto> _ligacoesDeTeste = const [];
+
+  /// Importações do estoque nos testes (ofertas, ligações), sem chamar o banco.
+  @visibleForTesting
+  final importacoesDeTeste = <(List<Oferta>, List<LigacaoProduto>)>[];
+
+  /// Códigos do Santri que a loja já ligou aos produtos do catálogo (loja_produtos).
+  Future<List<LigacaoProduto>> carregarLigacoes() async {
+    if (_teste) return _ligacoesDeTeste;
+    final lojaId = _lojaId;
+    if (lojaId == null) return const [];
+    final linhas = await comMensagem(
+      () => _db
+          .from('loja_produtos')
+          .select('codigo, item_id, nome, unidade')
+          .eq('loja_id', lojaId),
+    );
+    return [for (final j in linhas) LigacaoProduto.fromJson(j)];
+  }
+
+  /// Grava o estoque do dia (função importar_estoque: ofertas e ligações juntas) e devolve quantas ofertas gravou.
+  /// Lança [FalhaComMensagem].
+  Future<int> importarEstoque({
+    required List<Oferta> ofertas,
+    required List<LigacaoProduto> ligacoes,
+  }) async {
+    if (_teste) {
+      importacoesDeTeste.add((ofertas, ligacoes));
+      return ofertas.length;
+    }
+    final lojaId = _lojaId;
+    if (lojaId == null) {
+      throw const FalhaComMensagem(
+        'Cadastre a loja antes de atualizar o estoque.',
+      );
+    }
+    final r = await comMensagem(
+      () => _db.rpc(
+        'importar_estoque',
+        params: {
+          'p_loja': lojaId,
+          'p_ofertas': [
+            for (final o in ofertas)
+              {
+                'item_id': o.itemId,
+                'preco': o.preco,
+                'disponibilidade': o.disponibilidade.codigo,
+              },
+          ],
+          'p_ligacoes': [for (final g in ligacoes) g.toJson()],
+        },
+      ),
+    );
+    // A loja também, para a tela de Produtos mostrar a hora da última atualização
+    await Future.wait([carregar(lojaId), LojaService.instance.carregar()]);
+    return (r as Map)['ofertas'] as int;
   }
 
   void limpar() {

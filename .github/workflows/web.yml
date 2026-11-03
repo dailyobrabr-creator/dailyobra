@@ -1,4 +1,4 @@
-# Testa e publica o site do DailyObra (app do construtor) no GitHub Pages.
+# Testa e publica no GitHub Pages o site do DailyObra (app do construtor) e o painel da loja (Parceiros, em /parceiros/).
 # Ativar uma vez: Settings > Pages > Build and deployment > Source: GitHub Actions.
 name: Site no GitHub Pages
 
@@ -43,10 +43,24 @@ jobs:
           flutter analyze
           flutter test
 
+      - name: Painel da loja (análise e testes)
+        working-directory: dailyobra_parceiro
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test
+
       # O site fica em https://<usuario>.github.io/<repositorio>/
       - name: Gerar o site
         working-directory: dailyobra
         run: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
+
+      # O painel da loja fica em https://<usuario>.github.io/<repositorio>/parceiros/
+      - name: Gerar o painel da loja
+        working-directory: dailyobra_parceiro
+        run: |
+          flutter build web --release --base-href "/${{ github.event.repository.name }}/parceiros/"
+          cp -r build/web ../dailyobra/build/web/parceiros
 
       - uses: actions/configure-pages@v5
 

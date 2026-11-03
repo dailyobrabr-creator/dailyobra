@@ -45,3 +45,9 @@ flutter_launcher_icons:
   remove_alpha_ios: true
   adaptive_icon_background: "#565966"
   adaptive_icon_foreground: "assets/icone/icone_frente.png"
+  # Painel na web: favicon e ícones do manifest
+  web:
+    generate: true
+    image_path: "assets/icone/icone.png"
+    background_color: "#F6F7F9"
+    theme_color: "#F36E21"

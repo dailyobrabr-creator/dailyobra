@@ -22,7 +22,7 @@ Mande o arquivo para o celular (WhatsApp, Google Drive ou cabo), abra e permita 
 
 ## Site (web) do construtor
 
-O app do construtor também roda no navegador, com o mesmo código: no celular fica como o app (abas embaixo), no tablet ganha um trilho lateral e no computador um menu lateral com a barra laranja no topo, Início em vitrine, Orçamentos com o resumo fixo à direita e Enviados em lista e detalhe lado a lado. O app das lojas continua só no Android.
+O app do construtor também roda no navegador, com o mesmo código: no celular fica como o app (abas embaixo), no tablet ganha um trilho lateral e no computador um menu lateral com a barra laranja no topo, Início em vitrine, Orçamentos com o resumo fixo à direita e Enviados em lista e detalhe lado a lado.
 
 Para ver na sua máquina:
 
@@ -30,6 +30,12 @@ Para ver na sua máquina:
 cd dailyobra
 flutter run -d chrome
 ```
+
+## Painel da loja na web
+
+O DailyObra Parceiros também abre no navegador, em `https://dailyobrabr-creator.github.io/dailyobra/parceiros/`, com a mesma conta do app: no computador ganha o menu lateral com a barra laranja da loja e, em Propostas, a lista com a proposta ou o pedido aberto ao lado. Sai junto com o site a cada push no `main`. Para os links de cadastro e de "Esqueci a senha" voltarem ao painel, inclua esse endereço no Supabase em **Authentication > URL Configuration > Redirect URLs**.
+
+Para ver na sua máquina: `cd dailyobra_parceiro` e `flutter run -d chrome`.
 
 ## Publicar no GitHub Pages
 

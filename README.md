@@ -109,7 +109,7 @@ Os testes de tela do `dailyobra` passam por 360, 800 e 1366 px de largura, nos t
 
 A página do cliente (`dailyobra/web/pagar/`) tem testes em Node, sem instalar nada: `node --test dailyobra/test/pagina_pagar_test.mjs` (na raiz do repositório).
 
-As regras do banco são conferidas por `supabase/tests/marketplace_test.sql` (roda numa transação desfeita no fim; cada linha do resultado tem `ok = true`), por `supabase/tests/checkout_bifurcado_test.sql`, `supabase/tests/checkout_pagamento_test.sql`, `supabase/tests/importacao_estoque_test.sql` e `supabase/tests/resultados_loja_test.sql` (também desfeitos no fim; terminam com a contagem de verificações ok).
+As regras do banco são conferidas por `supabase/tests/marketplace_test.sql` (roda numa transação desfeita no fim; cada linha do resultado tem `ok = true`), por `supabase/tests/checkout_bifurcado_test.sql`, `supabase/tests/checkout_pagamento_test.sql`, `supabase/tests/importacao_estoque_test.sql`, `supabase/tests/resultados_loja_test.sql` e `supabase/tests/endereco_loja_test.sql` (também desfeitos no fim; terminam com a contagem de verificações ok).
 
 ## Pagamento pelo cliente (link PIX)
 
@@ -146,7 +146,9 @@ where l.cnpj = '04769422000187' and u.email = 'email-da-loja@exemplo.com';
 
 CNPJs: Operário `36931301000186`, Comapa `04769422000187`, Taipa `33651993000463`. A partir daí a loja edita o perfil, o frete e os preços pelo app Parceiros, e pode subir a planilha de preços de uma vez (Produtos e preços > Importar planilha). As logos e capas delas (montadas a partir das logos oficiais) ficam em `dailyobra/web/lojas/` e são servidas pelo site; quando a loja trocar a logo pelo app, passa a valer a dela.
 
-O selo **aberta / fechada** sai do horário que a loja escreve ("Seg a sex 7h às 18h; sáb 7h às 12h"), no fuso do estado dela. O interruptor do app Parceiros pausa os pedidos (a loja sai da cotação) sem apagar o horário.
+O selo **aberta / fechada** sai do horário da loja ("Seg a sex 7h às 18h; sáb 7h às 12h"), no fuso do estado dela. O interruptor do app Parceiros pausa os pedidos (a loja sai da cotação) sem apagar o horário.
+
+No cadastro e em **Minha loja**, a loja não digita endereço nem horário. Digita o CEP e o app busca no ViaCEP (direto do aparelho) e preenche rua, bairro, cidade e UF; ela completa número e complemento e, se tiver, escreve as **outras unidades** da rede. O banco guarda os campos e monta o texto que o construtor vê (`Rua, Número, Complemento – Bairro, CEP 00000-000`, gatilho `lojas_endereco`); loja antiga sem CEP continua com o texto que tinha até salvar com CEP. O horário é escolhido dia a dia (de 15 em 15 minutos, com intervalo opcional e "Copiar segunda para terça a sexta") e vira o mesmo texto que o app já lê (`escreverHorario` no comum); horário antigo que o app não entende só é trocado quando a loja mexe no editor.
 
 ## Pendências no painel do Supabase
 

@@ -28,6 +28,7 @@ export 'src/tema/cores.dart';
 export 'src/tema/preferencia_tema.dart';
 export 'src/tema/tema.dart';
 export 'src/ui/faixa_obra.dart';
+export 'src/ui/formato.dart';
 export 'src/ui/marketplace_ui.dart';
 export 'src/ui/parametros_form.dart';
 export 'src/ui/resultado.dart';

@@ -5,7 +5,6 @@ import '../services/carrinho_service.dart';
 import '../services/catalogo_service.dart';
 import 'busca_screen.dart';
 import 'componentes.dart';
-import 'layout_adaptativo.dart';
 
 /// Resultado da lista inteligente: o que foi reconhecido (com quantidade editável), o que precisa
 /// de escolha e o que não está no catálogo.

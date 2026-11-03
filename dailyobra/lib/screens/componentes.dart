@@ -5,8 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
-import 'layout_adaptativo.dart';
-
 /// Abas da navegação principal. Qualquer tela pode trocar a aba com [irParaAba].
 enum Aba { inicio, orcamentos, carteira, perfil, obras }
 

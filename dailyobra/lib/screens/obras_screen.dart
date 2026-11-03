@@ -4,7 +4,6 @@ import 'package:dailyobra_comum/dailyobra_comum.dart';
 
 import '../services/obras_service.dart';
 import 'componentes.dart';
-import 'layout_adaptativo.dart';
 import 'obra_form_screen.dart';
 import 'obra_screen.dart';
 

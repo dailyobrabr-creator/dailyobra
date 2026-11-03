@@ -13,7 +13,6 @@ import '../services/perfil_service.dart';
 import 'busca_screen.dart';
 import 'categoria_screen.dart';
 import 'componentes.dart';
-import 'layout_adaptativo.dart';
 import 'loja_screen.dart';
 import 'obra_form_screen.dart';
 import 'obra_screen.dart';

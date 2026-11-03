@@ -5,7 +5,6 @@ import '../services/carrinho_service.dart';
 import '../services/catalogo_service.dart';
 import '../services/negociacao_service.dart';
 import 'componentes.dart';
-import 'layout_adaptativo.dart';
 import 'pedido_screen.dart';
 import 'proposta_screen.dart';
 

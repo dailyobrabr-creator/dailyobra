@@ -5,7 +5,6 @@ import '../services/carteira_service.dart';
 import '../services/catalogo_service.dart';
 import '../services/economia_service.dart';
 import 'componentes.dart';
-import 'layout_adaptativo.dart';
 
 /// Clube DailyObra: saldo de cashback, como ganhar por nível e o extrato.
 class CarteiraScreen extends StatelessWidget {

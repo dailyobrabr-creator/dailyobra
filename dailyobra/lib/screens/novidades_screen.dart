@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 import '../services/novidades_service.dart';
 import 'componentes.dart';
-import 'layout_adaptativo.dart';
 import 'pedido_screen.dart';
 import 'proposta_screen.dart';
 

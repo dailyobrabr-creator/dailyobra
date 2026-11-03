@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import '../services/carrinho_service.dart';
 import '../services/catalogo_service.dart';
 import 'componentes.dart';
-import 'layout_adaptativo.dart';
 import 'produto_screen.dart';
 
 /// Vitrine de uma loja: capa, logo, frete, pedido mínimo e os produtos com preço.

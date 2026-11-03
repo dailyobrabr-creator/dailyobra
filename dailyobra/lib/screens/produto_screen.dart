@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import '../services/carrinho_service.dart';
 import '../services/catalogo_service.dart';
 import 'componentes.dart';
-import 'layout_adaptativo.dart';
 import 'loja_screen.dart';
 
 /// Produto do catálogo com o preço em cada loja, do menor para o maior.

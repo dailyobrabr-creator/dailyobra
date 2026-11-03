@@ -6,14 +6,23 @@ import '../services/catalogo_service.dart';
 import 'componentes.dart';
 import 'produto_screen.dart';
 
-/// Vitrine de uma loja: capa, logo, frete, pedido mínimo e os produtos com preço.
+/// Vitrine de uma loja: capa, logo, frete, pedido mínimo e os produtos com preço, separados por categoria.
 /// Produto adicionado daqui fica fixado nesta loja na cotação.
-class LojaScreen extends StatelessWidget {
+class LojaScreen extends StatefulWidget {
   const LojaScreen({super.key, required this.lojaId});
   final String lojaId;
 
   @override
+  State<LojaScreen> createState() => _LojaScreenState();
+}
+
+class _LojaScreenState extends State<LojaScreen> {
+  /// Categoria escolhida nos atalhos; nula mostra todas.
+  String? _categoria;
+
+  @override
   Widget build(BuildContext context) {
+    final lojaId = widget.lojaId;
     final catalogo = CatalogoService.instance;
     final loja = catalogo.loja(lojaId);
     if (loja == null) {
@@ -114,6 +123,46 @@ class LojaScreen extends StatelessWidget {
           final titulo = TituloSecao(
             produtos.isEmpty ? 'Produtos' : 'Produtos (${produtos.length})',
           );
+          final secoes = secoesPorCategoria(produtos, catalogo.categorias);
+          final escolhida = secoes.any((s) => s.$1.id == _categoria)
+              ? _categoria
+              : null;
+          final visiveis = [
+            for (final s in secoes)
+              if (escolhida == null || s.$1.id == escolhida) s,
+          ];
+          // Atalhos só quando a loja vende de mais de uma categoria
+          final atalhos = secoes.length < 2
+              ? const <Widget>[]
+              : [
+                  ChipCategoria(
+                    categoria: const Categoria(
+                      id: 'todas',
+                      nome: 'Todas',
+                      ordem: 0,
+                    ),
+                    selecionada: escolhida == null,
+                    onTap: () => setState(() => _categoria = null),
+                  ),
+                  for (final (categoria, _) in secoes)
+                    ChipCategoria(
+                      categoria: categoria,
+                      selecionada: escolhida == categoria.id,
+                      onTap: () => setState(
+                        () => _categoria = escolhida == categoria.id
+                            ? null
+                            : categoria.id,
+                      ),
+                    ),
+                ];
+          Widget tituloDa((Categoria, List<(Oferta, ItemCatalogo)>) secao) =>
+              TituloSecao(
+                '${secao.$1.nome} · ${secao.$2.length}',
+                margem: const EdgeInsets.only(
+                  top: Espaco.s4,
+                  bottom: Espaco.s2,
+                ),
+              );
           if (formato != Formato.celular) {
             return LayoutBuilder(
               builder: (context, limites) {
@@ -145,23 +194,32 @@ class LojaScreen extends StatelessWidget {
                             fechada,
                           ],
                           titulo,
+                          if (atalhos.isNotEmpty)
+                            Wrap(
+                              spacing: Espaco.s2,
+                              runSpacing: Espaco.s2,
+                              children: atalhos,
+                            ),
                           if (produtos.isEmpty)
                             semProdutos
                           else
-                            GradeCartoes(
-                              colunas: colunasDaGrade(formato),
-                              filhos: [
-                                for (final (oferta, item) in produtos)
-                                  CartaoOfertaComBotao(
-                                    item: item,
-                                    oferta: oferta,
-                                    hoje: hoje,
-                                    noOrcamento: carrinho.contem(item.id),
-                                    onTap: () => abrirProduto(item),
-                                    onAdicionar: adicionar(item),
-                                  ),
-                              ],
-                            ),
+                            for (final secao in visiveis) ...[
+                              tituloDa(secao),
+                              GradeCartoes(
+                                colunas: colunasDaGrade(formato),
+                                filhos: [
+                                  for (final (oferta, item) in secao.$2)
+                                    CartaoOfertaComBotao(
+                                      item: item,
+                                      oferta: oferta,
+                                      hoje: hoje,
+                                      noOrcamento: carrinho.contem(item.id),
+                                      onTap: () => abrirProduto(item),
+                                      onAdicionar: adicionar(item),
+                                    ),
+                                ],
+                              ),
+                            ],
                         ],
                       ),
                     ),
@@ -193,32 +251,73 @@ class LojaScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              if (atalhos.isNotEmpty)
+                SizedBox(
+                  height: 108,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: Espaco.s4),
+                    itemCount: atalhos.length,
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(width: Espaco.s2),
+                    itemBuilder: (_, i) => atalhos[i],
+                  ),
+                ),
               if (produtos.isEmpty)
                 semProdutos
               else
-                for (final (oferta, item) in produtos)
+                for (final secao in visiveis) ...[
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      Espaco.s4,
-                      0,
-                      Espaco.s4,
-                      Espaco.s3,
-                    ),
-                    child: CartaoProduto(
-                      item: item,
-                      melhorOferta: oferta,
-                      hoje: hoje,
-                      noOrcamento: carrinho.contem(item.id),
-                      onTap: () => abrirProduto(item),
-                      onAdicionar: adicionar(item),
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: Espaco.s4),
+                    child: tituloDa(secao),
                   ),
+                  for (final (oferta, item) in secao.$2)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        Espaco.s4,
+                        0,
+                        Espaco.s4,
+                        Espaco.s3,
+                      ),
+                      child: CartaoProduto(
+                        item: item,
+                        melhorOferta: oferta,
+                        hoje: hoje,
+                        noOrcamento: carrinho.contem(item.id),
+                        onTap: () => abrirProduto(item),
+                        onAdicionar: adicionar(item),
+                      ),
+                    ),
+                ],
             ],
           );
         },
       ),
     );
   }
+}
+
+/// Produtos da loja em seções, uma por categoria, na ordem do catálogo; dentro da seção, na ordem em que vieram.
+/// O que não tem categoria conhecida fica em "Outros", no fim.
+List<(Categoria, List<(Oferta, ItemCatalogo)>)> secoesPorCategoria(
+  List<(Oferta, ItemCatalogo)> produtos,
+  List<Categoria> categorias,
+) {
+  final porCategoria = <String, List<(Oferta, ItemCatalogo)>>{};
+  for (final p in produtos) {
+    (porCategoria[p.$2.categoriaId] ??= []).add(p);
+  }
+  final conhecidas = {for (final c in categorias) c.id};
+  final outros = [
+    for (final p in produtos)
+      if (!conhecidas.contains(p.$2.categoriaId)) p,
+  ];
+  return [
+    for (final c in [...categorias]..sort((a, b) => a.ordem.compareTo(b.ordem)))
+      if (porCategoria[c.id] case final lista?) (c, lista),
+    if (outros.isNotEmpty)
+      (const Categoria(id: 'outros', nome: 'Outros', ordem: 999), outros),
+  ];
 }
 
 String _telefone(String d) {

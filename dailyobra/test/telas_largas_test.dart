@@ -48,10 +48,16 @@ Future<void> abrirLargura(
   await tester.pumpAndSettle();
 }
 
-/// Quantos cartões começam na mesma altura do primeiro.
-int cartoesNaPrimeiraLinha(WidgetTester tester) {
+/// Quantos cartões começam na mesma altura do primeiro (ou do cartão de [produto]).
+int cartoesNaPrimeiraLinha(WidgetTester tester, {String? produto}) {
   final cartoes = find.byType(CartaoOferta);
-  final topo = tester.getTopLeft(cartoes.first).dy;
+  final topo = tester
+      .getTopLeft(
+        produto == null
+            ? cartoes.first
+            : find.ancestor(of: find.text(produto), matching: cartoes),
+      )
+      .dy;
   return cartoes
       .evaluate()
       .where((e) => tester.getTopLeft(find.byWidget(e.widget)).dy == topo)
@@ -246,7 +252,7 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
-      testWidgets('loja com 8 produtos: 4 cartões na primeira linha', (
+      testWidgets('loja com 9 de alvenaria: 4 cartões na primeira linha', (
         tester,
       ) async {
         await abrirLargura(
@@ -255,8 +261,12 @@ void main() {
           1366,
           escuro: escuro,
         );
-        await rolarAte(tester, find.byType(CartaoOferta).first);
-        expect(cartoesNaPrimeiraLinha(tester), 4);
+        await rolarAte(tester, find.text('Bloco de concreto modelo 1'));
+        expect(find.text('Alvenaria · 9'), findsOneWidget);
+        expect(
+          cartoesNaPrimeiraLinha(tester, produto: 'Bloco de concreto modelo 1'),
+          4,
+        );
         await rolarAteOFim(tester);
         expect(tester.takeException(), isNull);
       });
@@ -270,8 +280,11 @@ void main() {
           800,
           escuro: escuro,
         );
-        await rolarAte(tester, find.byType(CartaoOferta).first);
-        expect(cartoesNaPrimeiraLinha(tester), 3);
+        await rolarAte(tester, find.text('Bloco de concreto modelo 1'));
+        expect(
+          cartoesNaPrimeiraLinha(tester, produto: 'Bloco de concreto modelo 1'),
+          3,
+        );
         await rolarAteOFim(tester);
         expect(tester.takeException(), isNull);
       });

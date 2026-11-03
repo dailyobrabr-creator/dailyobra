@@ -13,23 +13,37 @@ Future<void> abrir(
   tester.view.physicalSize = const Size(1080, 2340);
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(
-    MaterialApp(
-      theme: AppTheme.claro(ThemeData.light().textTheme),
-      darkTheme: AppTheme.escuro(ThemeData.dark().textTheme),
-      themeMode: escuro ? ThemeMode.dark : ThemeMode.light,
-      locale: const Locale('pt', 'BR'),
-      supportedLocales: const [Locale('pt', 'BR')],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      home: tela,
-    ),
-  );
+  await tester.pumpWidget(_app(tela, escuro));
   await tester.pumpAndSettle();
 }
+
+/// A tela numa janela de navegador com [largura] px (altura 900): celular, tablet ou computador.
+Future<void> abrirLargura(
+  WidgetTester tester,
+  Widget tela,
+  double largura, {
+  bool escuro = false,
+}) async {
+  tester.view.physicalSize = Size(largura, 900);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  await tester.pumpWidget(_app(tela, escuro));
+  await tester.pumpAndSettle();
+}
+
+Widget _app(Widget tela, bool escuro) => MaterialApp(
+  theme: AppTheme.claro(ThemeData.light().textTheme),
+  darkTheme: AppTheme.escuro(ThemeData.dark().textTheme),
+  themeMode: escuro ? ThemeMode.dark : ThemeMode.light,
+  locale: const Locale('pt', 'BR'),
+  supportedLocales: const [Locale('pt', 'BR')],
+  localizationsDelegates: const [
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ],
+  home: tela,
+);
 
 /// Rola a lista vertical principal até o alvo aparecer.
 Future<void> rolarAte(WidgetTester tester, Finder alvo) async {

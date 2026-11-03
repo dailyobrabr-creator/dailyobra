@@ -96,6 +96,12 @@ class Loja {
     this.horario = '',
     this.freteACombinar = false,
     this.endereco = '',
+    this.cep,
+    this.logradouro = '',
+    this.numero = '',
+    this.complemento = '',
+    this.bairro = '',
+    this.outrasUnidades = '',
   });
   final String id;
   final String nome;
@@ -119,8 +125,18 @@ class Loja {
   /// O banco desliga sozinho quando a loja salva o frete no app Parceiros.
   final bool freteACombinar;
 
-  /// Endereço como a loja escreveu (rua, número, bairro ou unidades).
+  /// Endereço para mostrar: montado pelo banco a partir dos campos quando há CEP; nas lojas antigas, como a loja escreveu.
   final String endereco;
+
+  /// CEP só com os 8 números; nulo nas lojas que ainda não informaram (o endereço é só o texto).
+  final String? cep;
+  final String logradouro;
+  final String numero;
+  final String complemento;
+  final String bairro;
+
+  /// Outras lojas da rede, escritas pela loja ("Sagrada Família e Médici").
+  final String outrasUnidades;
 
   factory Loja.fromJson(Map<String, dynamic> j) {
     final criada = _data(j['criada_em']);
@@ -140,6 +156,12 @@ class Loja {
       horario: (j['horario'] as String?) ?? '',
       freteACombinar: (j['frete_a_combinar'] as bool?) ?? false,
       endereco: (j['endereco'] as String?) ?? '',
+      cep: j['cep'] as String?,
+      logradouro: (j['logradouro'] as String?) ?? '',
+      numero: (j['numero'] as String?) ?? '',
+      complemento: (j['complemento'] as String?) ?? '',
+      bairro: (j['bairro'] as String?) ?? '',
+      outrasUnidades: (j['outras_unidades'] as String?) ?? '',
     );
   }
 }

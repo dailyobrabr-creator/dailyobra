@@ -149,4 +149,29 @@ void main() {
       expect(s.selo, '');
     });
   });
+
+  group('escreverHorario', () {
+    FaixaHorario f(int dia, int inicio, int fim) => FaixaHorario(dia, inicio, fim);
+    List<FaixaHorario> dias(List<int> ds, int inicio, int fim) => [for (final d in ds) f(d, inicio, fim)];
+    const uteis = [1, 2, 3, 4, 5];
+    final casos = <String, List<FaixaHorario>>{
+      'Seg a sex 7h às 18h; sáb 7h às 12h': [...dias(uteis, 420, 1080), f(6, 420, 720)],
+      'Seg a sex 7h às 11h e 13h às 18h': [...dias(uteis, 780, 1080), ...dias(uteis, 420, 660)],
+      'Seg 7h30 às 17h30; ter a sex 7h às 17h30; sáb 7h às 12h30': [f(1, 450, 1050), ...dias([2, 3, 4, 5], 420, 1050), f(6, 420, 750)],
+      'Sáb e dom 8h às 12h': dias([6, 7], 480, 720),
+      'Seg a qua 8h às 18h; sex 8h às 18h': [...dias([1, 2, 3], 480, 1080), f(5, 480, 1080)],
+    };
+    final nomes = ['escreve dias úteis iguais e sábado', 'escreve intervalo', 'meia hora', 'dois dias seguidos usam e', 'dias separados'];
+    for (final (i, MapEntry(key: texto, value: lista)) in casos.entries.indexed) {
+      test(nomes[i], () => expect(escreverHorario(lista), texto));
+    }
+
+    test('tudo fechado', () => expect(escreverHorario(const []), ''));
+
+    test('ida e volta', () {
+      for (final texto in casos.keys) {
+        expect(escreverHorario(lerHorario(texto)!), texto);
+      }
+    });
+  });
 }

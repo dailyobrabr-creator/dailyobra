@@ -119,6 +119,36 @@ String _hora(int minutos) {
   return m == 0 ? '${h}h' : '${h}h${m.toString().padLeft(2, '0')}';
 }
 
+/// Texto do horário no formato que [lerHorario] lê ("Seg a sex 7h às 11h e 13h às 18h; sáb 7h às 12h"): dias
+/// seguidos com as mesmas faixas viram um trecho ("sáb e dom", "ter a sex"). Sem faixa nenhuma, texto vazio.
+String escreverHorario(List<FaixaHorario> faixas) {
+  final porDia = {for (var d = 1; d <= 7; d++) d: <FaixaHorario>[]};
+  for (final f in faixas) {
+    porDia[f.dia]?.add(f);
+  }
+  String doDia(int d) => ([...porDia[d]!]..sort((a, b) => a.inicio.compareTo(b.inicio)))
+      .map((f) => '${_hora(f.inicio)} às ${_hora(f.fim)}')
+      .join(' e ');
+  final trechos = <String>[];
+  var d = 1;
+  while (d <= 7) {
+    final horas = doDia(d);
+    if (horas.isEmpty) {
+      d++;
+      continue;
+    }
+    var fim = d;
+    while (fim < 7 && doDia(fim + 1) == horas) {
+      fim++;
+    }
+    final dias = fim == d ? _nomesDias[d - 1] : '${_nomesDias[d - 1]} ${fim == d + 1 ? 'e' : 'a'} ${_nomesDias[fim - 1]}';
+    trechos.add('$dias $horas');
+    d = fim + 1;
+  }
+  final texto = trechos.join('; ');
+  return texto.isEmpty ? '' : texto[0].toUpperCase() + texto.substring(1);
+}
+
 /// Aberta ou fechada agora, pelo horário da loja e no fuso dela. A loja que desligou os pedidos
 /// no app aparece como pausada; sem horário legível, não há selo.
 SituacaoLoja situacaoDaLoja(Loja loja, DateTime agora) {

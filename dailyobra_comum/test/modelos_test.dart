@@ -60,6 +60,19 @@ void main() {
     expect(Categoria.fromJson({'id': 'basico', 'nome': 'Básico', 'ordem': 1}).nome, 'Básico');
   });
 
+  test('loja com endereço em campos', () {
+    final l = Loja.fromJson({
+      'id': 'l1', 'nome': 'Operário', 'cidade': 'Rondonópolis', 'uf': 'MT', 'frete_fixo': 0, 'pedido_minimo': 0,
+      'cep': '78700000', 'logradouro': 'R. Fernando Corrêa da Costa', 'numero': '1500', 'complemento': 'sala 2',
+      'bairro': 'Vila Operária', 'outras_unidades': 'Sagrada Família e Médici',
+    });
+    expect([l.cep, l.logradouro, l.numero, l.complemento, l.bairro, l.outrasUnidades],
+        ['78700000', 'R. Fernando Corrêa da Costa', '1500', 'sala 2', 'Vila Operária', 'Sagrada Família e Médici']);
+    final antiga = Loja.fromJson({'id': 'l2', 'nome': 'Antiga', 'cidade': 'Maringá', 'uf': 'PR', 'frete_fixo': 0, 'pedido_minimo': 0});
+    expect(antiga.cep, isNull);
+    expect([antiga.logradouro, antiga.numero, antiga.complemento, antiga.bairro, antiga.outrasUnidades], ['', '', '', '', '']);
+  });
+
   test('item do catálogo lê a referência SINAPI embutida (objeto ou lista)', () {
     Map<String, dynamic> item(Object? ref) => {
           'id': 'cimento-cp2-50kg', 'nome': 'Cimento CP II 50 kg', 'unidade': 'saco', 'categoria_id': 'basico',

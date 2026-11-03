@@ -200,6 +200,52 @@ void main() {
         expect(ofertas.where((o) => o.itemId == 'cal-hidratada-20kg'), isEmpty);
       });
 
+      testWidgets('procurar outra linha do relatório', (tester) async {
+        preparar();
+        await lerRelatorio(
+          tester,
+          escuro: escuro,
+          texto: '${relatorio}80.300;SAIBRO PENEIRADO;15,000;M3;50,00;95,00\n',
+        );
+        await rolarAte(tester, find.byKey(const Key('sugestao-areia-media')));
+        await tester.tap(naSugestao('areia-media', 'Procurar'));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('procurar-linha')),
+          'saibro',
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('SAIBRO PENEIRADO'));
+        await tester.pumpAndSettle();
+        expect(naSugestao('areia-media', 'SAIBRO PENEIRADO'), findsOneWidget);
+        expect(naSugestao('areia-media', 'Vai ser ligado'), findsOneWidget);
+        await rolarAte(
+          tester,
+          find.byKey(const Key('sugestao-cal-hidratada-20kg')),
+        );
+        await tester.tap(naSugestao('cal-hidratada-20kg', 'Procurar'));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('procurar-linha')),
+          'saibro',
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Nada encontrado no relatório.'), findsOneWidget);
+        await tester.tap(find.byType(BackButton));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Confirmar'));
+        await tester.pumpAndSettle();
+        final (_, ligacoes) = OfertasService.instance.importacoesDeTeste.single;
+        expect(ligacoes, const [
+          LigacaoProduto(
+            codigo: '80300',
+            itemId: 'areia-media',
+            nome: 'SAIBRO PENEIRADO',
+            unidade: 'M3',
+          ),
+        ]);
+      });
+
       testWidgets('unidade diferente avisa', (tester) async {
         preparar();
         await lerRelatorio(tester, escuro: escuro);

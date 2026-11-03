@@ -326,6 +326,24 @@ class _AtualizarEstoqueScreenState extends State<AtualizarEstoqueScreen> {
     return '$antes${brl.format(m.precoNovo)} · ${m.disponibilidadeNova.rotulo}';
   }
 
+  /// Busca no relatório quando a linha certa não veio entre as sugestões (fora as que já vão para outro produto).
+  Future<void> _procurar(SugestaoLigacao s, Set<String> usadas) async {
+    final linha = await Navigator.push<LinhaEstoque>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _ProcurarLinha(
+          item: s.item,
+          linhas: [
+            for (final l in _atualizacao!.paraLigar)
+              if (!usadas.contains(l.codigo)) l,
+          ],
+        ),
+      ),
+    );
+    if (linha == null || !mounted) return;
+    setState(() => _ligados[s.item.id] = OpcaoLigacao.para(linha, s.item));
+  }
+
   /// Cartão de uma sugestão. A linha do Santri que já vai para outro produto sai das opções deste.
   Widget? _sugestao(BuildContext context, SugestaoLigacao s) {
     final t = Theme.of(context).textTheme;
@@ -398,11 +416,104 @@ class _AtualizarEstoqueScreenState extends State<AtualizarEstoqueScreen> {
                           child: const Text('Outro'),
                         ),
                       TextButton(
+                        onPressed: () => _procurar(s, usadas),
+                        child: const Text('Procurar'),
+                      ),
+                      TextButton(
                         onPressed: () =>
                             setState(() => _pulados.add(s.item.id)),
                         child: const Text('Pular'),
                       ),
                     ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Procura por nome ou código nas linhas do relatório que ainda podem ser ligadas; devolve a escolhida.
+class _ProcurarLinha extends StatefulWidget {
+  const _ProcurarLinha({required this.item, required this.linhas});
+  final ItemCatalogo item;
+  final List<LinhaEstoque> linhas;
+
+  @override
+  State<_ProcurarLinha> createState() => _ProcurarLinhaState();
+}
+
+class _ProcurarLinhaState extends State<_ProcurarLinha> {
+  final _busca = TextEditingController();
+
+  @override
+  void dispose() {
+    _busca.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final c = context.cores;
+    final vazia = _busca.text.trim().isEmpty;
+    final achadas = procurarLinhas(widget.linhas, _busca.text);
+    return Scaffold(
+      appBar: AppBar(title: const Text('Procurar no relatório')),
+      body: ColunaCentral(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Espaco.s4,
+                Espaco.s4,
+                Espaco.s4,
+                Espaco.s2,
+              ),
+              child: TextField(
+                key: const Key('procurar-linha'),
+                controller: _busca,
+                autofocus: true,
+                onChanged: (_) => setState(() {}),
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  labelText: 'Para ${widget.item.nome}',
+                  hintText: 'Nome ou código no Santri',
+                  prefixIcon: const Icon(Icons.search),
+                ),
+              ),
+            ),
+            Expanded(
+              child: vazia || achadas.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.all(Espaco.s4),
+                      child: Text(
+                        vazia
+                            ? 'Digite parte do nome ou o código.'
+                            : 'Nada encontrado no relatório.',
+                        style: t.bodyMedium?.copyWith(color: c.textoSuave),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(
+                        Espaco.s2,
+                        0,
+                        Espaco.s2,
+                        Espaco.s8,
+                      ),
+                      itemCount: achadas.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (context, i) {
+                        final l = achadas[i];
+                        return ListTile(
+                          title: Text(l.nome),
+                          subtitle: Text(
+                            '${l.unidade ?? 'sem unidade'} · ${brl.format(l.preco)} · Disponível: ${formatarQuantidade(l.disponivel)}',
+                          ),
+                          onTap: () => Navigator.pop(context, l),
+                        );
+                      },
+                    ),
             ),
           ],
         ),

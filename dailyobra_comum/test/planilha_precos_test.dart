@@ -5,6 +5,8 @@ import 'package:archive/archive.dart';
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'ods_de_teste.dart';
+
 const cimento = ItemCatalogo(
   id: 'cimento-cp2-50kg', nome: 'Cimento CP II 50 kg', unidade: 'saco', categoriaId: 'basico', tier: 1,
   sinonimos: ['cimento', 'cp2'],
@@ -119,35 +121,40 @@ void main() {
   });
 
   group('lerXlsx e lerPlanilha', () {
-    test('primeira planilha com texto compartilhado, inline, número e célula pulada', () {
+    test('primeira planilha com texto compartilhado, inline, número e célula pulada', () async {
       const esperado = [['Produto', 'Preço', 'Un'], ['CIMENTO CP II 50KG', '45,9'], ['', '1234']];
       expect(lerXlsx(xlsxDeTeste()), esperado);
-      expect(lerPlanilha('tabela.xlsx', xlsxDeTeste()), esperado);
+      expect(await lerPlanilha('tabela.xlsx', xlsxDeTeste()), esperado);
     });
 
-    test('formato desconhecido', () {
-      expect(() => lerPlanilha('lista.pdf', Uint8List(3)),
-          throwsA(isA<PlanilhaInvalida>().having((e) => e.mensagem, 'mensagem', 'Envie um arquivo .csv ou .xlsx.')));
+    test('ods também', () async {
+      final ods = odsDeTeste('${linhaOds('${celulaOds('Produto')}${celulaOds('Preço')}')}${linhaOds('${celulaOds('CAL')}${celulaOds('12')}')}');
+      expect(await lerPlanilha('tabela.ods', ods), [['Produto', 'Preço'], ['CAL', '12']]);
     });
 
-    test('linhas vazias no meio e no fim são descartadas', () {
-      expect(lerPlanilha('a.csv', csv('Produto;Preço\n\nCAL;12\n;\n')), [['Produto', 'Preço'], ['CAL', '12']]);
+    test('formato desconhecido', () async {
+      await expectLater(lerPlanilha('lista.pdf', Uint8List(3)),
+          throwsA(isA<PlanilhaInvalida>().having((e) => e.mensagem, 'mensagem', 'Envie um arquivo .csv, .xlsx ou .ods.')));
     });
 
-    test('CSV salvo pelo Excel em Latin-1 mantém os acentos', () {
-      expect(lerPlanilha('a.csv', Uint8List.fromList(latin1.encode('Produto;Preço\nCAL;12\n')))[0], ['Produto', 'Preço']);
+    test('linhas vazias no meio e no fim são descartadas', () async {
+      expect(await lerPlanilha('a.csv', csv('Produto;Preço\n\nCAL;12\n;\n')), [['Produto', 'Preço'], ['CAL', '12']]);
     });
 
-    test('vazia e só com cabeçalho', () {
+    test('CSV salvo pelo Excel em Latin-1 mantém os acentos', () async {
+      expect((await lerPlanilha('a.csv', Uint8List.fromList(latin1.encode('Produto;Preço\nCAL;12\n'))))[0], ['Produto', 'Preço']);
+    });
+
+    test('vazia e só com cabeçalho', () async {
       Matcher msg(String m) => throwsA(isA<PlanilhaInvalida>().having((e) => e.mensagem, 'mensagem', m));
-      expect(() => lerPlanilha('a.csv', csv('')), msg('A planilha está vazia.'));
-      expect(() => lerPlanilha('a.csv', csv('Produto;Preço\n')), msg('A planilha só tem o cabeçalho.'));
+      await expectLater(lerPlanilha('a.csv', csv('')), msg('A planilha está vazia.'));
+      await expectLater(lerPlanilha('a.csv', csv('Produto;Preço\n')), msg('A planilha só tem o cabeçalho.'));
     });
 
-    test('até 3.000 produtos', () {
+    test('até 3.000 produtos', () async {
       String linhas(int n) => 'Produto;Preço\n${List.generate(n, (i) => 'Item $i;1,00').join('\n')}\n';
-      expect(lerPlanilha('a.csv', csv(linhas(maxLinhasImportacao))).length, maxLinhasImportacao + 1);
-      expect(() => lerPlanilha('a.csv', csv(linhas(maxLinhasImportacao + 1))),
+      expect((await lerPlanilha('a.csv', csv(linhas(maxLinhasImportacao)))).length, maxLinhasImportacao + 1);
+      await expectLater(lerPlanilha('a.csv', csv(linhas(maxLinhasImportacao + 1))),
           throwsA(isA<PlanilhaInvalida>().having((e) => e.mensagem, 'mensagem', 'A planilha passa de 3.000 produtos. Divida em partes.')));
     });
   });

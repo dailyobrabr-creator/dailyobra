@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:xml/xml.dart';
 
+import 'leitor_ods.dart';
 import 'modelos.dart';
 import 'smart_list.dart';
 import 'texto.dart';
@@ -180,23 +181,30 @@ String _textoDoCsv(Uint8List bytes) {
   }
 }
 
-/// Lê o arquivo pela extensão, descarta as linhas vazias e confere os limites da importação.
-List<List<String>> lerPlanilha(String nomeArquivo, Uint8List bytes) {
+/// Lê o arquivo pela extensão (.csv, .xlsx ou .ods) e descarta as linhas vazias. Sem limite de linhas: o relatório de
+/// estoque do ERP passa de 10 mil.
+Future<List<List<String>>> lerLinhas(String nomeArquivo, Uint8List bytes) async {
   final nome = nomeArquivo.toLowerCase();
   List<List<String>> linhas;
   if (nome.endsWith('.csv')) {
     linhas = lerCsv(_textoDoCsv(bytes));
-  } else if (nome.endsWith('.xlsx')) {
+  } else if (nome.endsWith('.xlsx') || nome.endsWith('.ods')) {
     try {
-      linhas = lerXlsx(bytes);
+      linhas = nome.endsWith('.ods') ? await lerOds(bytes) : lerXlsx(bytes);
     } catch (_) {
       throw const PlanilhaInvalida('Não deu para ler o arquivo. Abra no Excel, salve de novo como .xlsx ou .csv e tente outra vez.');
     }
   } else {
-    throw const PlanilhaInvalida('Envie um arquivo .csv ou .xlsx.');
+    throw const PlanilhaInvalida('Envie um arquivo .csv, .xlsx ou .ods.');
   }
   linhas = [for (final l in linhas) if (l.any((c) => c.trim().isNotEmpty)) l];
   if (linhas.isEmpty) throw const PlanilhaInvalida('A planilha está vazia.');
+  return linhas;
+}
+
+/// Planilha de preços: as linhas do arquivo e os limites da importação.
+Future<List<List<String>>> lerPlanilha(String nomeArquivo, Uint8List bytes) async {
+  final linhas = await lerLinhas(nomeArquivo, bytes);
   if (linhas.length == 1) throw const PlanilhaInvalida('A planilha só tem o cabeçalho.');
   if (linhas.length - 1 > maxLinhasImportacao) throw const PlanilhaInvalida('A planilha passa de 3.000 produtos. Divida em partes.');
   return linhas;

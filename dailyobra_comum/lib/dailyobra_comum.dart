@@ -8,6 +8,7 @@ export 'src/marketplace/cnpj.dart';
 export 'src/marketplace/cotacao.dart';
 export 'src/marketplace/materiais_catalogo.dart';
 export 'src/marketplace/horario.dart';
+export 'src/marketplace/leitor_ods.dart';
 export 'src/marketplace/modelos.dart';
 export 'src/marketplace/pagamento.dart';
 export 'src/marketplace/planilha_precos.dart';

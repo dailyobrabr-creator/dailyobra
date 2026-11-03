@@ -138,7 +138,7 @@ void main() {
           ArquivoPlanilha('lista.pdf', Uint8List(3)),
           escuro: escuro,
         );
-        expect(find.text('Envie um arquivo .csv ou .xlsx.'), findsOneWidget);
+        expect(find.text('Envie um arquivo .csv, .xlsx ou .ods.'), findsOneWidget);
         expect(find.text('Escolher arquivo'), findsOneWidget);
       });
     });

@@ -48,7 +48,7 @@ class _ImportarPlanilhaScreenState extends State<ImportarPlanilhaScreen> {
     final arquivo = await FilePicker.pickFile(
       dialogTitle: 'Planilha de preços',
       type: FileType.custom,
-      allowedExtensions: const ['csv', 'xlsx'],
+      allowedExtensions: const ['csv', 'xlsx', 'ods'],
     );
     if (arquivo == null) return null;
     return ArquivoPlanilha(arquivo.name, await arquivo.readAsBytes());
@@ -62,7 +62,7 @@ class _ImportarPlanilhaScreenState extends State<ImportarPlanilhaScreen> {
     try {
       final arquivo = await (widget.escolher ?? _escolherNoAparelho)();
       if (arquivo == null || !mounted) return;
-      final linhas = lerPlanilha(arquivo.nome, arquivo.bytes);
+      final linhas = await lerPlanilha(arquivo.nome, arquivo.bytes);
       final colunas = detectarColunas(linhas);
       _linhas = linhas;
       if (colunas.completas) {

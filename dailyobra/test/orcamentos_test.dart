@@ -155,6 +155,18 @@ void main() {
         expect(CarrinhoService.instance.vazio, isTrue);
       });
 
+      testWidgets('cotação não oferece o saldo da carteira', (tester) async {
+        preparar(saldo: 50);
+        CarrinhoService.instance.adicionar(torneira.id, 1);
+        await abrir(tester, const OrcamentosScreen(), escuro: escuro);
+        expect(find.textContaining('Usar saldo da carteira'), findsNothing);
+        expect(find.byType(SwitchListTile), findsNothing);
+        await tester.tap(find.widgetWithText(FilledButton, 'Fechar pedido'));
+        await tester.pumpAndSettle();
+        expect(find.text('Fechar pedido?'), findsOneWidget);
+        expect(find.textContaining('Usar saldo da carteira'), findsNothing);
+      });
+
       testWidgets('contraproposta mostra anunciado × ofertado e as decisões', (
         tester,
       ) async {

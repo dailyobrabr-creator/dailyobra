@@ -245,10 +245,11 @@ class _PedidoScreenState extends State<PedidoScreen> {
                 NegociacaoService.instance.usarSaldo(pedido.id, usar),
             escolherPagamento: (forma, prazo) => NegociacaoService.instance
                 .escolherPagamento(pedido.id, forma, prazo: prazo),
-            criarLink: (nome, zap) => NegociacaoService.instance.criarLink(
+            criarLink: (nome, zap, doc) => NegociacaoService.instance.criarLink(
               pedido.id,
               nome: nome,
               whatsapp: zap,
+              documento: doc,
             ),
             abrirLink: _abrirLink,
           ),

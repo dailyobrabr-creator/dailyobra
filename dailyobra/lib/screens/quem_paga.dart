@@ -6,6 +6,8 @@ import 'componentes.dart';
 
 typedef _Link = ({String codigo, String nome, String whatsapp});
 
+const _documentoInvalido = 'CPF ou CNPJ inválido. Confira os números.';
+
 /// "Quem paga este pedido?": o próprio construtor (nota no CPF/CNPJ dele e PIX da loja aqui)
 /// ou o cliente, por um link enviado pelo WhatsApp do construtor.
 class QuemPaga extends StatefulWidget {
@@ -42,8 +44,9 @@ class QuemPaga extends StatefulWidget {
   final Future<void> Function(FormaPagamento forma, String? prazo)
   escolherPagamento;
 
-  /// Cria (ou troca) o link de pagamento e devolve o código.
-  final Future<String> Function(String nome, String whatsapp) criarLink;
+  /// Cria (ou troca) o link de pagamento e devolve o código. Documento nulo: o cliente informa na página.
+  final Future<String> Function(String nome, String whatsapp, String? documento)
+  criarLink;
   final Future<void> Function(Uri) abrirLink;
 
   @override
@@ -58,8 +61,10 @@ class _QuemPagaState extends State<QuemPaga> {
   );
   final _nome = TextEditingController();
   final _whatsapp = TextEditingController();
+  final _documentoCliente = TextEditingController();
   String? _erroDocumento;
   String? _erroCliente;
+  String? _erroDocumentoCliente;
   bool _ocupado = false;
   bool _documentoConfirmado = false;
   bool _alterandoTitular = false;
@@ -78,6 +83,7 @@ class _QuemPagaState extends State<QuemPaga> {
     _documento.dispose();
     _nome.dispose();
     _whatsapp.dispose();
+    _documentoCliente.dispose();
     super.dispose();
   }
 
@@ -133,9 +139,7 @@ class _QuemPagaState extends State<QuemPaga> {
   Future<void> _confirmarDocumento() async {
     final doc = somenteDigitos(_documento.text);
     if (!documentoValido(doc)) {
-      setState(
-        () => _erroDocumento = 'CPF ou CNPJ inválido. Confira os números.',
-      );
+      setState(() => _erroDocumento = _documentoInvalido);
       return;
     }
     setState(() => _erroDocumento = null);
@@ -199,10 +203,19 @@ class _QuemPagaState extends State<QuemPaga> {
         : zap.length < 10 || zap.length > 13
         ? 'WhatsApp inválido. Use DDD + número.'
         : null;
-    setState(() => _erroCliente = erro);
-    if (erro != null) return;
+    final doc = _documentoCliente.text.trim().isEmpty
+        ? null
+        : somenteDigitos(_documentoCliente.text);
+    final erroDoc = doc == null || documentoValido(doc)
+        ? null
+        : _documentoInvalido;
+    setState(() {
+      _erroCliente = erro;
+      _erroDocumentoCliente = erroDoc;
+    });
+    if (erro != null || erroDoc != null) return;
     await _ocupar(() async {
-      final codigo = await widget.criarLink(nome, zap);
+      final codigo = await widget.criarLink(nome, zap, doc);
       final enviado = (codigo: codigo, nome: nome, whatsapp: zap);
       if (!mounted) return;
       setState(() {
@@ -213,23 +226,23 @@ class _QuemPagaState extends State<QuemPaga> {
     });
   }
 
-  Future<void> _abrirWhatsApp(_Link l) => widget.abrirLink(
-    linkWhatsApp(
-      l.whatsapp,
-      mensagemDoLink(
-        nome: l.nome,
-        loja: widget.nomeLoja,
-        total: widget.pedido.total,
-        link: linkDePagamento(l.codigo),
-      ),
-    ),
+  /// O link devolve o saldo abatido no "Eu pago": o cliente paga o total sem o abatimento.
+  String _mensagem(String nome, String codigo) => mensagemDoLink(
+    nome: nome,
+    loja: widget.nomeLoja,
+    total: widget.pedido.total + widget.saldoNoPedido,
+    link: linkDePagamento(codigo),
   );
+
+  Future<void> _abrirWhatsApp(_Link l) =>
+      widget.abrirLink(linkWhatsApp(l.whatsapp, _mensagem(l.nome, l.codigo)));
 
   void _trocarCliente() => setState(() {
     _trocandoCliente = true;
     _enviado = null;
     _nome.clear();
     _whatsapp.clear();
+    _documentoCliente.clear();
   });
 
   @override
@@ -505,6 +518,41 @@ class _QuemPagaState extends State<QuemPaga> {
           teclado: TextInputType.phone,
           dica: '(66) 99999-0000',
           erro: _erroCliente,
+        ),
+        const SizedBox(height: Espaco.s3),
+        CampoTexto(
+          key: const ValueKey('cliente-documento'),
+          rotulo: 'CPF ou CNPJ do cliente (opcional)',
+          controller: _documentoCliente,
+          teclado: TextInputType.number,
+          erro: _erroDocumentoCliente,
+        ),
+        const SizedBox(height: Espaco.s3),
+        // O código do link só existe depois do envio
+        ValueListenableBuilder(
+          valueListenable: _nome,
+          builder: (context, nome, _) => Container(
+            padding: const EdgeInsets.all(Espaco.s3),
+            decoration: BoxDecoration(
+              color: c.superficieSutil,
+              borderRadius: BorderRadius.circular(Raio.md),
+              border: Border.all(color: c.borda),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Mensagem que vai no WhatsApp', style: t.titleSmall),
+                const SizedBox(height: Espaco.s2),
+                Text(
+                  _mensagem(
+                    nome.text.trim().isEmpty ? 'cliente' : nome.text.trim(),
+                    '…',
+                  ),
+                  style: t.bodySmall,
+                ),
+              ],
+            ),
+          ),
         ),
         const SizedBox(height: Espaco.s3),
         FilledButton(

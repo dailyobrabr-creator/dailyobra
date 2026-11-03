@@ -1,10 +1,7 @@
-import 'dart:math' as math;
-
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
 
 import '../services/carrinho_service.dart';
-import '../services/carteira_service.dart';
 import '../services/catalogo_service.dart';
 import '../services/negociacao_service.dart';
 import 'componentes.dart';
@@ -24,7 +21,6 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
     with SingleTickerProviderStateMixin {
   late final _abas = TabController(length: 2, vsync: this);
   ModoCotacao _modo = ModoCotacao.menorPrecoGlobal;
-  bool _usarSaldo = false;
   bool _enviando = false;
   String? _avisoEnvio;
   TomSelo _tomAviso = TomSelo.sucesso;
@@ -46,7 +42,7 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
     if (mensagem != null) await _enviar(ModoProposta.negociacao, r, mensagem);
   }
 
-  Future<void> _fecharPedido(ResultadoCotacao r, double aPagar) async {
+  Future<void> _fecharPedido(ResultadoCotacao r) async {
     final n = r.grupos.length;
     final ok = await showDialog<bool>(
       context: context,
@@ -54,7 +50,7 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
         title: const Text('Fechar pedido?'),
         content: Text(
           'Vamos enviar um pedido direto para ${n == 1 ? '1 loja' : '$n lojas'}, '
-          'no total de ${brl.format(aPagar)}, ao preço anunciado. Cada loja confirma ou recusa.',
+          'no total de ${brl.format(r.total)}, ao preço anunciado. Cada loja confirma ou recusa.',
         ),
         actions: [
           TextButton(
@@ -81,7 +77,6 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
       final res = await NegociacaoService.instance.enviar(
         modo: modo,
         cotacao: r,
-        usarSaldo: _usarSaldo && CarteiraService.instance.disponivel > 0,
         mensagem: mensagem,
       );
       CarrinhoService.instance.limpar();
@@ -91,7 +86,6 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
           ? 'Pedido enviado'
           : 'Proposta enviada';
       setState(() {
-        _usarSaldo = false;
         _avisoEnvio = res.precosAtualizados
             ? '$oQue para $quem. Os preços foram atualizados pelas lojas: confira os valores abaixo.'
             : '$oQue para $quem. As respostas aparecem aqui.';
@@ -203,9 +197,8 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
   Widget _cotacao(BuildContext context) {
     final carrinho = CarrinhoService.instance;
     final catalogo = CatalogoService.instance;
-    final carteira = CarteiraService.instance;
     return ListenableBuilder(
-      listenable: Listenable.merge([carrinho, catalogo, carteira]),
+      listenable: Listenable.merge([carrinho, catalogo]),
       builder: (context, _) {
         final t = Theme.of(context).textTheme;
         final c = context.cores;
@@ -248,8 +241,6 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
             ? 'Para enviar, complete o pedido mínimo da ${abaixo.map((g) => g.loja.nome).join(', ')} '
                   'ou troque os produtos de loja.'
             : null;
-        final disponivel = carteira.disponivel;
-        final aplicado = _usarSaldo ? math.min(disponivel, r.total) : 0.0;
         final pode = motivo == null && !_enviando;
         final largo = formatoDoContexto(context) == Formato.computador;
         final modo = <Widget>[
@@ -303,17 +294,6 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
         ];
         const previa =
             'Prévia com os preços de agora. No envio, cada loja confirma o preço dela.';
-        final saldo = disponivel > 0
-            ? SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-                title: Text(
-                  'Usar saldo da carteira (${brl.format(disponivel)})',
-                ),
-                value: _usarSaldo,
-                onChanged: (v) => setState(() => _usarSaldo = v),
-              )
-            : null;
         final aviso = motivo == null
             ? null
             : Text(motivo, style: t.bodySmall?.copyWith(color: c.aviso));
@@ -322,7 +302,7 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
           child: const Text('Proposta'),
         );
         final fechar = FilledButton(
-          onPressed: pode ? () => _fecharPedido(r, r.total - aplicado) : null,
+          onPressed: pode ? () => _fecharPedido(r) : null,
           child: _enviando
               ? const SizedBox.square(
                   dimension: 18,
@@ -330,7 +310,6 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
                 )
               : const Text('Fechar pedido'),
         );
-        final rotuloTotal = aplicado > 0 ? 'Total com saldo' : 'Total';
 
         if (largo) {
           return Row(
@@ -369,15 +348,9 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
                           const Divider(height: Espaco.s6),
                           for (final g in r.grupos)
                             LinhaValor(g.loja.nome, brl.format(g.total)),
-                          if (aplicado > 0)
-                            LinhaValor(
-                              'Saldo da carteira',
-                              '- ${brl.format(aplicado)}',
-                              cor: c.sucesso,
-                            ),
                           LinhaValor(
-                            rotuloTotal,
-                            brl.format(r.total - aplicado),
+                            'Total',
+                            brl.format(r.total),
                             destaque: true,
                           ),
                           if (r.cashbackPrevisto > 0)
@@ -386,10 +359,6 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
                               '+ ${brl.format(r.cashbackPrevisto)}',
                               cor: c.sucesso,
                             ),
-                          if (saldo != null) ...[
-                            const SizedBox(height: Espaco.s2),
-                            saldo,
-                          ],
                           if (aviso != null) ...[
                             const SizedBox(height: Espaco.s2),
                             aviso,
@@ -435,13 +404,11 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
               ),
             ),
             RodapeTotal(
-              rotulo: rotuloTotal,
-              total: r.total - aplicado,
+              total: r.total,
               cashback: r.cashbackPrevisto,
               extra: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  ?saldo,
                   if (aviso != null) ...[
                     const SizedBox(height: Espaco.s2),
                     aviso,

@@ -8,7 +8,7 @@ import 'apoio.dart';
 /// O que a tela pediu às funções falsas.
 class Chamadas {
   final documentos = <String>[];
-  final links = <(String, String)>[];
+  final links = <(String, String, String?)>[];
   final abertos = <Uri>[];
   final saldos = <bool>[];
   final formas = <(FormaPagamento, String?)>[];
@@ -85,8 +85,8 @@ Future<Chamadas> montar(
           usarSaldo: (usar) async => ch.saldos.add(usar),
           escolherPagamento: (forma, prazo) async =>
               ch.formas.add((forma, prazo)),
-          criarLink: (nome, zap) async {
-            ch.links.add((nome, zap));
+          criarLink: (nome, zap, documento) async {
+            ch.links.add((nome, zap, documento));
             return 'COD';
           },
           abrirLink: (uri) async => ch.abertos.add(uri),
@@ -156,9 +156,10 @@ void main() {
           find.byKey(const ValueKey('cliente-whatsapp')),
           '(66) 99999-0000',
         );
+        await rolarAte(tester, find.text('Enviar pelo WhatsApp'));
         await tester.tap(find.text('Enviar pelo WhatsApp'));
         await tester.pumpAndSettle();
-        expect(ch.links, [('Ana', '66999990000')]);
+        expect(ch.links, [('Ana', '66999990000', null)]);
         final esperado = linkWhatsApp(
           '66999990000',
           mensagemDoLink(
@@ -178,6 +179,101 @@ void main() {
           findsOneWidget,
         );
         expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('link com documento do cliente', (tester) async {
+        final ch = await montar(tester, escuro: escuro);
+        await tester.tap(find.text('Enviar para o cliente'));
+        await tester.pumpAndSettle();
+        expect(find.text('CPF ou CNPJ do cliente (opcional)'), findsOneWidget);
+        await tester.enterText(
+          find.byKey(const ValueKey('cliente-nome')),
+          'Ana',
+        );
+        await tester.enterText(
+          find.byKey(const ValueKey('cliente-whatsapp')),
+          '(66) 99999-0000',
+        );
+        await tester.enterText(
+          find.byKey(const ValueKey('cliente-documento')),
+          '111.111.111-11',
+        );
+        await rolarAte(tester, find.text('Enviar pelo WhatsApp'));
+        await tester.tap(find.text('Enviar pelo WhatsApp'));
+        await tester.pumpAndSettle();
+        expect(
+          find.text('CPF ou CNPJ inválido. Confira os números.'),
+          findsOneWidget,
+        );
+        expect(ch.links, isEmpty);
+        expect(ch.abertos, isEmpty);
+        await tester.enterText(
+          find.byKey(const ValueKey('cliente-documento')),
+          '529.982.247-25',
+        );
+        await rolarAte(tester, find.text('Enviar pelo WhatsApp'));
+        await tester.tap(find.text('Enviar pelo WhatsApp'));
+        await tester.pumpAndSettle();
+        expect(ch.links, [('Ana', '66999990000', '52998224725')]);
+        expect(ch.abertos, hasLength(1));
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('prévia da mensagem', (tester) async {
+        await montar(tester, escuro: escuro);
+        await tester.tap(find.text('Enviar para o cliente'));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('cliente-nome')),
+          'Ana',
+        );
+        await tester.pump();
+        await rolarAte(tester, find.text('Mensagem que vai no WhatsApp'));
+        expect(
+          find.text(
+            mensagemDoLink(
+              nome: 'Ana',
+              loja: 'Casa do Construtor',
+              total: 450,
+              link: linkDePagamento('…'),
+            ),
+          ),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('mensagem leva o total sem o saldo, que o link devolve', (
+        tester,
+      ) async {
+        final ch = await montar(
+          tester,
+          escuro: escuro,
+          p: euPago(total: 400),
+          saldoNoPedido: 50,
+        );
+        await tester.tap(find.text('Enviar para o cliente'));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('cliente-nome')),
+          'Ana',
+        );
+        await tester.enterText(
+          find.byKey(const ValueKey('cliente-whatsapp')),
+          '(66) 99999-0000',
+        );
+        await tester.pump();
+        String mensagem(String codigo) => mensagemDoLink(
+          nome: 'Ana',
+          loja: 'Casa do Construtor',
+          total: 450,
+          link: linkDePagamento(codigo),
+        );
+        await rolarAte(tester, find.text(mensagem('…')));
+        await rolarAte(tester, find.text('Enviar pelo WhatsApp'));
+        await tester.tap(find.text('Enviar pelo WhatsApp'));
+        await tester.pumpAndSettle();
+        expect(ch.abertos, [linkWhatsApp('66999990000', mensagem('COD'))]);
       });
 
       testWidgets('situações do link e reenviar', (tester) async {
@@ -338,7 +434,7 @@ void main() {
                 pagarEuMesmo: (_) async {},
                 usarSaldo: (_) async {},
                 escolherPagamento: (_, _) async {},
-                criarLink: (_, _) async => 'COD',
+                criarLink: (_, _, _) async => 'COD',
                 abrirLink: (_) async {},
               ),
             ),
@@ -507,7 +603,7 @@ void main() {
                 pagarEuMesmo: (_) async {},
                 usarSaldo: (_) async {},
                 escolherPagamento: (_, _) async {},
-                criarLink: (_, _) async => 'COD',
+                criarLink: (_, _, _) async => 'COD',
                 abrirLink: (_) async {},
               ),
             ),

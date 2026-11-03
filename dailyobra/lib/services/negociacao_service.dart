@@ -163,11 +163,11 @@ class NegociacaoService extends ChangeNotifier {
   }
 
   /// Envia a cotação: uma proposta (ou pedido direto) por loja, com os preços do servidor.
+  /// O saldo da carteira não entra aqui: só na hora de pagar, no "Eu pago".
   /// Lança [FalhaComMensagem] com o motivo (pedido mínimo, loja fechada, sem conexão...).
   Future<ResultadoEnvio> enviar({
     required ModoProposta modo,
     required ResultadoCotacao cotacao,
-    required bool usarSaldo,
     String? mensagem,
     String? obraId,
   }) async {
@@ -192,7 +192,7 @@ class NegociacaoService extends ChangeNotifier {
           'p_itens': itens,
           'p_modo': modo.codigo,
           'p_obra': obraId,
-          'p_usar_saldo': usarSaldo,
+          'p_usar_saldo': false,
           'p_mensagem': (mensagem?.trim().isEmpty ?? true)
               ? null
               : mensagem!.trim(),
@@ -264,15 +264,23 @@ class NegociacaoService extends ChangeNotifier {
   });
 
   /// Cria (ou troca) o link de pagamento do cliente e devolve o código.
+  /// Com o documento do cliente, a página já mostra os dados da nota.
   Future<String> criarLink(
     String pedidoId, {
     required String nome,
     required String whatsapp,
+    String? documento,
   }) async {
     final codigo = await comMensagem(
       () => _db.rpc(
         'criar_link_pagamento',
-        params: {'p_pedido': pedidoId, 'p_nome': nome, 'p_whatsapp': whatsapp},
+        params: {
+          'p_pedido': pedidoId,
+          'p_nome': nome,
+          'p_whatsapp': whatsapp,
+          if (documento != null && documento.isNotEmpty)
+            'p_documento': documento,
+        },
       ),
     );
     await carregar();

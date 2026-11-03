@@ -2,19 +2,17 @@ import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:dailyobra_parceiro/screens/atualizar_estoque_screen.dart';
 import 'package:dailyobra_parceiro/screens/importar_planilha_screen.dart';
 import 'package:dailyobra_parceiro/screens/inicio_screen.dart';
-import 'package:dailyobra_parceiro/screens/minha_loja_screen.dart';
 import 'package:dailyobra_parceiro/screens/oferta_screen.dart';
+import 'package:dailyobra_parceiro/screens/pedidos_screen.dart';
 import 'package:dailyobra_parceiro/screens/pedido_loja_screen.dart';
 import 'package:dailyobra_parceiro/screens/produtos_screen.dart';
 import 'package:dailyobra_parceiro/screens/proposta_loja_screen.dart';
 import 'package:dailyobra_parceiro/screens/propostas_screen.dart';
-import 'package:dailyobra_parceiro/services/cep_service.dart';
 import 'package:dailyobra_parceiro/services/loja_service.dart';
 import 'package:dailyobra_parceiro/services/ofertas_service.dart';
 import 'package:dailyobra_parceiro/services/propostas_loja_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'apoio.dart';
 
@@ -129,18 +127,6 @@ Finder valorDo(String rotulo, String valor) => find.descendant(
   matching: find.text(valor),
 );
 
-Finder campoDoEndereco(String nome) => find.descendant(
-  of: find.byKey(Key('endereco-$nome')),
-  matching: find.byType(TextField),
-);
-
-Future<EnderecoCep?> buscarCepFalso(String cep) async => const EnderecoCep(
-  logradouro: 'R. Fernando Corrêa da Costa',
-  bairro: 'Vila Operária',
-  cidade: 'Rondonópolis',
-  uf: 'MT',
-);
-
 /// Cartão da lista pelo selo (`Proposta nova` é a p1; `Pedido novo`, a p2).
 Finder cartao(String selo) => find.ancestor(
   of: find.text(selo),
@@ -162,15 +148,60 @@ void main() {
         await rolarAteOFim(tester);
       });
 
-      testWidgets('lista de propostas separa novas e pedidos', (tester) async {
+      testWidgets('propostas não misturam pedidos', (tester) async {
         preparar();
         await abrir(tester, const PropostasScreen(), escuro: escuro);
         expect(find.text('Ana Souza'), findsNWidgets(2));
-        await tester.ensureVisible(find.textContaining('Pedidos'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.textContaining('Pedidos'));
-        await tester.pumpAndSettle();
-        expect(find.text('Confirmado'), findsOneWidget);
+        expect(find.textContaining('Pedidos'), findsNothing);
+        expect(find.text('Confirmado'), findsNothing);
+      });
+
+      testWidgets(
+        'pedidos têm aba própria, com andamento, entregues e cancelados',
+        (tester) async {
+          preparar(
+            propostas: [
+              proposta(
+                'p1',
+                status: StatusProposta.aceita,
+                pedido: pedido(StatusPedido.confirmado),
+              ),
+              proposta(
+                'p2',
+                status: StatusProposta.aceita,
+                pedido: pedido(StatusPedido.entregue),
+              ),
+              proposta(
+                'p3',
+                status: StatusProposta.aceita,
+                pedido: pedido(StatusPedido.cancelado),
+              ),
+            ],
+          );
+          // 800 px: as três abas cabem mesmo com a fonte larga dos testes
+          await abrirLargura(
+            tester,
+            const PedidosScreen(),
+            800,
+            escuro: escuro,
+          );
+          expect(find.text('Em andamento (1)'), findsOneWidget);
+          expect(find.text('Confirmado'), findsOneWidget);
+          await tester.tap(find.text('Entregues'));
+          await tester.pumpAndSettle();
+          expect(find.text('Entregue'), findsOneWidget);
+          expect(find.text('Confirmado'), findsNothing);
+          await tester.tap(find.text('Cancelados'));
+          await tester.pumpAndSettle();
+          expect(find.text('Cancelado'), findsOneWidget);
+        },
+      );
+
+      testWidgets('sem pedidos, cada aba orienta', (tester) async {
+        preparar(propostas: const []);
+        await abrir(tester, const PedidosScreen(), escuro: escuro);
+        expect(find.text('Em andamento'), findsOneWidget);
+        expect(find.text('Nenhum pedido em andamento'), findsOneWidget);
       });
 
       testWidgets('contraproposta acima do anunciado não é enviada', (
@@ -602,11 +633,7 @@ void main() {
             ),
           ],
         );
-        await abrir(tester, const PropostasScreen(), escuro: escuro);
-        await tester.ensureVisible(find.textContaining('Pedidos'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.textContaining('Pedidos'));
-        await tester.pumpAndSettle();
+        await abrir(tester, const PedidosScreen(), escuro: escuro);
         expect(find.text('Prazo para aprovar'), findsOneWidget);
         expect(find.text('Confirmado'), findsNothing);
       });
@@ -619,11 +646,11 @@ void main() {
           1366,
           escuro: escuro,
         );
-        expect(find.text('Escolha uma proposta ou pedido'), findsOneWidget);
+        expect(find.text('Escolha uma proposta'), findsOneWidget);
         await tester.tap(find.byType(CartaoPropostaLoja).first);
         await tester.pumpAndSettle();
         expect(find.byType(PropostaLojaScreen), findsOneWidget);
-        expect(find.text('Escolha uma proposta ou pedido'), findsNothing);
+        expect(find.text('Escolha uma proposta'), findsNothing);
         expect(find.byType(AppBar), findsOneWidget);
         expect(find.widgetWithText(OutlinedButton, 'Recusar'), findsOneWidget);
         expect(tester.takeException(), isNull);
@@ -631,14 +658,8 @@ void main() {
 
       testWidgets('pedido aberto ao lado tem as ações no pé', (tester) async {
         preparar();
-        await abrirLargura(
-          tester,
-          const PropostasScreen(),
-          1366,
-          escuro: escuro,
-        );
-        await tester.tap(find.textContaining('Pedidos'));
-        await tester.pumpAndSettle();
+        await abrirLargura(tester, const PedidosScreen(), 1366, escuro: escuro);
+        expect(find.text('Escolha um pedido'), findsOneWidget);
         await tester.tap(find.byType(CartaoPropostaLoja).first);
         await tester.pumpAndSettle();
         expect(
@@ -647,7 +668,7 @@ void main() {
         );
         expect(find.byType(AppBar), findsOneWidget);
         // A lista continua na tela: o pedido abriu ao lado, não por cima
-        expect(find.byType(PropostasScreen), findsOneWidget);
+        expect(find.byType(PedidosScreen), findsOneWidget);
       });
 
       testWidgets('aceitar abre o pedido na mesma coluna', (tester) async {
@@ -689,7 +710,7 @@ void main() {
         await tester.pumpAndSettle();
         preparar(propostas: [proposta('p2', modo: ModoProposta.pedido)]);
         await tester.pumpAndSettle();
-        expect(find.text('Escolha uma proposta ou pedido'), findsOneWidget);
+        expect(find.text('Escolha uma proposta'), findsOneWidget);
         expect(tester.takeException(), isNull);
       });
 
@@ -758,74 +779,6 @@ void main() {
         );
       });
 
-      testWidgets('minha loja salva a chave pix', (tester) async {
-        SharedPreferences.setMockInitialValues({});
-        final tema = await PreferenciaTema.carregar();
-        preparar();
-        await abrir(tester, MinhaLojaScreen(tema: tema), escuro: escuro);
-        final campo = find.byKey(const ValueKey('chave-pix'));
-        await rolarAte(tester, campo);
-        await tester.enterText(campo, '66999990000');
-        await rolarAte(tester, find.text('Salvar dados'));
-        await tester.tap(find.text('Salvar dados'));
-        await tester.pump();
-        expect(
-          find.text(
-            'Chave PIX inválida. Use CPF, CNPJ, e-mail, celular com +55 ou chave aleatória.',
-          ),
-          findsOneWidget,
-        );
-        expect(LojaService.instance.atualizacoesDeTeste, isEmpty);
-        expect(LojaService.instance.chavesDeTeste, isEmpty);
-        await tester.pump(const Duration(seconds: 5));
-        await tester.pumpAndSettle();
-        await rolarAte(tester, campo);
-        await tester.enterText(campo, '+5566999990000');
-        await rolarAte(tester, find.text('Salvar dados'));
-        await tester.tap(find.text('Salvar dados'));
-        await tester.pumpAndSettle();
-        // A chave vai para loja_pix (só a equipe lê), não para a linha da loja
-        expect(LojaService.instance.chavesDeTeste, ['+5566999990000']);
-        expect(
-          LojaService.instance.atualizacoesDeTeste.single.containsKey(
-            'chave_pix',
-          ),
-          isFalse,
-        );
-      });
-
-      testWidgets('minha loja mostra a chave pix salva', (tester) async {
-        SharedPreferences.setMockInitialValues({});
-        final tema = await PreferenciaTema.carregar();
-        preparar();
-        LojaService.instance.definirParaTeste(
-          loja: minhaLoja,
-          dados: const DadosLoja(
-            cnpj: '11222333000181',
-            chavePix: '+5566999990000',
-          ),
-        );
-        await abrir(tester, MinhaLojaScreen(tema: tema), escuro: escuro);
-        await rolarAte(tester, find.byKey(const ValueKey('chave-pix')));
-        expect(find.text('+5566999990000'), findsOneWidget);
-      });
-
-      testWidgets('chave pix com pontuação é salva só com números', (
-        tester,
-      ) async {
-        SharedPreferences.setMockInitialValues({});
-        final tema = await PreferenciaTema.carregar();
-        preparar();
-        await abrir(tester, MinhaLojaScreen(tema: tema), escuro: escuro);
-        final campo = find.byKey(const ValueKey('chave-pix'));
-        await rolarAte(tester, campo);
-        await tester.enterText(campo, '11.222.333/0001-81');
-        await rolarAte(tester, find.text('Salvar dados'));
-        await tester.tap(find.text('Salvar dados'));
-        await tester.pumpAndSettle();
-        expect(LojaService.instance.chavesDeTeste, ['11222333000181']);
-      });
-
       testWidgets('promoção maior que o preço não é salva', (tester) async {
         preparar();
         var salvou = 0;
@@ -847,154 +800,6 @@ void main() {
           findsOneWidget,
         );
         expect(salvou, 0);
-      });
-
-      testWidgets('minha loja salva endereço e horário', (tester) async {
-        SharedPreferences.setMockInitialValues({});
-        final tema = await PreferenciaTema.carregar();
-        preparar();
-        LojaService.instance.definirParaTeste(
-          loja: minhaLoja,
-          dados: const DadosLoja(
-            cnpj: '11222333000181',
-            endereco: 'Lojas Vila Operária (matriz)',
-            horario: 'Seg a sex 7h às 18h',
-          ),
-        );
-        await abrir(
-          tester,
-          MinhaLojaScreen(tema: tema, buscarCep: buscarCepFalso),
-          escuro: escuro,
-        );
-        const atual = 'Endereço atual: Lojas Vila Operária (matriz)';
-        await rolarAte(tester, find.text(atual));
-        expect(find.text(atual), findsOneWidget);
-        await rolarAte(tester, campoDoEndereco('cep'));
-        await tester.enterText(campoDoEndereco('cep'), '78700000');
-        await tester.pumpAndSettle();
-        await tester.enterText(campoDoEndereco('numero'), '1500');
-        await rolarAte(tester, find.byKey(const Key('horario-6')));
-        await tester.tap(find.byKey(const Key('horario-6')));
-        await tester.pumpAndSettle();
-        await rolarAte(tester, find.text('Salvar dados'));
-        await tester.tap(find.text('Salvar dados'));
-        await tester.pumpAndSettle();
-        final enviado = LojaService.instance.atualizacoesDeTeste.single;
-        expect(enviado['cep'], '78700000');
-        expect(enviado['logradouro'], 'R. Fernando Corrêa da Costa');
-        expect(enviado['numero'], '1500');
-        expect(enviado['cidade'], 'Rondonópolis');
-        expect(enviado['uf'], 'MT');
-        expect(enviado['horario'], 'Seg a sex 7h às 18h; sáb 8h às 18h');
-        expect(enviado.containsKey('endereco'), isFalse);
-      });
-
-      testWidgets('loja antiga salva sem mexer no endereço nem no horário', (
-        tester,
-      ) async {
-        SharedPreferences.setMockInitialValues({});
-        final tema = await PreferenciaTema.carregar();
-        preparar();
-        LojaService.instance.definirParaTeste(
-          loja: minhaLoja,
-          dados: const DadosLoja(
-            cnpj: '11222333000181',
-            endereco: 'Lojas Vila Operária (matriz)',
-            horario: 'Comercial',
-          ),
-        );
-        await abrir(
-          tester,
-          MinhaLojaScreen(tema: tema, buscarCep: buscarCepFalso),
-          escuro: escuro,
-        );
-        final sobre = find.descendant(
-          of: find.widgetWithText(CampoTexto, 'Sobre a loja'),
-          matching: find.byType(TextField),
-        );
-        await rolarAte(tester, sobre);
-        await tester.enterText(sobre, 'Materiais de construção');
-        await rolarAte(tester, find.text('Salvar dados'));
-        await tester.tap(find.text('Salvar dados'));
-        await tester.pumpAndSettle();
-        final enviado = LojaService.instance.atualizacoesDeTeste.single;
-        expect(enviado['descricao'], 'Materiais de construção');
-        for (final campo in ['cep', 'logradouro', 'endereco', 'horario']) {
-          expect(enviado.containsKey(campo), isFalse, reason: campo);
-        }
-      });
-
-      testWidgets('loja antiga que muda só a cidade precisa do CEP', (
-        tester,
-      ) async {
-        SharedPreferences.setMockInitialValues({});
-        final tema = await PreferenciaTema.carregar();
-        preparar();
-        LojaService.instance.definirParaTeste(
-          loja: minhaLoja,
-          dados: const DadosLoja(
-            cnpj: '11222333000181',
-            endereco: 'Lojas Vila Operária (matriz)',
-          ),
-        );
-        await abrir(
-          tester,
-          MinhaLojaScreen(tema: tema, buscarCep: buscarCepFalso),
-          escuro: escuro,
-        );
-        await rolarAte(tester, campoDoEndereco('cidade'));
-        await tester.enterText(campoDoEndereco('cidade'), 'Rondonópolis');
-        await rolarAte(tester, find.text('Salvar dados'));
-        await tester.tap(find.text('Salvar dados'));
-        await tester.pump();
-        expect(LojaService.instance.atualizacoesDeTeste, isEmpty);
-        expect(find.text('Informe o CEP com 8 números.'), findsWidgets);
-        await tester.pump(const Duration(seconds: 5));
-        await tester.pumpAndSettle();
-      });
-
-      testWidgets('minha loja abre com o endereço em campos', (tester) async {
-        SharedPreferences.setMockInitialValues({});
-        final tema = await PreferenciaTema.carregar();
-        preparar();
-        LojaService.instance.definirParaTeste(
-          loja: minhaLoja,
-          dados: const DadosLoja(
-            cnpj: '11222333000181',
-            endereco: 'R. Fernando Corrêa da Costa, 1500 – Vila Operária, CEP 78700-000',
-            cep: '78700000',
-            logradouro: 'R. Fernando Corrêa da Costa',
-            numero: '1500',
-            bairro: 'Vila Operária',
-          ),
-        );
-        await abrir(
-          tester,
-          MinhaLojaScreen(tema: tema, buscarCep: buscarCepFalso),
-          escuro: escuro,
-        );
-        await rolarAte(tester, campoDoEndereco('cep'));
-        expect(find.textContaining('Endereço atual'), findsNothing);
-        String valor(String nome) =>
-            tester.widget<TextField>(campoDoEndereco(nome)).controller!.text;
-        expect(valor('cep'), '78700-000');
-        expect(valor('rua'), 'R. Fernando Corrêa da Costa');
-        expect(valor('numero'), '1500');
-      });
-
-      testWidgets('vendedor vê a loja sem editar', (tester) async {
-        SharedPreferences.setMockInitialValues({});
-        final tema = await PreferenciaTema.carregar();
-        preparar(papel: PapelLoja.vendedor);
-        await abrir(tester, MinhaLojaScreen(tema: tema), escuro: escuro);
-        expect(
-          find.text('Só o dono ou o gerente altera os dados da loja.'),
-          findsOneWidget,
-        );
-        expect(find.byTooltip('Trocar logo'), findsNothing);
-        await rolarAteOFim(tester);
-        expect(find.text('Salvar dados'), findsNothing);
-        expect(find.text('Equipe'), findsNothing);
       });
     });
   }

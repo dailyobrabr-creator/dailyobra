@@ -6,8 +6,9 @@ import 'componentes.dart';
 const _itens = [
   (Aba.inicio, Icons.dashboard_outlined, Icons.dashboard, 'Início'),
   (Aba.propostas, Icons.inbox_outlined, Icons.inbox, 'Propostas'),
+  (Aba.pedidos, Icons.receipt_long_outlined, Icons.receipt_long, 'Pedidos'),
   (Aba.produtos, Icons.sell_outlined, Icons.sell, 'Produtos'),
-  (Aba.loja, Icons.storefront_outlined, Icons.storefront, 'Minha loja'),
+  (Aba.configuracoes, Icons.settings_outlined, Icons.settings, 'Configurações'),
 ];
 
 /// Moldura do painel por largura: abas embaixo no celular, trilho no tablet e, no computador,
@@ -18,6 +19,7 @@ class LayoutParceiros extends StatelessWidget {
     required this.aba,
     required this.onAba,
     required this.novas,
+    this.pedidos = 0,
     required this.loja,
     required this.conteudo,
   });
@@ -26,15 +28,20 @@ class LayoutParceiros extends StatelessWidget {
 
   /// Número sobre Propostas (propostas novas esperando a loja).
   final int novas;
+
+  /// Número sobre Pedidos (pedidos em andamento).
+  final int pedidos;
   final Loja? loja;
   final Widget conteudo;
 
-  Widget _icone(Aba a, IconData icone) => a == Aba.propostas
-      ? Badge(
-          isLabelVisible: novas > 0,
-          label: Text('$novas'),
-          child: Icon(icone),
-        )
+  int _numero(Aba a) => switch (a) {
+    Aba.propostas => novas,
+    Aba.pedidos => pedidos,
+    _ => 0,
+  };
+
+  Widget _icone(Aba a, IconData icone) => _numero(a) > 0
+      ? Badge(label: Text('${_numero(a)}'), child: Icon(icone))
       : Icon(icone);
 
   @override
@@ -66,7 +73,8 @@ class LayoutParceiros extends StatelessWidget {
                   NavigationDestination(
                     icon: _icone(a, icone),
                     selectedIcon: _icone(a, selecionado),
-                    label: rotulo,
+                    // "Configurações" não cabe em cinco abas no celular
+                    label: a == Aba.configuracoes ? 'Ajustes' : rotulo,
                   ),
               ],
             ),
@@ -103,7 +111,7 @@ class LayoutParceiros extends StatelessWidget {
         return Scaffold(
           body: Row(
             children: [
-              _MenuLateral(aba: aba, onAba: onAba, novas: novas),
+              _MenuLateral(aba: aba, onAba: onAba, numero: _numero),
               Expanded(
                 child: Column(
                   children: [
@@ -124,11 +132,11 @@ class _MenuLateral extends StatelessWidget {
   const _MenuLateral({
     required this.aba,
     required this.onAba,
-    required this.novas,
+    required this.numero,
   });
   final Aba aba;
   final ValueChanged<Aba> onAba;
-  final int novas;
+  final int Function(Aba) numero;
 
   @override
   Widget build(BuildContext context) {
@@ -191,7 +199,7 @@ class _MenuLateral extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            if (a == Aba.propostas && novas > 0)
+                            if (numero(a) > 0)
                               Container(
                                 constraints: const BoxConstraints(minWidth: 22),
                                 height: 22,
@@ -204,7 +212,7 @@ class _MenuLateral extends StatelessWidget {
                                 ),
                                 alignment: Alignment.center,
                                 child: Text(
-                                  '$novas',
+                                  '${numero(a)}',
                                   style: t.labelSmall?.copyWith(
                                     color: c.textoSobreTopo,
                                     fontWeight: FontWeight.w700,

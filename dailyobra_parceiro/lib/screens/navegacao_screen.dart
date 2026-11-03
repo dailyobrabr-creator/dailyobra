@@ -6,13 +6,14 @@ import '../services/ofertas_service.dart';
 import '../services/propostas_loja_service.dart';
 import '../services/resultados_service.dart';
 import 'componentes.dart';
+import 'configuracoes_screen.dart';
 import 'inicio_screen.dart';
 import 'layout_parceiros.dart';
-import 'minha_loja_screen.dart';
+import 'pedidos_screen.dart';
 import 'produtos_screen.dart';
 import 'propostas_screen.dart';
 
-/// Navegação do painel da loja: Início · Propostas · Produtos · Minha loja, na moldura de cada largura.
+/// Navegação do painel da loja: Início · Propostas · Pedidos · Produtos · Configurações, na moldura de cada largura.
 class NavegacaoScreen extends StatefulWidget {
   const NavegacaoScreen({super.key, required this.tema});
   final PreferenciaTema tema;
@@ -50,7 +51,7 @@ class _NavegacaoScreenState extends State<NavegacaoScreen> {
         onPopInvokedWithResult: (saiu, _) {
           if (!saiu) abaAtual.value = Aba.inicio;
         },
-        // Propostas novas no número da aba; nome e logo da loja na barra do computador
+        // Propostas novas e pedidos em andamento nos números das abas; nome e logo da loja na barra do computador
         child: ListenableBuilder(
           listenable: Listenable.merge([
             PropostasLojaService.instance,
@@ -60,14 +61,16 @@ class _NavegacaoScreenState extends State<NavegacaoScreen> {
             aba: aba,
             onAba: (a) => abaAtual.value = a,
             novas: PropostasLojaService.instance.novas.length,
+            pedidos: PropostasLojaService.instance.pedidosEmAndamento.length,
             loja: LojaService.instance.minhaLoja,
             conteudo: IndexedStack(
               index: aba.index,
               children: [
                 const InicioScreen(),
                 const PropostasScreen(),
+                const PedidosScreen(),
                 const ProdutosScreen(),
-                MinhaLojaScreen(tema: widget.tema),
+                ConfiguracoesScreen(tema: widget.tema),
               ],
             ),
           ),

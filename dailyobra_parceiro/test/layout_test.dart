@@ -23,6 +23,7 @@ void main() {
             aba: Aba.inicio,
             onAba: abas.add,
             novas: 2,
+            pedidos: 3,
             loja: loja,
             conteudo: const Text('Conteúdo'),
           ),
@@ -36,6 +37,19 @@ void main() {
         expect(find.byType(NavigationBar), findsOneWidget);
         expect(find.byType(NavigationRail), findsNothing);
         expect(find.text('2'), findsOneWidget);
+        expect(find.text('3'), findsOneWidget);
+        for (final rotulo in [
+          'Início',
+          'Propostas',
+          'Pedidos',
+          'Produtos',
+          'Ajustes',
+        ]) {
+          expect(find.text(rotulo), findsOneWidget);
+        }
+        await tester.tap(find.text('Ajustes'));
+        await tester.pump();
+        expect(abas, [Aba.configuracoes]);
         expect(tester.takeException(), isNull);
       });
 
@@ -61,9 +75,13 @@ void main() {
           tester.getSize(find.byKey(const Key('conteudo-adaptativo'))).width,
           lessThanOrEqualTo(1320),
         );
+        expect(find.text('2'), findsOneWidget);
+        expect(find.text('3'), findsOneWidget);
         await tester.tap(find.text('Produtos'));
+        await tester.tap(find.text('Pedidos'));
+        await tester.tap(find.text('Configurações'));
         await tester.pump();
-        expect(abas, [Aba.produtos]);
+        expect(abas, [Aba.produtos, Aba.pedidos, Aba.configuracoes]);
         expect(tester.takeException(), isNull);
       });
 

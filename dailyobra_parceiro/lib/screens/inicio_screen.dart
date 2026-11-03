@@ -156,7 +156,7 @@ class InicioScreen extends StatelessWidget {
                       Indicador(
                         rotulo: 'Pedidos em andamento',
                         valor: '${andamento.length}',
-                        onTap: () => irParaAba(context, Aba.propostas),
+                        onTap: () => irParaAba(context, Aba.pedidos),
                       ),
                       Indicador(
                         rotulo: 'Entregue no mês',

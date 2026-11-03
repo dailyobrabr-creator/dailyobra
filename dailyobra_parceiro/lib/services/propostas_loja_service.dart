@@ -65,6 +65,12 @@ class PropostasLojaService extends ChangeNotifier {
       )
       .toList();
 
+  List<PropostaResumo> get pedidosEntregues =>
+      pedidos.where((p) => p.pedido!.status == StatusPedido.entregue).toList();
+
+  List<PropostaResumo> get pedidosCancelados =>
+      pedidos.where((p) => p.pedido!.status == StatusPedido.cancelado).toList();
+
   List<PropostaResumo> get encerradas =>
       _propostas.where((p) => p.pedido == null && !p.status.aberta).toList();
 

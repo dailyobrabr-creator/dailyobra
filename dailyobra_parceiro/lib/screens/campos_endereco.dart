@@ -57,7 +57,7 @@ class ControleEndereco {
   final TextEditingController outrasUnidades;
   String? uf;
 
-  /// Põe nos campos o endereço salvo (Minha loja, ao abrir e depois de salvar).
+  /// Põe nos campos o endereço salvo (Configurações, ao abrir e depois de salvar).
   void preencher({
     String? cep,
     String logradouro = '',

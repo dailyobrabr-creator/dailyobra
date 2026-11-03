@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/loja_service.dart';
 import '../services/ofertas_service.dart';
 import '../services/propostas_loja_service.dart';
+import '../services/resultados_service.dart';
 import 'componentes.dart';
 import 'inicio_screen.dart';
 import 'layout_parceiros.dart';
@@ -36,6 +37,7 @@ class _NavegacaoScreenState extends State<NavegacaoScreen> {
   void dispose() {
     PropostasLojaService.instance.parar();
     OfertasService.instance.limpar();
+    ResultadosService.instance.limpar();
     super.dispose();
   }
 

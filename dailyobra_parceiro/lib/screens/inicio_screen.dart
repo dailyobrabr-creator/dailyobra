@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import '../services/loja_service.dart';
 import '../services/ofertas_service.dart';
 import '../services/propostas_loja_service.dart';
+import '../services/resultados_service.dart';
 import 'componentes.dart';
 import 'pedido_loja_screen.dart';
 import 'proposta_loja_screen.dart';
+import 'resultados_mes.dart';
 
 /// Número com rótulo do painel (tocável quando leva a outra aba).
 class Indicador extends StatelessWidget {
@@ -93,6 +95,9 @@ class InicioScreen extends StatelessWidget {
               onRefresh: () async {
                 await propostas.carregar();
                 if (minha != null) await ofertas.carregar(minha.id);
+                if (loja.meuPapel.gere) {
+                  await ResultadosService.instance.recarregar();
+                }
               },
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -189,6 +194,10 @@ class InicioScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+                  ],
+                  if (loja.meuPapel.gere) ...[
+                    const SizedBox(height: Espaco.s6),
+                    const ResultadosDoMes(),
                   ],
                   Padding(
                     padding: const EdgeInsets.only(

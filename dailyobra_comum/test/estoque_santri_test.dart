@@ -152,6 +152,44 @@ void main() {
       expect(t.opcoes.single.unidadeDiferente, isFalse);
     });
 
+    test('sugestão só com a palavra principal do produto', () {
+      const areia = ItemCatalogo(
+        id: 'areia-grossa', nome: 'Areia grossa', unidade: 'm³', categoriaId: 'basico', tier: 1,
+        sinonimos: ['areia', 'areia grossa'],
+      );
+      const lampada = ItemCatalogo(
+        id: 'lampada-led-9w', nome: 'Lâmpada LED 9 W', unidade: 'unidade', categoriaId: 'eletrica', tier: 2,
+        sinonimos: ['lampada', 'led', '9w'],
+      );
+      final a = montarAtualizacao(
+        [
+          linha('1', 'ROLO DE ESPUMA P TEXT GROSSA 23CM', 5, 9.90, unidade: 'UN'),
+          linha('2', 'AREIA GROSSA LAVADA', 3, 120, unidade: 'M3'),
+          linha('3', 'LAMP LED 9W BR6500K PERA', 40, 7.50, unidade: 'UN'),
+        ],
+        const [],
+        const {},
+        const [areia, lampada],
+      );
+      expect([for (final s in a.sugestoes) for (final o in s.opcoes) '${s.item.id} ${o.linha.codigo}'],
+          ['areia-grossa 2', 'lampada-led-9w 3']);
+    });
+
+    test('linhas para procurar à mão', () {
+      final a = montarAtualizacao(
+        [
+          linha('1', 'CONJUNTO CLICK 1TOM 2P+T 10A BCO', 12, 14.90, unidade: 'UN'),
+          linha('2', 'CONJUNTO CLICK 1INT SIMP BCO', 0, 11.90, unidade: 'UN'),
+          linha('3', 'FITA ISOLANTE 18MMX20M PRETA', 30, null, unidade: 'UN'),
+          linha('55555', 'VERGALHAO CA-50 3/8 BARRA 12M', 20, 39, unidade: 'BR'),
+        ],
+        const [LigacaoProduto(codigo: '55555', itemId: 'vergalhao-3-8')],
+        const {},
+        catalogo,
+      );
+      expect([for (final l in a.paraLigar) l.codigo], ['1']);
+    });
+
     test('código já ligado não vira sugestão', () {
       final a = montarAtualizacao(
         [linha('55555', 'VERGALHAO CA-50 3/8 BARRA 12M', 20, 39, unidade: 'BR')],
@@ -161,6 +199,30 @@ void main() {
       );
       expect(a.sugestoes, isEmpty);
     });
+  });
+
+  test('procurar no relatório por palavras e por código', () {
+    final linhas = [
+      linha('10259', 'ARGAMASSA ACI CINZA 20KG', 10, 18.90),
+      linha('10260', 'ARGAMASSA ACIII CINZA 20KG', 8, 39.90),
+      linha('20001', 'CABO FLEX 4,0MM 450/750V VERDE', 100, 3.10),
+    ];
+    String codigos(String busca, {int limite = 50}) =>
+        [for (final l in procurarLinhas(linhas, busca, limite: limite)) l.codigo].join(' ');
+    expect(codigos('argamassa'), '10259 10260');
+    expect(codigos('Argamassa ACIII'), '10260');
+    expect(codigos('aci'), '10259 10260');
+    expect(codigos('cabo 4,0'), '20001');
+    expect(codigos('10260'), '10260');
+    expect(codigos('telha'), '');
+    expect(codigos('  '), '');
+    expect(codigos('argamassa', limite: 1), '10259');
+  });
+
+  test('opção de ligação confere a unidade', () {
+    expect(OpcaoLigacao.para(linha('1', 'CIMENTO CP II', 1, 40, unidade: 'SC'), cimento).unidadeDiferente, isFalse);
+    expect(OpcaoLigacao.para(linha('1', 'CIMENTO CP II', 1, 40, unidade: 'KG'), cimento).unidadeDiferente, isTrue);
+    expect(OpcaoLigacao.para(linha('1', 'CIMENTO CP II', 1, 40), cimento).unidadeDiferente, isFalse);
   });
 
   test('ligação vai e volta do banco', () {

@@ -151,5 +151,13 @@ void main() {
       expect(unidadeCanonica('Saco'), unidadeCanonica('SC'));
       expect(unidadeCanonica('caixa'), isNot(unidadeCanonica('m²')));
     });
+
+    test('palavra principal é a primeira sem número', () {
+      expect(palavraPrincipal('TIJOLOS 8 FUROS CER ROO 9X19X24'), 'tijolo');
+      expect(palavraPrincipal("CAIXA D'AGUA POLIET COM TAMPA 500LT"), 'caixa');
+      expect(palavraPrincipal('ROLO TEXTURA EXTRA RUSTICA ESPUMA 23CM'), 'rolo');
+      expect(palavraPrincipal('Lâmpada LED 9 W'), 'lampada');
+      expect(palavraPrincipal('2P+T'), isNull);
+    });
   });
 }

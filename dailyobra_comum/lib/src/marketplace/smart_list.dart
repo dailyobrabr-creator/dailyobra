@@ -165,6 +165,15 @@ bool _ehUnidade(String t) => _unidades.containsKey(t);
 /// Unidade num jeito só ("m²" e "M2", "unidade" e "UN", "Saco" e "SC"), para comparar a da planilha com a do catálogo.
 String unidadeCanonica(String unidade) => _canonica(normalizar(unidade));
 
+/// Palavra que diz o que é o produto, no jeito de comparar: a primeira sem número e com mais de uma letra
+/// ("TIJOLOS 8 FUROS" → "tijolo"; "ROLO TEXTURA" → "rolo", que não é textura). Nomes de ERP começam pelo tipo do produto.
+String? palavraPrincipal(String nome) {
+  for (final t in _termos(normalizar(nome))) {
+    if (t.length > 1 && !_temDigito.hasMatch(t)) return t;
+  }
+  return null;
+}
+
 /// Liga nomes de produto (de uma planilha, por exemplo) ao catálogo com a mesma pontuação da lista inteligente,
 /// sem ler quantidade no começo do nome. Monta os índices uma vez para muitos nomes.
 class ReconhecedorDeProdutos {

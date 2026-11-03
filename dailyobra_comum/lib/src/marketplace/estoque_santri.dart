@@ -1,6 +1,7 @@
 import 'modelos.dart';
 import 'planilha_precos.dart';
 import 'smart_list.dart';
+import 'texto.dart';
 
 /// Um produto do relatório "Valor do estoque analítico" do Santri, só com o que a importação do dia usa: o custo e os
 /// totais nem entram no modelo.
@@ -112,6 +113,13 @@ class MudancaOferta {
 /// Um item do relatório que pode ser ligado a um produto do catálogo.
 class OpcaoLigacao {
   const OpcaoLigacao({required this.linha, required this.certeza, required this.unidadeDiferente});
+
+  /// Opção para [item], com o aviso quando a unidade do Santri não é a do catálogo.
+  factory OpcaoLigacao.para(LinhaEstoque linha, ItemCatalogo item, {bool certeza = false}) => OpcaoLigacao(
+    linha: linha,
+    certeza: certeza,
+    unidadeDiferente: linha.unidade != null && unidadeCanonica(linha.unidade!) != unidadeCanonica(item.unidade),
+  );
   final LinhaEstoque linha;
 
   /// O reconhecedor ligou com certeza (e não só como uma das opções).
@@ -127,7 +135,9 @@ class SugestaoLigacao {
 }
 
 class AtualizacaoEstoque {
-  const AtualizacaoEstoque({required this.mudancas, required this.naoVieram, required this.sugestoes, required this.semPreco});
+  const AtualizacaoEstoque({
+    required this.mudancas, required this.naoVieram, required this.sugestoes, required this.semPreco, required this.paraLigar,
+  });
   final List<MudancaOferta> mudancas;
 
   /// Ligados sem nenhum código no relatório: a oferta fica como está.
@@ -136,6 +146,9 @@ class AtualizacaoEstoque {
 
   /// Linhas ligadas sem preço no relatório (ficam de fora).
   final int semPreco;
+
+  /// Linhas com estoque e preço cujo código ainda não tem ligação, para procurar à mão o que não veio nas sugestões.
+  final List<LinhaEstoque> paraLigar;
 }
 
 const _limiteConferir = 0.30;
@@ -186,12 +199,22 @@ AtualizacaoEstoque montarAtualizacao(List<LinhaEstoque> relatorio, List<LigacaoP
     ));
   }
 
-  // Sugestões: só itens com estoque e preço, ainda não ligados, para produtos do catálogo sem ligação
+  // Sugestões: só itens com estoque e preço, ainda não ligados, para produtos do catálogo sem ligação e com a mesma
+  // palavra principal ("ROLO DE ESPUMA ... GROSSA" não é areia grossa; a abreviação "LAMP" vale por "lâmpada")
   final codigosLigados = {for (final g in ligacoes) g.codigo};
   final reconhecedor = ReconhecedorDeProdutos(catalogo);
+  final principais = {
+    for (final i in catalogo) i.id: {for (final n in [i.nome, ...i.sinonimos]) ?palavraPrincipal(n)},
+  };
+  final todasPrincipais = {for (final p in principais.values) ...p};
+  bool confere(Set<String> doItem, String daLinha) => doItem.any((p) => p == daLinha || (daLinha.length >= 4 && p.startsWith(daLinha)));
+  final paraLigar = <LinhaEstoque>[];
   final opcoesPorItem = <String, List<OpcaoLigacao>>{};
   for (final l in relatorio) {
     if (l.disponivel <= 0 || (l.preco ?? 0) <= 0 || codigosLigados.contains(l.codigo)) continue;
+    paraLigar.add(l);
+    final principal = palavraPrincipal(l.nome);
+    if (principal == null || !confere(todasPrincipais, principal)) continue;
     final r = reconhecedor.reconhecer(l.nome);
     final alvos = switch (r.tipo) {
       TipoLinha.reconhecido => [if (r.item case final item?) (item, true)],
@@ -199,9 +222,8 @@ AtualizacaoEstoque montarAtualizacao(List<LinhaEstoque> relatorio, List<LigacaoP
       TipoLinha.naoReconhecido => const <(ItemCatalogo, bool)>[],
     };
     for (final (item, certeza) in alvos) {
-      if (codigosPorItem.containsKey(item.id)) continue;
-      final unidadeDiferente = l.unidade != null && unidadeCanonica(l.unidade!) != unidadeCanonica(item.unidade);
-      (opcoesPorItem[item.id] ??= []).add(OpcaoLigacao(linha: l, certeza: certeza, unidadeDiferente: unidadeDiferente));
+      if (codigosPorItem.containsKey(item.id) || !confere(principais[item.id]!, principal)) continue;
+      (opcoesPorItem[item.id] ??= []).add(OpcaoLigacao.para(l, item, certeza: certeza));
     }
   }
   int ordem(OpcaoLigacao a, OpcaoLigacao b) => a.certeza != b.certeza ? (a.certeza ? -1 : 1) : a.linha.preco!.compareTo(b.linha.preco!);
@@ -209,5 +231,23 @@ AtualizacaoEstoque montarAtualizacao(List<LinhaEstoque> relatorio, List<LigacaoP
     for (final item in catalogo)
       if (opcoesPorItem[item.id] case final opcoes?) SugestaoLigacao(item: item, opcoes: (opcoes..sort(ordem)).take(3).toList()),
   ];
-  return AtualizacaoEstoque(mudancas: mudancas, naoVieram: naoVieram, sugestoes: sugestoes, semPreco: semPreco);
+  return AtualizacaoEstoque(mudancas: mudancas, naoVieram: naoVieram, sugestoes: sugestoes, semPreco: semPreco, paraLigar: paraLigar);
+}
+
+/// Linhas com o começo de cada palavra procurada no nome ("aci" acha "ACI" e "ACIII") ou com o código começando
+/// pelo número procurado ("10.259" ou "10259"). Busca vazia não acha nada.
+List<LinhaEstoque> procurarLinhas(List<LinhaEstoque> linhas, String busca, {int limite = 50}) {
+  final palavras = [for (final p in normalizar(busca).split(' ')) if (p.isNotEmpty) p];
+  if (palavras.isEmpty) return const [];
+  final codigo = busca.trim().replaceAll('.', '');
+  final porCodigo = RegExp(r'^\d+$').hasMatch(codigo);
+  final achadas = <LinhaEstoque>[];
+  for (final l in linhas) {
+    final doNome = normalizar(l.nome).split(' ');
+    if (palavras.every((p) => doNome.any((n) => n.startsWith(p))) || (porCodigo && l.codigo.startsWith(codigo))) {
+      achadas.add(l);
+      if (achadas.length == limite) break;
+    }
+  }
+  return achadas;
 }

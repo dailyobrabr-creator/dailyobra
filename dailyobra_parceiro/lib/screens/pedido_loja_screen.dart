@@ -79,6 +79,13 @@ class _PedidoLojaScreenState extends State<PedidoLojaScreen> {
             pedido.status == StatusPedido.confirmado ||
             pedido.status == StatusPedido.emSeparacao;
         final atual = _passos.indexOf(pedido.status);
+        final forma = pedido.formaPagamento;
+        // Pedido cancelado não tem mais prazo para responder
+        final prazo =
+            forma == FormaPagamento.crediario &&
+                pedido.status != StatusPedido.cancelado
+            ? pedido.prazoStatus
+            : null;
         return Scaffold(
           appBar: AppBar(title: const Text('Pedido')),
           body: ListView(
@@ -145,6 +152,57 @@ class _PedidoLojaScreenState extends State<PedidoLojaScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      if (forma != null) ...[
+                        _Dado(
+                          'Forma de pagamento',
+                          forma == FormaPagamento.crediario &&
+                                  pedido.prazo != null
+                              ? 'Crediário: ${pedido.prazo} dias'
+                              : forma.rotulo,
+                        ),
+                        if (prazo == StatusPrazo.pendente && gere) ...[
+                          const SizedBox(height: Espaco.s2),
+                          Wrap(
+                            spacing: Espaco.s2,
+                            runSpacing: Espaco.s2,
+                            children: [
+                              FilledButton(
+                                onPressed: _ocupado
+                                    ? null
+                                    : () => _executar(
+                                        () => servico.responderPrazo(
+                                          pedido.id,
+                                          true,
+                                        ),
+                                        'Prazo aprovado.',
+                                      ),
+                                child: const Text('Aprovar prazo'),
+                              ),
+                              OutlinedButton(
+                                onPressed: _ocupado
+                                    ? null
+                                    : () => _executar(
+                                        () => servico.responderPrazo(
+                                          pedido.id,
+                                          false,
+                                        ),
+                                        'Prazo recusado.',
+                                      ),
+                                child: const Text('Recusar'),
+                              ),
+                            ],
+                          ),
+                        ] else if (prazo != null) ...[
+                          const SizedBox(height: Espaco.s2),
+                          Text(switch (prazo) {
+                            StatusPrazo.pendente =>
+                              'Aguardando o gerente aprovar o prazo.',
+                            StatusPrazo.aprovado => 'Prazo aprovado.',
+                            StatusPrazo.recusado => 'Prazo recusado.',
+                          }, style: t.bodyMedium),
+                        ],
+                        const SizedBox(height: Espaco.s3),
+                      ],
                       if (!pago && informado != null) ...[
                         Aviso(
                           'Cliente informou o pagamento ${quando(informado)}, confira no banco.',

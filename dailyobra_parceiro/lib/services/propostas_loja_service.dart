@@ -105,10 +105,18 @@ class PropostasLojaService extends ChangeNotifier {
     _propostas = propostas;
     _construtores = {for (final c in construtores) c.id: c};
     _documentosDeTeste = documentos;
+    _teste = true;
+    prazosDeTeste.clear();
     _carregado = true;
     _erro = null;
     notifyListeners();
   }
+
+  bool _teste = false;
+
+  /// Respostas ao prazo nos testes (pedido, aprovou), sem chamar o banco.
+  @visibleForTesting
+  final prazosDeTeste = <(String, bool)>[];
 
   Map<String, String>? _documentosDeTeste;
 
@@ -129,7 +137,8 @@ class PropostasLojaService extends ChangeNotifier {
       'cashback_previsto, saldo_aplicado, mensagem_construtor, mensagem_loja, motivo_recusa, valida_ate, criada_em, '
       'proposta_itens(item_id, nome, unidade, tier, quantidade, preco_anunciado, preco_ofertado), '
       'pedidos(id, status, total, pagamento_confirmado_em, entregue_em, criado_em, pagador, pagador_nome, '
-      'pagador_whatsapp, link_codigo, documento_informado_em, pagamento_informado_em)';
+      'pagador_whatsapp, link_codigo, documento_informado_em, pagamento_informado_em, forma_pagamento, prazo, '
+      'prazo_status, prazo_respondido_em)';
 
   void iniciar(String lojaId) {
     if (_lojaId == lojaId && _canal != null) return;
@@ -281,4 +290,16 @@ class PropostasLojaService extends ChangeNotifier {
 
   Future<void> confirmarPagamento(String pedidoId) =>
       _pedidoRpc('confirmar_pagamento', {'p_pedido': pedidoId});
+
+  /// Dono ou gerente aprova ou recusa o prazo do crediário pedido pelo construtor.
+  Future<void> responderPrazo(String pedidoId, bool aprovar) async {
+    if (_teste) {
+      prazosDeTeste.add((pedidoId, aprovar));
+      return;
+    }
+    await _pedidoRpc('responder_prazo', {
+      'p_pedido': pedidoId,
+      'p_aprovar': aprovar,
+    });
+  }
 }

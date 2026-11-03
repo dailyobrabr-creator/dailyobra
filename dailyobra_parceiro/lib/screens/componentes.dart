@@ -63,6 +63,11 @@ String telefone(String d) {
 (String, TomSelo) seloParaLoja(PropostaResumo p) {
   final pedido = p.pedido;
   if (pedido != null) {
+    // O prazo do crediário espera a resposta do dono ou do gerente
+    if (pedido.prazoStatus == StatusPrazo.pendente &&
+        pedido.status != StatusPedido.cancelado) {
+      return ('Prazo para aprovar', TomSelo.aviso);
+    }
     return (
       pedido.status.rotulo,
       switch (pedido.status) {

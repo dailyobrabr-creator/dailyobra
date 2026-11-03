@@ -58,6 +58,26 @@ PedidoResumo pedido(StatusPedido status) => PedidoResumo(
   entregueEm: status == StatusPedido.entregue ? DateTime.now() : null,
 );
 
+/// Pedido confirmado no "Eu pago", com a forma escolhida pelo construtor.
+PropostaResumo comForma(
+  FormaPagamento forma, {
+  String? prazo,
+  StatusPrazo? prazoStatus,
+}) => proposta(
+  'p3',
+  status: StatusProposta.aceita,
+  pedido: PedidoResumo(
+    id: 'ped1',
+    status: StatusPedido.confirmado,
+    total: 500,
+    criadoEm: DateTime.now().subtract(const Duration(minutes: 30)),
+    pagador: Pagador.proprio,
+    formaPagamento: forma,
+    prazo: prazo,
+    prazoStatus: prazoStatus,
+  ),
+);
+
 void preparar({
   PapelLoja papel = PapelLoja.dono,
   List<PropostaResumo>? propostas,
@@ -423,6 +443,108 @@ void main() {
           find.text('Combine com o construtor e confirme aqui quando receber.'),
           findsNothing,
         );
+      });
+
+      testWidgets('pedido mostra a forma de pagamento', (tester) async {
+        preparar(propostas: [comForma(FormaPagamento.cartao)]);
+        await abrir(
+          tester,
+          const PedidoLojaScreen(pedidoId: 'ped1'),
+          escuro: escuro,
+        );
+        await rolarAte(tester, find.text('Cartão na loja'));
+        expect(find.text('Cartão na loja'), findsOneWidget);
+
+        preparar(
+          propostas: [
+            comForma(
+              FormaPagamento.crediario,
+              prazo: '28/35',
+              prazoStatus: StatusPrazo.aprovado,
+            ),
+          ],
+        );
+        await abrir(
+          tester,
+          const PedidoLojaScreen(pedidoId: 'ped1'),
+          escuro: escuro,
+        );
+        await rolarAte(tester, find.text('Prazo aprovado.'));
+        expect(find.text('Crediário: 28/35 dias'), findsOneWidget);
+        expect(find.text('Prazo aprovado.'), findsOneWidget);
+        expect(find.text('Aprovar prazo'), findsNothing);
+      });
+
+      testWidgets('gerente aprova ou recusa o prazo', (tester) async {
+        preparar(
+          propostas: [
+            comForma(
+              FormaPagamento.crediario,
+              prazo: '28',
+              prazoStatus: StatusPrazo.pendente,
+            ),
+          ],
+        );
+        await abrir(
+          tester,
+          const PedidoLojaScreen(pedidoId: 'ped1'),
+          escuro: escuro,
+        );
+        await rolarAte(tester, find.text('Aprovar prazo'));
+        expect(find.text('Crediário: 28 dias'), findsOneWidget);
+        await tester.tap(find.text('Aprovar prazo'));
+        await tester.pumpAndSettle();
+        expect(PropostasLojaService.instance.prazosDeTeste, [('ped1', true)]);
+        await rolarAte(tester, find.text('Recusar'));
+        await tester.tap(find.text('Recusar'));
+        await tester.pumpAndSettle();
+        expect(PropostasLojaService.instance.prazosDeTeste, [
+          ('ped1', true),
+          ('ped1', false),
+        ]);
+      });
+
+      testWidgets('vendedor não responde ao prazo', (tester) async {
+        preparar(
+          papel: PapelLoja.vendedor,
+          propostas: [
+            comForma(
+              FormaPagamento.crediario,
+              prazo: '28',
+              prazoStatus: StatusPrazo.pendente,
+            ),
+          ],
+        );
+        await abrir(
+          tester,
+          const PedidoLojaScreen(pedidoId: 'ped1'),
+          escuro: escuro,
+        );
+        const aguardando = 'Aguardando o gerente aprovar o prazo.';
+        await rolarAte(tester, find.text(aguardando));
+        expect(find.text(aguardando), findsOneWidget);
+        expect(find.text('Aprovar prazo'), findsNothing);
+        expect(find.text('Recusar'), findsNothing);
+      });
+
+      testWidgets('lista mostra prazo para aprovar', (tester) async {
+        preparar(
+          propostas: [
+            proposta('p1'),
+            comForma(
+              FormaPagamento.crediario,
+              prazo: '28',
+              prazoStatus: StatusPrazo.pendente,
+            ),
+          ],
+        );
+        await abrir(tester, const PropostasScreen(), escuro: escuro);
+        await tester.ensureVisible(find.textContaining('Pedidos'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.textContaining('Pedidos'));
+        await tester.pumpAndSettle();
+        expect(find.text('Prazo para aprovar'), findsOneWidget);
+        expect(find.text('Confirmado'), findsNothing);
       });
 
       testWidgets('minha loja salva a chave pix', (tester) async {

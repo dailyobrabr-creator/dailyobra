@@ -23,6 +23,9 @@ create function pg_temp.admin() returns void language plpgsql as $$ begin execut
 create function pg_temp.saldo(u uuid, c text) returns numeric language sql as $$
   select coalesce(sum(valor), 0) from public.carteira_lancamentos where construtor_id = u and conta = c $$;
 
+-- As ofertas reais do banco ficam de fora (o maior preço da economia olha todas as lojas abertas); tudo é desfeito no fim
+update public.ofertas set pausada = true;
+
 -- Usuários de teste
 insert into auth.users (id, email, aud, role) values
   ('00000000-0000-0000-0000-00000000c001', 'construtor@teste.dailyobra', 'authenticated', 'authenticated'),

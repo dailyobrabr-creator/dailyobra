@@ -2,7 +2,7 @@ import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
 
 /// Abas da navegação principal. Qualquer tela pode trocar a aba com [irParaAba].
-enum Aba { inicio, propostas, pedidos, produtos, configuracoes }
+enum Aba { inicio, propostas, pedidos, produtos, clientes, configuracoes }
 
 final abaAtual = ValueNotifier<Aba>(Aba.inicio);
 

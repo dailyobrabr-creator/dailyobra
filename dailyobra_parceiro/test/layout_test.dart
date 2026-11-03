@@ -15,12 +15,13 @@ void main() {
         WidgetTester tester,
         double largura, {
         Loja loja = minhaLoja,
+        Aba aba = Aba.inicio,
       }) {
         abas.clear();
         return abrirLargura(
           tester,
           LayoutParceiros(
-            aba: Aba.inicio,
+            aba: aba,
             onAba: abas.add,
             novas: 2,
             pedidos: 3,
@@ -43,13 +44,25 @@ void main() {
           'Propostas',
           'Pedidos',
           'Produtos',
-          'Ajustes',
+          'Mais',
         ]) {
           expect(find.text(rotulo), findsOneWidget);
         }
-        await tester.tap(find.text('Ajustes'));
+        expect(find.text('Clientes'), findsNothing);
+        await tester.tap(find.text('Mais'));
         await tester.pump();
         expect(abas, [Aba.configuracoes]);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('celular com Clientes aberto marca Mais', (tester) async {
+        await montar(tester, 360, aba: Aba.clientes);
+        expect(
+          tester
+              .widget<NavigationBar>(find.byType(NavigationBar))
+              .selectedIndex,
+          4,
+        );
         expect(tester.takeException(), isNull);
       });
 
@@ -58,6 +71,9 @@ void main() {
         expect(find.byType(NavigationRail), findsOneWidget);
         expect(find.byType(NavigationBar), findsNothing);
         expect(find.text('2'), findsOneWidget);
+        await tester.tap(find.byTooltip('Clientes'));
+        await tester.pump();
+        expect(abas, [Aba.clientes]);
         expect(tester.takeException(), isNull);
       });
 
@@ -79,9 +95,15 @@ void main() {
         expect(find.text('3'), findsOneWidget);
         await tester.tap(find.text('Produtos'));
         await tester.tap(find.text('Pedidos'));
+        await tester.tap(find.text('Clientes'));
         await tester.tap(find.text('Configurações'));
         await tester.pump();
-        expect(abas, [Aba.produtos, Aba.pedidos, Aba.configuracoes]);
+        expect(abas, [
+          Aba.produtos,
+          Aba.pedidos,
+          Aba.clientes,
+          Aba.configuracoes,
+        ]);
         expect(tester.takeException(), isNull);
       });
 

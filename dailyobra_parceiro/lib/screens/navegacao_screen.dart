@@ -1,10 +1,12 @@
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
 
+import '../services/clientes_service.dart';
 import '../services/loja_service.dart';
 import '../services/ofertas_service.dart';
 import '../services/propostas_loja_service.dart';
 import '../services/resultados_service.dart';
+import 'clientes_screen.dart';
 import 'componentes.dart';
 import 'configuracoes_screen.dart';
 import 'inicio_screen.dart';
@@ -13,7 +15,8 @@ import 'pedidos_screen.dart';
 import 'produtos_screen.dart';
 import 'propostas_screen.dart';
 
-/// Navegação do painel da loja: Início · Propostas · Pedidos · Produtos · Configurações, na moldura de cada largura.
+/// Navegação do painel da loja: Início · Propostas · Pedidos · Produtos · Clientes · Configurações, na moldura de
+/// cada largura.
 class NavegacaoScreen extends StatefulWidget {
   const NavegacaoScreen({super.key, required this.tema});
   final PreferenciaTema tema;
@@ -23,6 +26,9 @@ class NavegacaoScreen extends StatefulWidget {
 }
 
 class _NavegacaoScreenState extends State<NavegacaoScreen> {
+  /// Clientes só busca no banco quando abre pela primeira vez; depois fica montada.
+  var _clientesAberta = false;
+
   @override
   void initState() {
     super.initState();
@@ -39,6 +45,7 @@ class _NavegacaoScreenState extends State<NavegacaoScreen> {
     PropostasLojaService.instance.parar();
     OfertasService.instance.limpar();
     ResultadosService.instance.limpar();
+    ClientesService.instance.limpar();
     super.dispose();
   }
 
@@ -46,36 +53,43 @@ class _NavegacaoScreenState extends State<NavegacaoScreen> {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<Aba>(
       valueListenable: abaAtual,
-      builder: (context, aba, _) => PopScope(
-        canPop: aba == Aba.inicio,
-        onPopInvokedWithResult: (saiu, _) {
-          if (!saiu) abaAtual.value = Aba.inicio;
-        },
-        // Propostas novas e pedidos em andamento nos números das abas; nome e logo da loja na barra do computador
-        child: ListenableBuilder(
-          listenable: Listenable.merge([
-            PropostasLojaService.instance,
-            LojaService.instance,
-          ]),
-          builder: (context, _) => LayoutParceiros(
-            aba: aba,
-            onAba: (a) => abaAtual.value = a,
-            novas: PropostasLojaService.instance.novas.length,
-            pedidos: PropostasLojaService.instance.pedidosEmAndamento.length,
-            loja: LojaService.instance.minhaLoja,
-            conteudo: IndexedStack(
-              index: aba.index,
-              children: [
-                const InicioScreen(),
-                const PropostasScreen(),
-                const PedidosScreen(),
-                const ProdutosScreen(),
-                ConfiguracoesScreen(tema: widget.tema),
-              ],
+      builder: (context, aba, _) {
+        if (aba == Aba.clientes) _clientesAberta = true;
+        return PopScope(
+          canPop: aba == Aba.inicio,
+          onPopInvokedWithResult: (saiu, _) {
+            if (!saiu) abaAtual.value = Aba.inicio;
+          },
+          // Propostas novas e pedidos em andamento nos números das abas; nome e logo da loja na barra do computador
+          child: ListenableBuilder(
+            listenable: Listenable.merge([
+              PropostasLojaService.instance,
+              LojaService.instance,
+            ]),
+            builder: (context, _) => LayoutParceiros(
+              aba: aba,
+              onAba: (a) => abaAtual.value = a,
+              novas: PropostasLojaService.instance.novas.length,
+              pedidos: PropostasLojaService.instance.pedidosEmAndamento.length,
+              loja: LojaService.instance.minhaLoja,
+              conteudo: IndexedStack(
+                index: aba.index,
+                children: [
+                  const InicioScreen(),
+                  const PropostasScreen(),
+                  const PedidosScreen(),
+                  const ProdutosScreen(),
+                  if (_clientesAberta)
+                    const ClientesScreen()
+                  else
+                    const SizedBox.shrink(),
+                  ConfiguracoesScreen(tema: widget.tema),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

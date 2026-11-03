@@ -150,6 +150,8 @@ O selo **aberta / fechada** sai do horário da loja ("Seg a sex 7h às 18h; sáb
 
 No cadastro e em **Configurações > Endereço e horário**, a loja não digita endereço nem horário. Digita o CEP e o app busca no ViaCEP (direto do aparelho) e preenche rua, bairro, cidade e UF; ela completa número e complemento e, se tiver, escreve as **outras unidades** da rede. O banco guarda os campos e monta o texto que o construtor vê (`Rua, Número, Complemento – Bairro, CEP 00000-000`, gatilho `lojas_endereco`); loja antiga sem CEP continua com o texto que tinha até salvar com CEP. O horário é escolhido dia a dia (de 15 em 15 minutos, com intervalo opcional e "Copiar segunda para terça a sexta") e vira o mesmo texto que o app já lê (`escreverHorario` no comum); horário antigo que o app não entende só é trocado quando a loja mexe no editor.
 
+Em **Clientes** a equipe da loja vê todo construtor que mandou proposta, do contato mais recente ao mais antigo, nas abas Todos, Clientes (tem pedido que não foi cancelado) e Leads (só cotou), com busca por nome, empresa, cidade ou telefone e botão de WhatsApp. No computador e no tablet é um item do menu; no celular entra pela aba **Mais**. Os números vêm da função `clientes_loja`; o histórico de cada cliente usa as 200 propostas mais recentes que o painel já carrega.
+
 ## Pendências no painel do Supabase
 
 - **Authentication > URL Configuration > Redirect URLs**: adicione `dailyobra://login`, `dailyobraparceiros://login` e o endereço do site no GitHub Pages; em **Site URL**, o endereço do site (links de confirmação de conta e de nova senha voltam para o app ou para o site certo).

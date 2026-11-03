@@ -147,6 +147,7 @@ class PropostasLojaService extends ChangeNotifier {
       'prazo_status, prazo_respondido_em)';
 
   void iniciar(String lojaId) {
+    if (_teste) return;
     if (_lojaId == lojaId && _canal != null) return;
     parar();
     _lojaId = lojaId;

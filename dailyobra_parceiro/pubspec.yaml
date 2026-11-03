@@ -26,6 +26,7 @@ dependencies:
   # Logo e capa da loja: escolhe da galeria já reduzida (largura máxima e qualidade JPEG)
   image_picker: ^1.2.3
   file_picker: ^13.3.1
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:

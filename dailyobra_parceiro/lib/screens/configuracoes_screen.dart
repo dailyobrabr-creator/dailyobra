@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../services/cep_service.dart';
 import '../services/loja_service.dart';
+import 'clientes_screen.dart';
 import 'componentes.dart';
 import 'equipe_screen.dart';
 import 'secoes_loja.dart';
@@ -126,6 +127,22 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
               ),
             ],
             const SizedBox(height: Espaco.s4),
+            // O celular não tem aba para Clientes: entra por aqui
+            if (formatoDoContexto(context) == Formato.celular) ...[
+              Painel(
+                child: ListTile(
+                  leading: const Icon(Icons.people_outline),
+                  title: const Text('Clientes'),
+                  subtitle: const Text('Quem comprou e quem só cotou'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ClientesScreen()),
+                  ),
+                ),
+              ),
+              const SizedBox(height: Espaco.s3),
+            ],
             Painel(
               child: Column(
                 children: [

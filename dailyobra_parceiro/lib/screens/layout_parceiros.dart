@@ -8,7 +8,14 @@ const _itens = [
   (Aba.propostas, Icons.inbox_outlined, Icons.inbox, 'Propostas'),
   (Aba.pedidos, Icons.receipt_long_outlined, Icons.receipt_long, 'Pedidos'),
   (Aba.produtos, Icons.sell_outlined, Icons.sell, 'Produtos'),
+  (Aba.clientes, Icons.people_outline, Icons.people, 'Clientes'),
   (Aba.configuracoes, Icons.settings_outlined, Icons.settings, 'Configurações'),
+];
+
+/// O celular só tem cinco abas: Clientes abre pela última, Mais (as configurações).
+final _itensDoCelular = [
+  for (final item in _itens)
+    if (item.$1 != Aba.clientes) item,
 ];
 
 /// Moldura do painel por largura: abas embaixo no celular, trilho no tablet e, no computador,
@@ -66,15 +73,17 @@ class LayoutParceiros extends StatelessWidget {
               border: Border(top: BorderSide(color: c.borda)),
             ),
             child: NavigationBar(
-              selectedIndex: aba.index,
-              onDestinationSelected: (i) => onAba(Aba.values[i]),
+              selectedIndex: _itensDoCelular.indexWhere(
+                (i) => i.$1 == (aba == Aba.clientes ? Aba.configuracoes : aba),
+              ),
+              onDestinationSelected: (i) => onAba(_itensDoCelular[i].$1),
               destinations: [
-                for (final (a, icone, selecionado, rotulo) in _itens)
+                for (final (a, icone, selecionado, rotulo) in _itensDoCelular)
                   NavigationDestination(
                     icon: _icone(a, icone),
                     selectedIcon: _icone(a, selecionado),
-                    // "Configurações" não cabe em cinco abas no celular
-                    label: a == Aba.configuracoes ? 'Ajustes' : rotulo,
+                    // "Configurações" não cabe, e a aba também leva a Clientes
+                    label: a == Aba.configuracoes ? 'Mais' : rotulo,
                   ),
               ],
             ),

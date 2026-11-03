@@ -95,7 +95,8 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
     if (erroChave != null) return avisar(context, erroChave);
     // Loja antiga sem CEP: o endereço só é conferido (e enviado) quando a loja começa pelo CEP;
     // o horário só vai quando o editor foi mexido, para não trocar o texto que o app não entendeu
-    final errosEndereco = _endereco.preenchido
+    final mexeuNoEndereco = _endereco.preenchido || _endereco.alterado;
+    final errosEndereco = mexeuNoEndereco
         ? _endereco.validar()
         : const <String, String>{};
     final erroHorario = _horario.alterado ? _horario.validar() : null;
@@ -116,7 +117,7 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
             ? null
             : _descricao.text.trim(),
         'whatsapp': zap.isEmpty ? null : zap,
-        if (_endereco.preenchido) ..._endereco.campos(),
+        if (mexeuNoEndereco) ..._endereco.campos(),
         if (_horario.alterado) 'horario': horario.isEmpty ? null : horario,
         'frete_fixo': frete,
         'pedido_minimo': minimo,

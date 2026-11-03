@@ -924,6 +924,35 @@ void main() {
         }
       });
 
+      testWidgets('loja antiga que muda só a cidade precisa do CEP', (
+        tester,
+      ) async {
+        SharedPreferences.setMockInitialValues({});
+        final tema = await PreferenciaTema.carregar();
+        preparar();
+        LojaService.instance.definirParaTeste(
+          loja: minhaLoja,
+          dados: const DadosLoja(
+            cnpj: '11222333000181',
+            endereco: 'Lojas Vila Operária (matriz)',
+          ),
+        );
+        await abrir(
+          tester,
+          MinhaLojaScreen(tema: tema, buscarCep: buscarCepFalso),
+          escuro: escuro,
+        );
+        await rolarAte(tester, campoDoEndereco('cidade'));
+        await tester.enterText(campoDoEndereco('cidade'), 'Rondonópolis');
+        await rolarAte(tester, find.text('Salvar dados'));
+        await tester.tap(find.text('Salvar dados'));
+        await tester.pump();
+        expect(LojaService.instance.atualizacoesDeTeste, isEmpty);
+        expect(find.text('Informe o CEP com 8 números.'), findsWidgets);
+        await tester.pump(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
+      });
+
       testWidgets('minha loja abre com o endereço em campos', (tester) async {
         SharedPreferences.setMockInitialValues({});
         final tema = await PreferenciaTema.carregar();

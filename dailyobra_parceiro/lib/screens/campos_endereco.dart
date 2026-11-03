@@ -44,7 +44,9 @@ class ControleEndereco {
        complemento = TextEditingController(text: complemento),
        bairro = TextEditingController(text: bairro),
        cidade = TextEditingController(text: cidade),
-       outrasUnidades = TextEditingController(text: outrasUnidades);
+       outrasUnidades = TextEditingController(text: outrasUnidades) {
+    _salvo = _foto();
+  }
 
   final TextEditingController cep;
   final TextEditingController logradouro;
@@ -74,12 +76,30 @@ class ControleEndereco {
     this.cidade.text = cidade;
     this.uf = uf;
     this.outrasUnidades.text = outrasUnidades;
+    _salvo = _foto();
   }
+
+  /// Os campos como vieram (do construtor ou do último [preencher]).
+  late String _salvo;
+
+  String _foto() => [
+    cep.text,
+    logradouro.text,
+    numero.text,
+    complemento.text,
+    bairro.text,
+    cidade.text,
+    uf ?? '',
+    outrasUnidades.text,
+  ].join('\u0000');
 
   String get _digitos => cep.text.replaceAll(RegExp(r'\D'), '');
 
   /// A loja começou a informar o endereço pelo CEP.
   bool get preenchido => _digitos.isNotEmpty;
+
+  /// A loja mexeu em algum campo do endereço desde que ele foi preenchido.
+  bool get alterado => _foto() != _salvo;
 
   Map<String, String> validar() => {
     if (_digitos.length != 8) 'cep': 'Informe o CEP com 8 números.',

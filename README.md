@@ -109,7 +109,7 @@ Os testes de tela do `dailyobra` passam por 360, 800 e 1366 px de largura, nos t
 
 A página do cliente (`dailyobra/web/pagar/`) tem testes em Node, sem instalar nada: `node --test dailyobra/test/pagina_pagar_test.mjs` (na raiz do repositório).
 
-As regras do banco são conferidas por `supabase/tests/marketplace_test.sql` (roda numa transação desfeita no fim; cada linha do resultado tem `ok = true`), por `supabase/tests/checkout_bifurcado_test.sql` e por `supabase/tests/checkout_pagamento_test.sql` (os dois também desfeitos no fim; terminam com a contagem de verificações ok).
+As regras do banco são conferidas por `supabase/tests/marketplace_test.sql` (roda numa transação desfeita no fim; cada linha do resultado tem `ok = true`), por `supabase/tests/checkout_bifurcado_test.sql`, `supabase/tests/checkout_pagamento_test.sql` e `supabase/tests/importacao_estoque_test.sql` (também desfeitos no fim; terminam com a contagem de verificações ok).
 
 ## Pagamento pelo cliente (link PIX)
 
@@ -126,7 +126,11 @@ O Avast examina conexões HTTPS e o Java do Gradle não confia no certificado de
 
 ## Importar planilha de preços (app Parceiros)
 
-Em **Produtos e preços**, o ícone de enviar arquivo abre a importação (só para dono e gerente). Aceita CSV (separado por `;`, `,` ou tabulação, em UTF-8 ou no padrão do Excel) e Excel `.xlsx` (primeira planilha), até 3.000 produtos. O cabeçalho pode ter "Produto"/"Descrição", "Preço"/"Valor", "Preço promocional", "Unidade" e "Código" em qualquer ordem; se não tiver, a loja aponta as colunas. Cada produto é ligado ao catálogo pelo mesmo reconhecimento da lista inteligente, e a loja confere antes de gravar. A leitura fica em `dailyobra_comum/lib/src/marketplace/planilha_precos.dart`; a tela, em `dailyobra_parceiro/lib/screens/importar_planilha_screen.dart`.
+Em **Produtos e preços**, o ícone de enviar arquivo abre a importação (só para dono e gerente). Aceita CSV (separado por `;`, `,` ou tabulação, em UTF-8 ou no padrão do Excel), Excel `.xlsx` e LibreOffice `.ods` (primeira planilha), até 3.000 produtos. O cabeçalho pode ter "Produto"/"Descrição", "Preço"/"Valor", "Preço promocional", "Unidade" e "Código" em qualquer ordem; se não tiver, a loja aponta as colunas. Cada produto é ligado ao catálogo pelo mesmo reconhecimento da lista inteligente, e a loja confere antes de gravar. A leitura fica em `dailyobra_comum/lib/src/marketplace/planilha_precos.dart`; a tela, em `dailyobra_parceiro/lib/screens/importar_planilha_screen.dart`.
+
+## Atualizar pelo Santri (estoque do dia)
+
+Em **Produtos e preços**, o ícone de estoque abre **Atualizar pelo Santri** (só para dono e gerente). A loja exporta do Santri ADM o relatório **"Valor do estoque analítico"** (`.ods`, `.xlsx` ou `.csv`) e escolhe o arquivo. Ele é lido no próprio navegador ou celular: só código, nome, unidade, preço e disponível dos produtos usados vão para o banco; o custo não sai do computador e o arquivo não é guardado. O resumo mostra o que muda (preço novo, voltou ao estoque, ficou sem estoque, não veio no relatório) e separa em **Conferir** o preço que mudou mais de 30% ou ficou em R$ 1,00 ou menos (só entra marcado). Produto do catálogo ainda sem ligação aparece com a sugestão mais parecida do relatório para **Ligar**, trocar (**Outro**) ou **Pular**; o que é ligado atualiza sozinho nos dias seguintes. Vários códigos no mesmo produto: vale o mais barato com estoque. As ligações ficam na tabela `loja_produtos` e a gravação é a função `importar_estoque` (teste em `supabase/tests/importacao_estoque_test.sql`); a leitura do relatório e as regras ficam em `dailyobra_comum/lib/src/marketplace/leitor_ods.dart` e `estoque_santri.dart`. A Operário já começa com as 61 ligações conferidas item a item.
 
 ## Lojas cadastradas pelo suporte
 

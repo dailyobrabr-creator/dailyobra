@@ -40,3 +40,26 @@ test('cada situação abre a tela certa', () => {
 test('dados enviados e loja sem chave PIX não voltam ao formulário', () => {
   assert.equal(pagina.tela(pedido({ situacao: 'aguardando_pagamento', documento_informado: true, pix: null })), 'sem_chave');
 });
+
+const comPix = (extra = {}) => pedido({ situacao: 'aguardando_pagamento', documento_informado: true, pix: '000201', ...extra });
+
+test('pagamento mostra o documento mascarado e Corrigir', () => {
+  const html = pagina.pagamento(comPix({ documento_mascarado: '***.982.247-**' }));
+  assert.ok(html.includes('Nota no CPF/CNPJ ***.982.247-**'));
+  assert.match(html, /id="corrigir"/);
+  assert.ok(pagina.pagamento(comPix({ documento_mascarado: '<i>' })).includes('Nota no CPF/CNPJ &lt;i&gt;'));
+});
+
+test('sem documento mascarado não há Corrigir', () => {
+  const html = pagina.pagamento(comPix());
+  assert.doesNotMatch(html, /Nota no CPF\/CNPJ/);
+  assert.doesNotMatch(html, /id="corrigir"/);
+});
+
+test('Corrigir volta ao formulário', () => {
+  assert.equal(pagina.tela(comPix(), true), 'formulario');
+  assert.equal(pagina.tela(comPix()), 'pagamento');
+  assert.equal(pagina.tela(pedido({ situacao: 'informado', documento_informado: true }), true), 'informado');
+  assert.match(pagina.formulario(comPix(), true), /id="voltar"/);
+  assert.doesNotMatch(pagina.formulario(pedido()), /id="voltar"/);
+});

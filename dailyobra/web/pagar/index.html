@@ -135,7 +135,8 @@
         </div>`;
     }
 
-    function formulario(p) {
+    // Corrigindo: o PIX já estava na tela e dá para voltar a ele sem mudar nada
+    function formulario(p, corrigindo = false) {
       return `
         <div class="cartao">
           <h2>Dados para a nota fiscal</h2>
@@ -146,13 +147,19 @@
           <input id="doc" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00">
           <div id="erro" class="erro" hidden></div>
           <button id="continuar">Continuar</button>
+          ${corrigindo ? '<button id="voltar" class="secundario">Voltar</button>' : ''}
         </div>`;
     }
 
+    // O documento inteiro nunca sai na página: só o mascarado do banco
     function pagamento(p) {
+      const nota = p.documento_mascarado
+        ? `<div class="linha"><span>Nota no CPF/CNPJ ${escapar(p.documento_mascarado)}</span><a href="#" id="corrigir">Corrigir</a></div>`
+        : '';
       return `
         <div class="cartao">
           <h2>Pague com PIX</h2>
+          ${nota}
           <p class="suave">Abra o app do seu banco, escolha PIX e leia o QR ou cole o código. O valor de ${brl(p.total)} já vem preenchido.</p>
           <div class="qr" id="qr"></div>
           <div class="codigo" id="codigo">${escapar(p.pix)}</div>
@@ -200,6 +207,15 @@
         }
       };
 
+      const corrigir = document.getElementById('corrigir');
+      if (corrigir) corrigir.onclick = (e) => {
+        e.preventDefault();
+        mostrar(p, true);
+      };
+
+      const voltar = document.getElementById('voltar');
+      if (voltar) voltar.onclick = () => mostrar(p);
+
       const continuar = document.getElementById('continuar');
       if (continuar) continuar.onclick = async () => {
         const nome = document.getElementById('nome').value.trim();
@@ -217,21 +233,23 @@
       };
     }
 
-    // A situação do banco manda; com os dados já enviados e sem PIX (loja sem chave), não volta ao formulário
-    function tela(p) {
+    // A situação do banco manda; com os dados já enviados e sem PIX (loja sem chave), não volta ao formulário.
+    // Corrigir reabre o formulário enquanto o pagamento está em aberto (dados_do_pagador regrava).
+    function tela(p, corrigindo = false) {
       if (p.situacao === 'pago' || p.situacao === 'cancelado' || p.situacao === 'informado') return p.situacao;
+      if (corrigindo) return 'formulario';
       if (p.pix) return 'pagamento';
       return p.documento_informado ? 'sem_chave' : 'formulario';
     }
 
-    function mostrar(p) {
-      const t = tela(p);
+    function mostrar(p, corrigindo = false) {
+      const t = tela(p, corrigindo);
       let corpo;
       if (t === 'pago') corpo = estado('✅', 'Pagamento confirmado pela loja.', 'A loja segue com a separação e a entrega dos materiais.');
       else if (t === 'cancelado') corpo = estado('⛔', 'Este pedido foi cancelado.', 'Fale com quem montou o orçamento para saber o que mudou.');
       else if (t === 'informado') corpo = estado('⏳', 'Pronto! A loja vai conferir o pagamento e confirmar.', 'Você não precisa fazer mais nada por aqui.');
       else if (t === 'sem_chave') corpo = estado('💬', 'A loja ainda não cadastrou a chave PIX.', 'Seus dados para a nota foram recebidos. Fale com a loja para combinar o pagamento.');
-      else corpo = t === 'pagamento' ? pagamento(p) : formulario(p);
+      else corpo = t === 'pagamento' ? pagamento(p) : formulario(p, corrigindo);
       app.innerHTML = resumo(p) + corpo;
       if (document.getElementById('erro')) ligar(p);
     }

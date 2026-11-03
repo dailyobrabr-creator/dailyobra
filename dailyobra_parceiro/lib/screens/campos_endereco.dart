@@ -55,6 +55,27 @@ class ControleEndereco {
   final TextEditingController outrasUnidades;
   String? uf;
 
+  /// Põe nos campos o endereço salvo (Minha loja, ao abrir e depois de salvar).
+  void preencher({
+    String? cep,
+    String logradouro = '',
+    String numero = '',
+    String complemento = '',
+    String bairro = '',
+    String cidade = '',
+    String? uf,
+    String outrasUnidades = '',
+  }) {
+    this.cep.text = _comTraco(cep ?? '');
+    this.logradouro.text = logradouro;
+    this.numero.text = numero;
+    this.complemento.text = complemento;
+    this.bairro.text = bairro;
+    this.cidade.text = cidade;
+    this.uf = uf;
+    this.outrasUnidades.text = outrasUnidades;
+  }
+
   String get _digitos => cep.text.replaceAll(RegExp(r'\D'), '');
 
   /// A loja começou a informar o endereço pelo CEP.

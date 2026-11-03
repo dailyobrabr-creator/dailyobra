@@ -28,6 +28,12 @@ class DadosLoja {
     this.status = 'ativa',
     this.chavePix,
     this.estoqueAtualizadoEm,
+    this.cep,
+    this.logradouro = '',
+    this.numero = '',
+    this.complemento = '',
+    this.bairro = '',
+    this.outrasUnidades = '',
   });
   final String cnpj;
   final String endereco;
@@ -39,6 +45,14 @@ class DadosLoja {
 
   /// Última atualização de preço e estoque pelo relatório do Santri.
   final DateTime? estoqueAtualizadoEm;
+
+  /// CEP só com os 8 números; nulo enquanto a loja não informou (o endereço é só o texto em [endereco]).
+  final String? cep;
+  final String logradouro;
+  final String numero;
+  final String complemento;
+  final String bairro;
+  final String outrasUnidades;
 }
 
 class MembroLoja {
@@ -113,7 +127,8 @@ class LojaService extends ChangeNotifier {
 
   static const _colunas =
       'id, nome, cnpj, descricao, logo_path, capa_path, whatsapp, endereco, cidade, uf, horario, '
-      'frete_fixo, pedido_minimo, aberta, status, criada_em, estoque_atualizado_em';
+      'frete_fixo, pedido_minimo, aberta, status, criada_em, estoque_atualizado_em, '
+      'cep, logradouro, numero, complemento, bairro, outras_unidades';
 
   Future<void> carregar() async {
     final uid = _db.auth.currentUser?.id;
@@ -145,6 +160,12 @@ class LojaService extends ChangeNotifier {
           estoqueAtualizadoEm: DateTime.tryParse(
             (j['estoque_atualizado_em'] as String?) ?? '',
           )?.toLocal(),
+          cep: j['cep'] as String?,
+          logradouro: (j['logradouro'] as String?) ?? '',
+          numero: (j['numero'] as String?) ?? '',
+          complemento: (j['complemento'] as String?) ?? '',
+          bairro: (j['bairro'] as String?) ?? '',
+          outrasUnidades: (j['outras_unidades'] as String?) ?? '',
         );
       }
       _erro = null;

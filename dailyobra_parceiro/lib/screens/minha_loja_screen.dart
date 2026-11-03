@@ -2,14 +2,20 @@ import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../services/cep_service.dart';
 import '../services/loja_service.dart';
+import 'campos_endereco.dart';
 import 'componentes.dart';
+import 'editor_horario.dart';
 import 'equipe_screen.dart';
 
 /// Perfil da loja como o construtor vê: capa, logo, descrição, contato, frete e pedido mínimo.
 class MinhaLojaScreen extends StatefulWidget {
-  const MinhaLojaScreen({super.key, required this.tema});
+  const MinhaLojaScreen({super.key, required this.tema, this.buscarCep});
   final PreferenciaTema tema;
+
+  /// Busca do CEP; o padrão é o ViaCEP.
+  final BuscarCep? buscarCep;
 
   @override
   State<MinhaLojaScreen> createState() => _MinhaLojaScreenState();
@@ -21,10 +27,12 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
   final _descricao = TextEditingController();
   final _whatsapp = TextEditingController();
   final _chavePix = TextEditingController();
-  final _endereco = TextEditingController();
-  final _horario = TextEditingController();
+  final _endereco = ControleEndereco();
+  final _horario = ControleHorario.doTexto('');
   final _frete = TextEditingController();
   final _minimo = TextEditingController();
+  Map<String, String> _errosEndereco = const {};
+  String? _erroHorario;
   String? _lojaPreenchida;
   bool _salvando = false;
   bool _enviandoImagem = false;
@@ -36,13 +44,13 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
       _descricao,
       _whatsapp,
       _chavePix,
-      _endereco,
-      _horario,
       _frete,
       _minimo,
     ]) {
       c.dispose();
     }
+    _endereco.dispose();
+    _horario.dispose();
     super.dispose();
   }
 
@@ -53,8 +61,18 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
     _descricao.text = loja.descricao;
     _whatsapp.text = loja.whatsapp;
     _chavePix.text = _servico.dados.chavePix ?? '';
-    _endereco.text = _servico.dados.endereco;
-    _horario.text = _servico.dados.horario;
+    final d = _servico.dados;
+    _endereco.preencher(
+      cep: d.cep,
+      logradouro: d.logradouro,
+      numero: d.numero,
+      complemento: d.complemento,
+      bairro: d.bairro,
+      cidade: loja.cidade,
+      uf: loja.uf,
+      outrasUnidades: d.outrasUnidades,
+    );
+    _horario.ler(d.horario);
     _frete.text = numero.format(loja.freteFixo);
     _minimo.text = numero.format(loja.pedidoMinimo);
   }
@@ -75,6 +93,21 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
       return avisar(context, 'WhatsApp com DDD, só números.');
     }
     if (erroChave != null) return avisar(context, erroChave);
+    // Loja antiga sem CEP: o endereço só é conferido (e enviado) quando a loja começa pelo CEP;
+    // o horário só vai quando o editor foi mexido, para não trocar o texto que o app não entendeu
+    final errosEndereco = _endereco.preenchido
+        ? _endereco.validar()
+        : const <String, String>{};
+    final erroHorario = _horario.alterado ? _horario.validar() : null;
+    setState(() {
+      _errosEndereco = errosEndereco;
+      _erroHorario = erroHorario;
+    });
+    if (errosEndereco.isNotEmpty) {
+      return avisar(context, errosEndereco.values.first);
+    }
+    if (erroHorario != null) return;
+    final horario = _horario.texto();
     setState(() => _salvando = true);
     try {
       await _servico.atualizar({
@@ -83,10 +116,8 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
             ? null
             : _descricao.text.trim(),
         'whatsapp': zap.isEmpty ? null : zap,
-        'endereco': _endereco.text.trim().isEmpty
-            ? null
-            : _endereco.text.trim(),
-        'horario': _horario.text.trim().isEmpty ? null : _horario.text.trim(),
+        if (_endereco.preenchido) ..._endereco.campos(),
+        if (_horario.alterado) 'horario': horario.isEmpty ? null : horario,
         'frete_fixo': frete,
         'pedido_minimo': minimo,
       });
@@ -227,19 +258,24 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
                                     ajuda: 'CPF, CNPJ, e-mail, celular com +55 ou chave aleatória',
                                   ),
                                   const SizedBox(height: Espaco.s3),
-                                  CampoTexto(
-                                    rotulo: 'Endereço',
-                                    controller: _endereco,
-                                    maxLength: 200,
+                                  if (_servico.dados.cep == null &&
+                                      _servico.dados.endereco.isNotEmpty) ...[
+                                    Text(
+                                      'Endereço atual: ${_servico.dados.endereco}',
+                                      style: t.bodySmall?.copyWith(
+                                        color: c.textoSuave,
+                                      ),
+                                    ),
+                                    const SizedBox(height: Espaco.s2),
+                                  ],
+                                  CamposEndereco(
+                                    controle: _endereco,
+                                    erros: _errosEndereco,
+                                    buscar: widget.buscarCep,
                                   ),
                                   const SizedBox(height: Espaco.s3),
-                                  CampoTexto(
-                                    rotulo: 'Horário de atendimento',
-                                    controller: _horario,
-                                    maxLength: 120,
-                                    dica: 'Seg a sex 7h às 18h; sáb 7h às 12h',
-                                    ajuda: 'Escreva assim: Seg a sex 7h às 18h; sáb 7h às 12h. O app mostra aos construtores quando a loja está aberta.',
-                                  ),
+                                  const Rotulo('Horário de atendimento'),
+                                  EditorHorario(controle: _horario),
                                   const SizedBox(height: Espaco.s3),
                                   Row(
                                     crossAxisAlignment:
@@ -271,6 +307,10 @@ class _MinhaLojaScreenState extends State<MinhaLojaScreen> {
                                 ],
                               ),
                             ),
+                            if (_erroHorario case final erro?) ...[
+                              const SizedBox(height: Espaco.s3),
+                              Aviso(erro),
+                            ],
                             if (gere) ...[
                               const SizedBox(height: Espaco.s4),
                               FilledButton(

@@ -2,8 +2,11 @@ import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../services/cep_service.dart';
 import '../services/loja_service.dart';
+import 'campos_endereco.dart';
 import 'componentes.dart';
+import 'editor_horario.dart';
 
 /// Formata o CNPJ enquanto digita (00.000.000/0000-00).
 class _MascaraCnpj extends TextInputFormatter {
@@ -22,10 +25,13 @@ class _MascaraCnpj extends TextInputFormatter {
 
 /// Primeiro acesso de quem entrou no Parceiros sem loja: cadastro com CNPJ.
 class CadastroLojaScreen extends StatefulWidget {
-  const CadastroLojaScreen({super.key, this.criar});
+  const CadastroLojaScreen({super.key, this.criar, this.buscarCep});
 
   /// Quem cria a loja; o padrão é a função criar_loja do servidor.
   final Future<String> Function(Map<String, dynamic> dados)? criar;
+
+  /// Busca do CEP; o padrão é o ViaCEP.
+  final BuscarCep? buscarCep;
 
   @override
   State<CadastroLojaScreen> createState() => _CadastroLojaScreenState();
@@ -34,33 +40,23 @@ class CadastroLojaScreen extends StatefulWidget {
 class _CadastroLojaScreenState extends State<CadastroLojaScreen> {
   final _nome = TextEditingController();
   final _cnpj = TextEditingController();
-  final _cidade = TextEditingController();
   final _whatsapp = TextEditingController();
-  final _endereco = TextEditingController();
-  final _horario = TextEditingController();
+  final _endereco = ControleEndereco();
+  final _horario = ControleHorario.doTexto('');
   final _frete = TextEditingController();
   final _minimo = TextEditingController();
   final _descricao = TextEditingController();
-  String? _uf;
   Map<String, String> _erros = const {};
   String? _erroServidor;
   bool _enviando = false;
 
   @override
   void dispose() {
-    for (final c in [
-      _nome,
-      _cnpj,
-      _cidade,
-      _whatsapp,
-      _endereco,
-      _horario,
-      _frete,
-      _minimo,
-      _descricao,
-    ]) {
+    for (final c in [_nome, _cnpj, _whatsapp, _frete, _minimo, _descricao]) {
       c.dispose();
     }
+    _endereco.dispose();
+    _horario.dispose();
     super.dispose();
   }
 
@@ -78,8 +74,8 @@ class _CadastroLojaScreenState extends State<CadastroLojaScreen> {
     if (!cnpjValido(_cnpj.text)) {
       erros['cnpj'] = 'CNPJ inválido. Confira os números.';
     }
-    if (_cidade.text.trim().length < 2) erros['cidade'] = 'Informe a cidade.';
-    if (_uf == null) erros['uf'] = 'Escolha o estado.';
+    erros.addAll(_endereco.validar());
+    if (_horario.validar() case final erro?) erros['horario'] = erro;
     final zap = _digitos(_whatsapp.text);
     if (zap.isNotEmpty && (zap.length < 10 || zap.length > 13)) {
       erros['whatsapp'] = 'WhatsApp com DDD, só números.';
@@ -102,11 +98,9 @@ class _CadastroLojaScreenState extends State<CadastroLojaScreen> {
       await (widget.criar ?? LojaService.instance.criar)({
         'nome': _nome.text.trim(),
         'cnpj': _digitos(_cnpj.text),
-        'cidade': _cidade.text.trim(),
-        'uf': _uf,
         'whatsapp': _digitos(_whatsapp.text),
-        'endereco': _endereco.text.trim(),
-        'horario': _horario.text.trim(),
+        ..._endereco.campos(),
+        'horario': _horario.texto(),
         'descricao': _descricao.text.trim(),
         'frete_fixo': _valor(_frete),
         'pedido_minimo': _valor(_minimo),
@@ -178,45 +172,6 @@ class _CadastroLojaScreenState extends State<CadastroLojaScreen> {
               ],
             ),
             const SizedBox(height: Espaco.s3),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: CampoTexto(
-                    rotulo: 'Cidade',
-                    controller: _cidade,
-                    obrigatorio: true,
-                    erro: _erros['cidade'],
-                    acao: TextInputAction.next,
-                  ),
-                ),
-                const SizedBox(width: Espaco.s3),
-                SizedBox(
-                  width: 96,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Rotulo('UF', obrigatorio: true),
-                      DropdownButtonFormField<String>(
-                        initialValue: _uf,
-                        isExpanded: true,
-                        hint: const Text('UF'),
-                        decoration: InputDecoration(
-                          errorText: _erros['uf'],
-                          errorMaxLines: 2,
-                        ),
-                        items: [
-                          for (final u in ufs)
-                            DropdownMenuItem(value: u, child: Text(u)),
-                        ],
-                        onChanged: (u) => setState(() => _uf = u),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: Espaco.s3),
             CampoTexto(
               rotulo: 'WhatsApp da loja',
               controller: _whatsapp,
@@ -226,20 +181,18 @@ class _CadastroLojaScreenState extends State<CadastroLojaScreen> {
               acao: TextInputAction.next,
             ),
             const SizedBox(height: Espaco.s3),
-            CampoTexto(
-              rotulo: 'Endereço',
-              controller: _endereco,
-              maxLength: 200,
-              acao: TextInputAction.next,
+            CamposEndereco(
+              controle: _endereco,
+              erros: _erros,
+              buscar: widget.buscarCep,
             ),
             const SizedBox(height: Espaco.s3),
-            CampoTexto(
-              rotulo: 'Horário de atendimento',
-              controller: _horario,
-              dica: 'Seg a sex 7h às 18h, sáb 7h às 12h',
-              maxLength: 120,
-              acao: TextInputAction.next,
-            ),
+            const Rotulo('Horário de atendimento'),
+            EditorHorario(controle: _horario),
+            if (_erros['horario'] case final erro?) ...[
+              const SizedBox(height: Espaco.s2),
+              Aviso(erro),
+            ],
             const SizedBox(height: Espaco.s3),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,

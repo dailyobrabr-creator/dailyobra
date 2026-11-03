@@ -47,6 +47,8 @@ Widget _app(Widget tela, bool escuro) => MaterialApp(
 
 /// Rola a lista vertical principal até o alvo aparecer.
 Future<void> rolarAte(WidgetTester tester, Finder alvo) async {
+  // Campo recém-digitado rola a tela de volta até o cursor no quadro seguinte: deixa isso acabar antes
+  await tester.pumpAndSettle();
   await tester.scrollUntilVisible(
     alvo,
     300,

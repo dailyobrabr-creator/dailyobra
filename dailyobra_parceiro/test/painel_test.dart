@@ -8,6 +8,7 @@ import 'package:dailyobra_parceiro/screens/pedido_loja_screen.dart';
 import 'package:dailyobra_parceiro/screens/produtos_screen.dart';
 import 'package:dailyobra_parceiro/screens/proposta_loja_screen.dart';
 import 'package:dailyobra_parceiro/screens/propostas_screen.dart';
+import 'package:dailyobra_parceiro/services/cep_service.dart';
 import 'package:dailyobra_parceiro/services/loja_service.dart';
 import 'package:dailyobra_parceiro/services/ofertas_service.dart';
 import 'package:dailyobra_parceiro/services/propostas_loja_service.dart';
@@ -126,6 +127,18 @@ void preparar({
 Finder valorDo(String rotulo, String valor) => find.descendant(
   of: find.widgetWithText(Indicador, rotulo),
   matching: find.text(valor),
+);
+
+Finder campoDoEndereco(String nome) => find.descendant(
+  of: find.byKey(Key('endereco-$nome')),
+  matching: find.byType(TextField),
+);
+
+Future<EnderecoCep?> buscarCepFalso(String cep) async => const EnderecoCep(
+  logradouro: 'R. Fernando Corrêa da Costa',
+  bairro: 'Vila Operária',
+  cidade: 'Rondonópolis',
+  uf: 'MT',
 );
 
 /// Cartão da lista pelo selo (`Proposta nova` é a p1; `Pedido novo`, a p2).
@@ -836,17 +849,108 @@ void main() {
         expect(salvou, 0);
       });
 
-      testWidgets('horário traz um exemplo no formato que o app lê', (
+      testWidgets('minha loja salva endereço e horário', (tester) async {
+        SharedPreferences.setMockInitialValues({});
+        final tema = await PreferenciaTema.carregar();
+        preparar();
+        LojaService.instance.definirParaTeste(
+          loja: minhaLoja,
+          dados: const DadosLoja(
+            cnpj: '11222333000181',
+            endereco: 'Lojas Vila Operária (matriz)',
+            horario: 'Seg a sex 7h às 18h',
+          ),
+        );
+        await abrir(
+          tester,
+          MinhaLojaScreen(tema: tema, buscarCep: buscarCepFalso),
+          escuro: escuro,
+        );
+        const atual = 'Endereço atual: Lojas Vila Operária (matriz)';
+        await rolarAte(tester, find.text(atual));
+        expect(find.text(atual), findsOneWidget);
+        await rolarAte(tester, campoDoEndereco('cep'));
+        await tester.enterText(campoDoEndereco('cep'), '78700000');
+        await tester.pumpAndSettle();
+        await tester.enterText(campoDoEndereco('numero'), '1500');
+        await rolarAte(tester, find.byKey(const Key('horario-6')));
+        await tester.tap(find.byKey(const Key('horario-6')));
+        await tester.pumpAndSettle();
+        await rolarAte(tester, find.text('Salvar dados'));
+        await tester.tap(find.text('Salvar dados'));
+        await tester.pumpAndSettle();
+        final enviado = LojaService.instance.atualizacoesDeTeste.single;
+        expect(enviado['cep'], '78700000');
+        expect(enviado['logradouro'], 'R. Fernando Corrêa da Costa');
+        expect(enviado['numero'], '1500');
+        expect(enviado['cidade'], 'Rondonópolis');
+        expect(enviado['uf'], 'MT');
+        expect(enviado['horario'], 'Seg a sex 7h às 18h; sáb 8h às 18h');
+        expect(enviado.containsKey('endereco'), isFalse);
+      });
+
+      testWidgets('loja antiga salva sem mexer no endereço nem no horário', (
         tester,
       ) async {
         SharedPreferences.setMockInitialValues({});
         final tema = await PreferenciaTema.carregar();
         preparar();
-        await abrir(tester, MinhaLojaScreen(tema: tema), escuro: escuro);
-        const exemplo = 'Seg a sex 7h às 18h; sáb 7h às 12h';
-        await rolarAte(tester, find.textContaining('Escreva assim'));
-        expect(find.textContaining('Escreva assim: $exemplo'), findsOneWidget);
-        expect(lerHorario(exemplo), isNotNull);
+        LojaService.instance.definirParaTeste(
+          loja: minhaLoja,
+          dados: const DadosLoja(
+            cnpj: '11222333000181',
+            endereco: 'Lojas Vila Operária (matriz)',
+            horario: 'Comercial',
+          ),
+        );
+        await abrir(
+          tester,
+          MinhaLojaScreen(tema: tema, buscarCep: buscarCepFalso),
+          escuro: escuro,
+        );
+        final sobre = find.descendant(
+          of: find.widgetWithText(CampoTexto, 'Sobre a loja'),
+          matching: find.byType(TextField),
+        );
+        await rolarAte(tester, sobre);
+        await tester.enterText(sobre, 'Materiais de construção');
+        await rolarAte(tester, find.text('Salvar dados'));
+        await tester.tap(find.text('Salvar dados'));
+        await tester.pumpAndSettle();
+        final enviado = LojaService.instance.atualizacoesDeTeste.single;
+        expect(enviado['descricao'], 'Materiais de construção');
+        for (final campo in ['cep', 'logradouro', 'endereco', 'horario']) {
+          expect(enviado.containsKey(campo), isFalse, reason: campo);
+        }
+      });
+
+      testWidgets('minha loja abre com o endereço em campos', (tester) async {
+        SharedPreferences.setMockInitialValues({});
+        final tema = await PreferenciaTema.carregar();
+        preparar();
+        LojaService.instance.definirParaTeste(
+          loja: minhaLoja,
+          dados: const DadosLoja(
+            cnpj: '11222333000181',
+            endereco: 'R. Fernando Corrêa da Costa, 1500 – Vila Operária, CEP 78700-000',
+            cep: '78700000',
+            logradouro: 'R. Fernando Corrêa da Costa',
+            numero: '1500',
+            bairro: 'Vila Operária',
+          ),
+        );
+        await abrir(
+          tester,
+          MinhaLojaScreen(tema: tema, buscarCep: buscarCepFalso),
+          escuro: escuro,
+        );
+        await rolarAte(tester, campoDoEndereco('cep'));
+        expect(find.textContaining('Endereço atual'), findsNothing);
+        String valor(String nome) =>
+            tester.widget<TextField>(campoDoEndereco(nome)).controller!.text;
+        expect(valor('cep'), '78700-000');
+        expect(valor('rua'), 'R. Fernando Corrêa da Costa');
+        expect(valor('numero'), '1500');
       });
 
       testWidgets('vendedor vê a loja sem editar', (tester) async {

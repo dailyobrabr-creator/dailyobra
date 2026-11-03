@@ -71,15 +71,25 @@ class HorarioDia {
 
 /// O horário da semana no editor; vira o texto que o app do construtor lê ([escreverHorario]).
 class ControleHorario extends ChangeNotifier {
-  ControleHorario._(this._dias, this.naoLido);
+  ControleHorario.doTexto(String texto) {
+    ler(texto);
+  }
 
-  /// Lê o horário salvo. O que não der para ler (ou dia com mais de 2 faixas, ou hora fora da lista de 15 em 15)
-  /// começa com todos os dias fechados e fica em [naoLido].
-  factory ControleHorario.doTexto(String texto) {
+  /// Lê o horário salvo (e volta a "sem mexer"). O que não der para ler (ou dia com mais de 2 faixas, ou hora fora
+  /// da lista de 15 em 15) começa com todos os dias fechados e fica em [naoLido].
+  void ler(String texto) {
+    final (dias, naoLido) = _lerDias(texto);
+    _dias = dias;
+    _naoLido = naoLido;
+    _alterado = false;
+    notifyListeners();
+  }
+
+  static (List<HorarioDia>, String?) _lerDias(String texto) {
     final fechados = List.filled(7, const HorarioDia());
-    if (texto.trim().isEmpty) return ControleHorario._(fechados, null);
+    if (texto.trim().isEmpty) return (fechados, null);
     final faixas = lerHorario(texto);
-    if (faixas == null) return ControleHorario._(fechados, texto);
+    if (faixas == null) return (fechados, texto);
     final porDia = {for (var d = 1; d <= 7; d++) d: <FaixaHorario>[]};
     for (final f in faixas) {
       porDia[f.dia]!.add(f);
@@ -90,7 +100,7 @@ class ControleHorario extends ChangeNotifier {
       final naLista = l.every(
         (f) => f.inicio % _passo == 0 && f.fim % _passo == 0 && f.fim < 24 * 60,
       );
-      if (l.length > 2 || !naLista) return ControleHorario._(fechados, texto);
+      if (l.length > 2 || !naLista) return (fechados, texto);
       dias.add(switch (l) {
         [final f] => HorarioDia(aberto: true, abre: f.inicio, fecha: f.fim),
         [final a, final b] => HorarioDia(
@@ -104,13 +114,14 @@ class ControleHorario extends ChangeNotifier {
         _ => const HorarioDia(),
       });
     }
-    return ControleHorario._(dias, null);
+    return (dias, null);
   }
 
-  final List<HorarioDia> _dias;
+  late List<HorarioDia> _dias;
+  String? _naoLido;
 
   /// O texto salvo que não deu para ler.
-  final String? naoLido;
+  String? get naoLido => _naoLido;
   bool _alterado = false;
 
   /// A loja mexeu no editor (sem isso, o horário salvo fica como estava).

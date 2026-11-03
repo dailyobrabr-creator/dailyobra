@@ -19,6 +19,14 @@ void main() {
     expect(await lerOds(ods), [['Santri ADM'], ['Produto', 'Nome', 'Disponível'], ['65.097', 'ABAFADOR DE RUIDOS', '12'], ['x', 'x']]);
   });
 
+  test('número sai no formato brasileiro, como no .xlsx', () async {
+    String numero(String valor) =>
+        '<table:table-cell office:value-type="currency" office:value="$valor"><text:p>R\$ x</text:p></table:table-cell>';
+    final linha = (await lerOds(odsDeTeste(linhaOds('${numero('2.375')}${numero('1234.5')}${numero('62')}${numero('-3.5')}')))).single;
+    expect(linha, ['2,375', '1234,5', '62', '-3,5']);
+    expect(lerPreco(linha.first), 2.375);
+  });
+
   test('lê 5.000 linhas', () async {
     final linhas = List.generate(5000, (i) => linhaOds('${celulaOds('$i')}${celulaOds('1,000')}')).join();
     final ods = odsDeTeste('${linhaOds('${celulaOds('Produto')}${celulaOds('Disponível')}')}$linhas');

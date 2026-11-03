@@ -17,6 +17,14 @@ String? _atributo(XmlStartElementEvent e, String nome) {
 
 int _repeticao(XmlStartElementEvent e, String nome) => int.tryParse(_atributo(e, nome) ?? '') ?? 1;
 
+/// office:value no formato brasileiro, como o leitor de .xlsx: "2.375" vira "2,375" (e não dois mil e trezentos).
+String? _brasileiro(String? valor) {
+  final n = double.tryParse(valor ?? '');
+  if (n == null) return valor;
+  if (n == n.truncateToDouble() && n.abs() < 1e15) return n.toInt().toString();
+  return n.toString().replaceAll('.', ',');
+}
+
 /// Linhas da primeira tabela de um .ods, lidas em fluxo: o content.xml de um relatório do ERP passa de 30 MB e não cabe
 /// numa árvore XML. Célula de número vem do office:value; de texto, dos parágrafos dela. Células vazias no fim da linha e
 /// linhas vazias (repetidas ou não) saem. A cada 500 linhas devolve o controle à tela.
@@ -79,7 +87,7 @@ Future<List<List<String>>> lerOds(Uint8List bytes) async {
         case 'table:table-cell' || 'table:covered-table-cell' when linha != null:
           repeticaoCelula = _repeticao(e, 'table:number-columns-repeated');
           final tipo = _atributo(e, 'office:value-type');
-          numero = tipo == 'float' || tipo == 'currency' || tipo == 'percentage' ? _atributo(e, 'office:value') : null;
+          numero = tipo == 'float' || tipo == 'currency' || tipo == 'percentage' ? _brasileiro(_atributo(e, 'office:value')) : null;
           texto = StringBuffer();
           paragrafos = 0;
           if (e.isSelfClosing) fecharCelula();

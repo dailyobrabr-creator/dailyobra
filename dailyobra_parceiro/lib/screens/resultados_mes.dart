@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 
 import '../services/periodo_resultados.dart';
 import '../services/resultados_service.dart';
+import 'graficos_resultados.dart';
 import 'inicio_screen.dart';
 
 /// Resultados do mês no Início, para dono e gerente: faturamento (com a variação), pedidos fechados, ticket médio,
-/// cashback gerado e top construtores, com setas para os meses anteriores.
+/// cashback gerado, vendas por dia, funil de propostas, produtos mais vendidos e top construtores, com setas para os
+/// meses anteriores.
 class ResultadosDoMes extends StatefulWidget {
   const ResultadosDoMes({super.key, this.agora});
 
@@ -100,14 +102,9 @@ class _ResultadosDoMesState extends State<ResultadosDoMes> {
         ? c.erro
         : c.textoSuave;
     final mes = nomeSoDoMes(periodo.de);
+    final desempenho = _servico.desempenho;
     return [
-      GridView.count(
-        crossAxisCount: 2,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        mainAxisSpacing: Espaco.s3,
-        crossAxisSpacing: Espaco.s3,
-        childAspectRatio: 1.55,
+      GradeIndicadores(
         children: [
           Indicador(
             rotulo: 'Faturamento',
@@ -149,27 +146,79 @@ class _ResultadosDoMesState extends State<ResultadosDoMes> {
         ],
       ),
       const SizedBox(height: Espaco.s4),
-      if (atual.pedidos == 0)
-        Text(
-          periodo.mesAtual
-              ? 'Nenhum pedido em $mes ainda.'
-              : 'Nenhum pedido em $mes.',
-          style: t.bodyMedium?.copyWith(color: c.textoSuave),
-        )
-      else
-        Painel(
-          titulo: 'Top construtores',
-          child: Column(
-            children: [
-              for (final (i, construtor) in atual.top.indexed) ...[
-                if (i > 0) Divider(height: 1, color: c.borda),
-                _LinhaConstrutor(construtor),
-              ],
-            ],
-          ),
-        ),
+      if (desempenho != null && desempenho.vendasPorDia.isNotEmpty) ...[
+        GraficoVendas(mes: periodo.de, vendas: desempenho.vendasPorDia),
+        const SizedBox(height: Espaco.s4),
+      ],
+      _Blocos(
+        funil: desempenho != null && desempenho.propostas > 0
+            ? FunilPropostas(desempenho)
+            : null,
+        produtos: desempenho != null && desempenho.produtos.isNotEmpty
+            ? ProdutosMaisVendidos(desempenho.produtos)
+            : null,
+        construtores: atual.pedidos == 0
+            ? Text(
+                periodo.mesAtual
+                    ? 'Nenhum pedido em $mes ainda.'
+                    : 'Nenhum pedido em $mes.',
+                style: t.bodyMedium?.copyWith(color: c.textoSuave),
+              )
+            : Painel(
+                titulo: 'Top construtores',
+                child: Column(
+                  children: [
+                    for (final (i, construtor) in atual.top.indexed) ...[
+                      if (i > 0) Divider(height: 1, color: c.borda),
+                      _LinhaConstrutor(construtor),
+                    ],
+                  ],
+                ),
+              ),
+      ),
     ];
   }
+}
+
+/// Funil, produtos e construtores: um embaixo do outro; com espaço, em duas colunas.
+class _Blocos extends StatelessWidget {
+  const _Blocos({
+    required this.funil,
+    required this.produtos,
+    required this.construtores,
+  });
+  final Widget? funil;
+  final Widget? produtos;
+  final Widget construtores;
+
+  Widget _coluna(List<Widget> blocos) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      for (final (i, bloco) in blocos.indexed) ...[
+        if (i > 0) const SizedBox(height: Espaco.s4),
+        bloco,
+      ],
+    ],
+  );
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, limites) {
+      final funil = this.funil;
+      final produtos = this.produtos;
+      if (limites.maxWidth < 760 || produtos == null) {
+        return _coluna([?funil, ?produtos, construtores]);
+      }
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: _coluna([?funil, construtores])),
+          const SizedBox(width: Espaco.s4),
+          Expanded(child: produtos),
+        ],
+      );
+    },
+  );
 }
 
 /// Um construtor do top: nome, empresa e pedidos à esquerda; total à direita.

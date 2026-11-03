@@ -11,6 +11,35 @@ import 'proposta_loja_screen.dart';
 import 'resultados_mes.dart';
 
 /// Número com rótulo do painel (tocável quando leva a outra aba).
+/// Números do painel: dois por linha no celular; com espaço, todos na mesma linha e com altura fixa, para não virarem
+/// cartões enormes no computador.
+class GradeIndicadores extends StatelessWidget {
+  const GradeIndicadores({super.key, required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, limites) => GridView(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: limites.maxWidth >= 600
+          ? const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              mainAxisSpacing: Espaco.s3,
+              crossAxisSpacing: Espaco.s3,
+              mainAxisExtent: 112,
+            )
+          : const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: Espaco.s3,
+              crossAxisSpacing: Espaco.s3,
+              childAspectRatio: 1.55,
+            ),
+      children: children,
+    ),
+  );
+}
+
 class Indicador extends StatelessWidget {
   const Indicador({
     super.key,
@@ -139,13 +168,7 @@ class InicioScreen extends StatelessWidget {
                     Aviso(propostas.erro!),
                   ],
                   const SizedBox(height: Espaco.s4),
-                  GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: Espaco.s3,
-                    crossAxisSpacing: Espaco.s3,
-                    childAspectRatio: 1.55,
+                  GradeIndicadores(
                     children: [
                       Indicador(
                         rotulo: 'Propostas novas',

@@ -152,6 +152,8 @@ No cadastro e em **Configurações > Endereço e horário**, a loja não digita 
 
 Em **Clientes** a equipe da loja vê todo construtor que mandou proposta, do contato mais recente ao mais antigo, nas abas Todos, Clientes (tem pedido que não foi cancelado) e Leads (só cotou), com busca por nome, empresa, cidade ou telefone e botão de WhatsApp. No computador e no tablet é um item do menu; no celular entra pela aba **Mais**. Os números vêm da função `clientes_loja`; o histórico de cada cliente usa as 200 propostas mais recentes que o painel já carrega.
 
+Em **Início > Resultados do mês**, dono e gerente veem também **Vendas por dia** (colunas; tocar ou passar o mouse mostra o dia, e "Ver dia a dia" abre a lista), o **Funil de propostas** (recebidas no mês, respondidas e as que viraram pedido não cancelado) e os **Produtos mais vendidos** (cinco maiores pelo valor dos itens, sem frete e sem desconto no total). Tudo vem da função `desempenho_loja`, com a mesma regra de venda de `resultados_loja`; o app manda o fuso do aparelho para o dia do gráfico ser o dia da loja.
+
 ## Pendências no painel do Supabase
 
 - **Authentication > URL Configuration > Redirect URLs**: adicione `dailyobra://login`, `dailyobraparceiros://login` e o endereço do site no GitHub Pages; em **Site URL**, o endereço do site (links de confirmação de conta e de nova senha voltam para o app ou para o site certo).

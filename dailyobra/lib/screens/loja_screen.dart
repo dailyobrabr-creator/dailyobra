@@ -76,6 +76,11 @@ class _LojaScreenState extends State<LojaScreen> {
       ],
       linha(Icons.local_shipping_outlined, freteEMinimo(loja)),
       if (loja.endereco.isNotEmpty) linha(Icons.place_outlined, loja.endereco),
+      if (loja.outrasUnidades.isNotEmpty)
+        linha(
+          Icons.storefront_outlined,
+          'Outras unidades: ${loja.outrasUnidades}',
+        ),
       if (loja.horario.isNotEmpty) linha(Icons.schedule_outlined, loja.horario),
       if (loja.descricao.isNotEmpty) ...[
         const SizedBox(height: Espaco.s3),

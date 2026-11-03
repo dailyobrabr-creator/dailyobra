@@ -114,6 +114,34 @@ void main() {
         await rolarAte(tester, find.text('Básico · 2'));
         expect(find.byType(ChipCategoria), findsNothing);
       });
+
+      testWidgets('loja mostra outras unidades', (tester) async {
+        CatalogoService.instance.definirParaTeste(
+          categorias: categoriasTeste,
+          itens: itensTeste,
+          lojas: const [
+            Loja(
+              id: 'a',
+              nome: 'Casa do Construtor',
+              cidade: 'Rondonópolis',
+              uf: 'MT',
+              endereco: 'R. A, 100, CEP 78700-000',
+              outrasUnidades: 'Sagrada Família e Médici',
+            ),
+            lojaB,
+          ],
+          ofertas: ofertasTeste,
+        );
+        await abrir(tester, const LojaScreen(lojaId: 'a'), escuro: escuro);
+        expect(find.text('R. A, 100, CEP 78700-000'), findsOneWidget);
+        expect(
+          find.text('Outras unidades: Sagrada Família e Médici'),
+          findsOneWidget,
+        );
+        preparar();
+        await abrir(tester, const LojaScreen(lojaId: 'a'), escuro: escuro);
+        expect(find.textContaining('Outras unidades'), findsNothing);
+      });
     });
   }
 }

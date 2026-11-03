@@ -40,6 +40,27 @@ void main() {
     });
   });
 
+  test('PedidoResumo.fromJson lê forma e prazo', () {
+    final p = PedidoResumo.fromJson(pedido({'pagador': 'proprio', 'forma_pagamento': 'crediario', 'prazo': '28/35', 'prazo_status': 'pendente', 'prazo_respondido_em': null}));
+    expect(p.formaPagamento, FormaPagamento.crediario);
+    expect(p.prazo, '28/35');
+    expect(p.prazoStatus, StatusPrazo.pendente);
+    expect(p.prazoRespondidoEm, isNull);
+    final sem = PedidoResumo.fromJson(pedido());
+    expect(sem.formaPagamento, isNull);
+    expect(sem.prazo, isNull);
+    expect(sem.prazoStatus, isNull);
+  });
+
+  test('rótulos das formas e prazos do crediário', () {
+    expect(FormaPagamento.pix.rotulo, 'PIX');
+    expect(FormaPagamento.cartao.rotulo, 'Cartão na loja');
+    expect(FormaPagamento.crediario.rotulo, 'Crediário da loja');
+    expect(FormaPagamento.fromCodigo('boleto'), isNull);
+    expect(StatusPrazo.fromCodigo('aprovado'), StatusPrazo.aprovado);
+    expect(prazosCrediario, ['28', '28/35', '28/35/42']);
+  });
+
   test('link de pagamento e mensagem do WhatsApp', () {
     expect(linkDePagamento('xyz'), 'https://dailyobrabr-creator.github.io/dailyobra/pagar/?c=xyz');
     expect(

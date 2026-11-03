@@ -54,6 +54,10 @@ class PedidoResumo {
     this.linkCodigo,
     this.documentoInformadoEm,
     this.pagamentoInformadoEm,
+    this.formaPagamento,
+    this.prazo,
+    this.prazoStatus,
+    this.prazoRespondidoEm,
   });
   final String id;
   final StatusPedido status;
@@ -73,6 +77,14 @@ class PedidoResumo {
 
   /// Quando o cliente apertou "Já paguei" na página (a loja ainda confere e confirma).
   final DateTime? pagamentoInformadoEm;
+
+  /// Forma escolhida no "Eu pago" (nula até escolher; o link do cliente grava PIX).
+  final FormaPagamento? formaPagamento;
+
+  /// Prazo pedido no crediário ('28', '28/35' ou '28/35/42') e a resposta do dono ou gerente da loja.
+  final String? prazo;
+  final StatusPrazo? prazoStatus;
+  final DateTime? prazoRespondidoEm;
 
   SituacaoPagamento get situacaoPagamento {
     if (status == StatusPedido.cancelado) return SituacaoPagamento.cancelado;
@@ -96,6 +108,10 @@ class PedidoResumo {
     linkCodigo: j['link_codigo'] as String?,
     documentoInformadoEm: _data(j['documento_informado_em']),
     pagamentoInformadoEm: _data(j['pagamento_informado_em']),
+    formaPagamento: FormaPagamento.fromCodigo(j['forma_pagamento'] as String?),
+    prazo: j['prazo'] as String?,
+    prazoStatus: StatusPrazo.fromCodigo(j['prazo_status'] as String?),
+    prazoRespondidoEm: _data(j['prazo_respondido_em']),
   );
 }
 

@@ -12,6 +12,31 @@ enum Pagador {
   static Pagador? fromCodigo(String? c) => values.where((v) => v.codigo == c).firstOrNull;
 }
 
+/// Como o construtor paga no "Eu pago": PIX da loja, cartão na maquininha da loja ou crediário que a loja aprova.
+enum FormaPagamento {
+  pix('pix', 'PIX'),
+  cartao('cartao', 'Cartão na loja'),
+  crediario('crediario', 'Crediário da loja');
+
+  const FormaPagamento(this.codigo, this.rotulo);
+  final String codigo;
+  final String rotulo;
+
+  static FormaPagamento? fromCodigo(String? c) => values.where((v) => v.codigo == c).firstOrNull;
+}
+
+/// Resposta do dono ou gerente da loja ao pedido de prazo do crediário.
+enum StatusPrazo {
+  pendente,
+  aprovado,
+  recusado;
+
+  static StatusPrazo? fromCodigo(String? c) => values.where((v) => v.name == c).firstOrNull;
+}
+
+/// Prazos do crediário que o construtor pode pedir, em dias.
+const prazosCrediario = ['28', '28/35', '28/35/42'];
+
 /// Em que pé está o pagamento de um pedido. Mesma precedência da função private.situacao_pagamento do banco.
 enum SituacaoPagamento { semPagador, aguardandoDados, aguardandoPagamento, informado, pago, cancelado }
 

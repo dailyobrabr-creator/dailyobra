@@ -6,6 +6,7 @@ export 'src/auth/nova_senha_screen.dart';
 export 'src/marketplace/busca.dart';
 export 'src/marketplace/cnpj.dart';
 export 'src/marketplace/cotacao.dart';
+export 'src/marketplace/estoque_santri.dart';
 export 'src/marketplace/materiais_catalogo.dart';
 export 'src/marketplace/horario.dart';
 export 'src/marketplace/leitor_ods.dart';

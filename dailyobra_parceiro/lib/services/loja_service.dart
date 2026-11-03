@@ -27,6 +27,7 @@ class DadosLoja {
     this.horario = '',
     this.status = 'ativa',
     this.chavePix,
+    this.estoqueAtualizadoEm,
   });
   final String cnpj;
   final String endereco;
@@ -35,6 +36,9 @@ class DadosLoja {
 
   /// Fica em loja_pix: a equipe da loja lê, dono e gerente gravam (o construtor só vê o PIX do pedido).
   final String? chavePix;
+
+  /// Última atualização de preço e estoque pelo relatório do Santri.
+  final DateTime? estoqueAtualizadoEm;
 }
 
 class MembroLoja {
@@ -109,7 +113,7 @@ class LojaService extends ChangeNotifier {
 
   static const _colunas =
       'id, nome, cnpj, descricao, logo_path, capa_path, whatsapp, endereco, cidade, uf, horario, '
-      'frete_fixo, pedido_minimo, aberta, status, criada_em';
+      'frete_fixo, pedido_minimo, aberta, status, criada_em, estoque_atualizado_em';
 
   Future<void> carregar() async {
     final uid = _db.auth.currentUser?.id;
@@ -138,6 +142,9 @@ class LojaService extends ChangeNotifier {
           horario: (j['horario'] as String?) ?? '',
           status: (j['status'] as String?) ?? 'ativa',
           chavePix: pix?['chave'] as String?,
+          estoqueAtualizadoEm: DateTime.tryParse(
+            (j['estoque_atualizado_em'] as String?) ?? '',
+          )?.toLocal(),
         );
       }
       _erro = null;

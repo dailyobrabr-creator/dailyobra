@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../services/loja_service.dart';
 import '../services/ofertas_service.dart';
+import 'atualizar_estoque_screen.dart';
 import 'componentes.dart';
 import 'importar_planilha_screen.dart';
 import 'oferta_screen.dart';
@@ -35,6 +36,17 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
       appBar: AppBar(
         title: const Text('Produtos e preços'),
         actions: [
+          if (LojaService.instance.meuPapel.gere)
+            IconButton(
+              tooltip: 'Atualizar pelo Santri',
+              icon: const Icon(Icons.inventory_2_outlined),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AtualizarEstoqueScreen(),
+                ),
+              ),
+            ),
           if (LojaService.instance.meuPapel.gere)
             IconButton(
               tooltip: 'Importar planilha',
@@ -70,6 +82,25 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
           ];
           return Column(
             children: [
+              if (gere)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    Espaco.s4,
+                    Espaco.s3,
+                    Espaco.s4,
+                    0,
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(switch (LojaService
+                        .instance
+                        .dados
+                        .estoqueAtualizadoEm) {
+                      final d? => 'Estoque atualizado pelo Santri ${quando(d)}',
+                      null => 'Estoque ainda não atualizado pelo Santri',
+                    }, style: t.bodySmall?.copyWith(color: c.textoSuave)),
+                  ),
+                ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                   Espaco.s4,

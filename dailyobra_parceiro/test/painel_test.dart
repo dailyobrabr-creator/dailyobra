@@ -1,4 +1,5 @@
 import 'package:dailyobra_comum/dailyobra_comum.dart';
+import 'package:dailyobra_parceiro/screens/atualizar_estoque_screen.dart';
 import 'package:dailyobra_parceiro/screens/importar_planilha_screen.dart';
 import 'package:dailyobra_parceiro/screens/inicio_screen.dart';
 import 'package:dailyobra_parceiro/screens/minha_loja_screen.dart';
@@ -225,6 +226,49 @@ void main() {
         await tester.enterText(find.byType(TextField), 'xyz');
         await tester.pumpAndSettle();
         expect(find.text('Nenhum produto encontrado'), findsOneWidget);
+      });
+
+      testWidgets('produtos mostra atualizar pelo santri para quem gere', (
+        tester,
+      ) async {
+        preparar();
+        final hoje = DateTime.now();
+        LojaService.instance.definirParaTeste(
+          loja: minhaLoja,
+          dados: DadosLoja(
+            cnpj: '11222333000181',
+            estoqueAtualizadoEm: DateTime(
+              hoje.year,
+              hoje.month,
+              hoje.day,
+              7,
+              30,
+            ),
+          ),
+        );
+        await abrir(tester, const ProdutosScreen(), escuro: escuro);
+        expect(find.byTooltip('Atualizar pelo Santri'), findsOneWidget);
+        expect(
+          find.text('Estoque atualizado pelo Santri às 07:30'),
+          findsOneWidget,
+        );
+
+        preparar();
+        await abrir(tester, const ProdutosScreen(), escuro: escuro);
+        expect(
+          find.text('Estoque ainda não atualizado pelo Santri'),
+          findsOneWidget,
+        );
+        await tester.tap(find.byTooltip('Atualizar pelo Santri'));
+        await tester.pumpAndSettle();
+        expect(find.byType(AtualizarEstoqueScreen), findsOneWidget);
+      });
+
+      testWidgets('vendedor não vê atualizar pelo santri', (tester) async {
+        preparar(papel: PapelLoja.vendedor);
+        await abrir(tester, const ProdutosScreen(), escuro: escuro);
+        expect(find.byTooltip('Atualizar pelo Santri'), findsNothing);
+        expect(find.textContaining('pelo Santri'), findsNothing);
       });
 
       testWidgets(

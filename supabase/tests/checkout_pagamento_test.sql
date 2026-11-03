@@ -86,6 +86,11 @@ select pg_temp.conferir('saldo liga e baixa o total',
   and (select saldo_aplicado from public.propostas pr join public.pedidos pe on pe.proposta_id = pr.id where pe.id = pg_temp.pegar('pA')::uuid) = 30
   and pg_temp.pegar('pix_com_saldo') like '%5406370.00%',
   concat_ws(' / ', pg_temp.pegar('liga1'), pg_temp.total('pA'), pg_temp.disponivel(), pg_temp.pegar('pix_com_saldo')));
+-- 17. Ligar o saldo segura a trava da carteira (a mesma do enviar_cotacao): dois pedidos ao mesmo tempo não gastam o
+-- mesmo saldo. Até aqui a cotação rodou sem saldo, que não pega a trava.
+select pg_temp.conferir('usar saldo trava a carteira',
+  exists (select 1 from pg_locks where locktype = 'advisory' and pid = pg_backend_pid() and granted and objsubid = 1
+           and (classid::bigint << 32 | objid::bigint) = hashtext('carteira:' || '00000000-0000-0000-0000-00000000c001')::bigint));
 select pg_temp.como('00000000-0000-0000-0000-00000000c001');
 select pg_temp.guardar('liga2', public.usar_saldo(pg_temp.pegar('pA')::uuid, true)::text);
 select pg_temp.admin();

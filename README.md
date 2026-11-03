@@ -109,7 +109,7 @@ Os testes de tela do `dailyobra` passam por 360, 800 e 1366 px de largura, nos t
 
 A página do cliente (`dailyobra/web/pagar/`) tem testes em Node, sem instalar nada: `node --test dailyobra/test/pagina_pagar_test.mjs` (na raiz do repositório).
 
-As regras do banco são conferidas por `supabase/tests/marketplace_test.sql` (roda numa transação desfeita no fim; cada linha do resultado tem `ok = true`), por `supabase/tests/checkout_bifurcado_test.sql`, `supabase/tests/checkout_pagamento_test.sql` e `supabase/tests/importacao_estoque_test.sql` (também desfeitos no fim; terminam com a contagem de verificações ok).
+As regras do banco são conferidas por `supabase/tests/marketplace_test.sql` (roda numa transação desfeita no fim; cada linha do resultado tem `ok = true`), por `supabase/tests/checkout_bifurcado_test.sql`, `supabase/tests/checkout_pagamento_test.sql`, `supabase/tests/importacao_estoque_test.sql` e `supabase/tests/resultados_loja_test.sql` (também desfeitos no fim; terminam com a contagem de verificações ok).
 
 ## Pagamento pelo cliente (link PIX)
 
@@ -131,6 +131,8 @@ Em **Produtos e preços**, o ícone de enviar arquivo abre a importação (só p
 ## Atualizar pelo Santri (estoque do dia)
 
 Em **Produtos e preços**, o ícone de estoque abre **Atualizar pelo Santri** (só para dono e gerente). A loja exporta do Santri ADM o relatório **"Valor do estoque analítico"** (`.ods`, `.xlsx` ou `.csv`) e escolhe o arquivo. Ele é lido no próprio navegador ou celular: só código, nome, unidade, preço e disponível dos produtos usados vão para o banco; o custo não sai do computador e o arquivo não é guardado. O resumo mostra o que muda (preço novo, voltou ao estoque, ficou sem estoque, não veio no relatório) e separa em **Conferir** o preço que mudou mais de 30% ou ficou em R$ 1,00 ou menos (só entra marcado). Produto do catálogo ainda sem ligação aparece com a sugestão mais parecida do relatório (só itens que começam pela mesma palavra do produto, como "TIJOLO" para tijolo) para **Ligar**, trocar (**Outro**), **Procurar** no relatório por nome ou código ou **Pular**; o que é ligado atualiza sozinho nos dias seguintes. Vários códigos no mesmo produto: vale o mais barato com estoque. As ligações ficam na tabela `loja_produtos` e a gravação é a função `importar_estoque` (teste em `supabase/tests/importacao_estoque_test.sql`); a leitura do relatório e as regras ficam em `dailyobra_comum/lib/src/marketplace/leitor_ods.dart` e `estoque_santri.dart`. A Operário já começa com as 61 ligações conferidas item a item.
+
+No **Início**, dono e gerente veem **Resultados do mês** (o vendedor não vê): faturamento, pedidos fechados, ticket médio, cashback gerado para os clientes e os 5 construtores que mais compraram, com setas para os meses anteriores. Venda é todo pedido criado no mês (a loja aceitou), menos os cancelados, pelo total da proposta (produtos + frete − desconto), mesmo quando o construtor paga parte com saldo da carteira. O faturamento do mês atual é comparado com o mesmo período do mês anterior; o de um mês passado, com o mês anterior inteiro. As contas são da função `resultados_loja` (teste em `supabase/tests/resultados_loja_test.sql`), que recusa quem não é dono ou gerente.
 
 ## Lojas cadastradas pelo suporte
 

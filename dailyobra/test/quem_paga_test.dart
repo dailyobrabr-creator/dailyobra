@@ -10,6 +10,8 @@ class Chamadas {
   final documentos = <String>[];
   final links = <(String, String)>[];
   final abertos = <Uri>[];
+  final saldos = <bool>[];
+  final formas = <(FormaPagamento, String?)>[];
 }
 
 const pixDaLoja =
@@ -21,6 +23,9 @@ PedidoResumo pedido({
   DateTime? documento,
   DateTime? informado,
   double total = 450,
+  FormaPagamento? forma,
+  String? prazo,
+  StatusPrazo? prazoStatus,
 }) => PedidoResumo(
   id: 'ped1',
   status: StatusPedido.confirmado,
@@ -32,6 +37,24 @@ PedidoResumo pedido({
   linkCodigo: link,
   documentoInformadoEm: documento,
   pagamentoInformadoEm: informado,
+  formaPagamento: forma,
+  prazo: prazo,
+  prazoStatus: prazoStatus,
+);
+
+/// Pedido no "Eu pago" com o documento já confirmado.
+PedidoResumo euPago({
+  double total = 450,
+  FormaPagamento? forma,
+  String? prazo,
+  StatusPrazo? prazoStatus,
+}) => pedido(
+  pagador: Pagador.proprio,
+  documento: DateTime(2026, 11, 2),
+  total: total,
+  forma: forma,
+  prazo: prazo,
+  prazoStatus: prazoStatus,
 );
 
 Future<Chamadas> montar(
@@ -41,6 +64,8 @@ Future<Chamadas> montar(
   String? pix = pixDaLoja,
   Future<String?> Function()? carregarPix,
   String? documentoDoPerfil,
+  double saldoDisponivel = 0,
+  double saldoNoPedido = 0,
 }) async {
   final ch = Chamadas();
   await abrir(
@@ -51,9 +76,15 @@ Future<Chamadas> montar(
           key: UniqueKey(),
           pedido: p ?? pedido(),
           nomeLoja: 'Casa do Construtor',
+          nomeTitular: 'Marcos Silva',
           documentoDoPerfil: documentoDoPerfil,
+          saldoDisponivel: saldoDisponivel,
+          saldoNoPedido: saldoNoPedido,
           pix: carregarPix ?? () async => pix,
           pagarEuMesmo: (doc) async => ch.documentos.add(doc),
+          usarSaldo: (usar) async => ch.saldos.add(usar),
+          escolherPagamento: (forma, prazo) async =>
+              ch.formas.add((forma, prazo)),
           criarLink: (nome, zap) async {
             ch.links.add((nome, zap));
             return 'COD';
@@ -299,9 +330,14 @@ void main() {
                 key: const ValueKey('quem-paga'),
                 pedido: p,
                 nomeLoja: 'Casa do Construtor',
+                nomeTitular: 'Marcos Silva',
                 documentoDoPerfil: null,
+                saldoDisponivel: 0,
+                saldoNoPedido: 0,
                 pix: () async => pixDaLoja,
                 pagarEuMesmo: (_) async {},
+                usarSaldo: (_) async {},
+                escolherPagamento: (_, _) async {},
                 criarLink: (_, _) async => 'COD',
                 abrirLink: (_) async {},
               ),
@@ -353,6 +389,158 @@ void main() {
         expect(ch.documentos, ['52998224725']);
         expect(find.text('Combine o pagamento com a loja.'), findsNothing);
         expect(find.text('A nota sai no seu nome.'), findsWidgets);
+      });
+
+      testWidgets('eu pago mostra o titular da nota', (tester) async {
+        await montar(
+          tester,
+          escuro: escuro,
+          p: euPago(),
+          documentoDoPerfil: '52998224725',
+        );
+        expect(find.text('Nota no nome de Marcos Silva'), findsOneWidget);
+        expect(find.text('529.982.247-25'), findsOneWidget);
+        await tester.tap(find.text('Alterar'));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('documento')), findsOneWidget);
+      });
+
+      testWidgets('interruptor do saldo', (tester) async {
+        final titulo = 'Usar saldo da carteira (${brl.format(30)})';
+        var ch = await montar(
+          tester,
+          escuro: escuro,
+          p: euPago(),
+          saldoDisponivel: 30,
+        );
+        expect(find.text(titulo), findsOneWidget);
+        await tester.tap(find.text(titulo));
+        await tester.pumpAndSettle();
+        expect(ch.saldos, [true]);
+
+        ch = await montar(
+          tester,
+          escuro: escuro,
+          p: euPago(total: 420),
+          saldoNoPedido: 30,
+        );
+        expect(
+          find.text('Abate ${brl.format(30)} neste pedido.'),
+          findsOneWidget,
+        );
+        await tester.tap(find.text(titulo));
+        await tester.pumpAndSettle();
+        expect(ch.saldos, [false]);
+
+        await montar(tester, escuro: escuro, p: euPago());
+        expect(find.textContaining('Usar saldo da carteira'), findsNothing);
+      });
+
+      testWidgets('formas de pagamento', (tester) async {
+        final ch = await montar(tester, escuro: escuro, p: euPago());
+        await rolarAte(tester, find.text('Cartão na loja'));
+        await tester.tap(find.text('Cartão na loja'));
+        await tester.pumpAndSettle();
+        expect(ch.formas, [(FormaPagamento.cartao, null)]);
+        expect(
+          find.text('Pague na maquininha da loja na entrega ou retirada.'),
+          findsOneWidget,
+        );
+        await tester.tap(find.text('Crediário da loja'));
+        await tester.pumpAndSettle();
+        expect(ch.formas, hasLength(1));
+        expect(find.text('28 dias'), findsOneWidget);
+        expect(find.text('28/35 dias'), findsOneWidget);
+        expect(find.text('28/35/42 dias'), findsOneWidget);
+        await rolarAte(tester, find.text('28/35 dias'));
+        await tester.tap(find.text('28/35 dias'));
+        await tester.pumpAndSettle();
+        await rolarAte(tester, find.text('Pedir prazo'));
+        await tester.tap(find.text('Pedir prazo'));
+        await tester.pumpAndSettle();
+        expect(ch.formas.last, (FormaPagamento.crediario, '28/35'));
+      });
+
+      testWidgets('estados do prazo', (tester) async {
+        final casos = [
+          (StatusPrazo.pendente, 'Aguardando a loja aprovar o prazo.'),
+          (StatusPrazo.aprovado, 'Prazo aprovado: 28/35/42 dias.'),
+          (
+            StatusPrazo.recusado,
+            'A loja recusou o prazo. Escolha PIX ou cartão.',
+          ),
+        ];
+        for (final (status, texto) in casos) {
+          await montar(
+            tester,
+            escuro: escuro,
+            p: euPago(
+              forma: FormaPagamento.crediario,
+              prazo: '28/35/42',
+              prazoStatus: status,
+            ),
+          );
+          expect(find.text(texto), findsOneWidget);
+        }
+      });
+
+      testWidgets('total a pagar e PIX novo quando o total muda', (
+        tester,
+      ) async {
+        var buscas = 0;
+        Future<void> com(double total) => abrir(
+          tester,
+          Scaffold(
+            body: SingleChildScrollView(
+              child: QuemPaga(
+                key: const ValueKey('quem-paga'),
+                pedido: euPago(total: total),
+                nomeLoja: 'Casa do Construtor',
+                nomeTitular: 'Marcos Silva',
+                documentoDoPerfil: '52998224725',
+                saldoDisponivel: 0,
+                saldoNoPedido: 0,
+                pix: () async {
+                  buscas++;
+                  return pixDaLoja;
+                },
+                pagarEuMesmo: (_) async {},
+                usarSaldo: (_) async {},
+                escolherPagamento: (_, _) async {},
+                criarLink: (_, _) async => 'COD',
+                abrirLink: (_) async {},
+              ),
+            ),
+          ),
+          escuro: escuro,
+        );
+        await com(450);
+        expect(find.text('Total a pagar'), findsOneWidget);
+        expect(find.text(brl.format(450)), findsOneWidget);
+        await com(420);
+        expect(buscas, 2);
+        expect(find.text(brl.format(420)), findsOneWidget);
+      });
+
+      testWidgets('saldo cobriu o pedido', (tester) async {
+        await montar(
+          tester,
+          escuro: escuro,
+          p: euPago(total: 0),
+          pix: null,
+          saldoNoPedido: 80,
+        );
+        expect(
+          find.text(
+            'O saldo DailyObra cobriu este pedido. Não há nada a pagar.',
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.text('Abate ${brl.format(80)} neste pedido.'),
+          findsOneWidget,
+        );
+        expect(find.widgetWithText(ChoiceChip, 'PIX'), findsNothing);
       });
     });
   }

@@ -13,19 +13,34 @@ class QuemPaga extends StatefulWidget {
     super.key,
     required this.pedido,
     required this.nomeLoja,
+    required this.nomeTitular,
     required this.documentoDoPerfil,
+    required this.saldoDisponivel,
+    required this.saldoNoPedido,
     required this.pix,
     required this.pagarEuMesmo,
+    required this.usarSaldo,
+    required this.escolherPagamento,
     required this.criarLink,
     required this.abrirLink,
   });
   final PedidoResumo pedido;
   final String nomeLoja;
+
+  /// Nome do perfil do construtor: vai na nota quando ele mesmo paga.
+  final String nomeTitular;
   final String? documentoDoPerfil;
+
+  /// Saldo da carteira livre e o que já está abatido neste pedido.
+  final double saldoDisponivel;
+  final double saldoNoPedido;
 
   /// PIX copia e cola da loja para este pedido; nulo quando a loja não tem chave PIX.
   final Future<String?> Function() pix;
   final Future<void> Function(String documento) pagarEuMesmo;
+  final Future<void> Function(bool usar) usarSaldo;
+  final Future<void> Function(FormaPagamento forma, String? prazo)
+  escolherPagamento;
 
   /// Cria (ou troca) o link de pagamento e devolve o código.
   final Future<String> Function(String nome, String whatsapp) criarLink;
@@ -47,6 +62,12 @@ class _QuemPagaState extends State<QuemPaga> {
   String? _erroCliente;
   bool _ocupado = false;
   bool _documentoConfirmado = false;
+  bool _alterandoTitular = false;
+
+  /// Sem forma gravada, o PIX vem marcado (sem gravar nada).
+  late FormaPagamento _forma =
+      widget.pedido.formaPagamento ?? FormaPagamento.pix;
+  late String _prazo = widget.pedido.prazo ?? prazosCrediario.first;
 
   /// Link enviado nesta tela, antes de o pedido voltar do servidor com ele.
   _Link? _enviado;
@@ -72,6 +93,12 @@ class _QuemPagaState extends State<QuemPaga> {
       _trocandoCliente = false;
       _documentoConfirmado = false;
       _pix = widget.pix();
+    } else if (a.total != p.total) {
+      // Saldo ligado ou desligado: o PIX sai com o valor novo
+      _pix = widget.pix();
+    }
+    if (a.formaPagamento != p.formaPagamento && p.formaPagamento != null) {
+      _forma = p.formaPagamento!;
     }
   }
 
@@ -115,8 +142,21 @@ class _QuemPagaState extends State<QuemPaga> {
     if (!await _podeTrocarParaEuPago() || !mounted) return;
     await _ocupar(() async {
       await widget.pagarEuMesmo(doc);
-      if (mounted) setState(() => _documentoConfirmado = true);
+      if (mounted) {
+        setState(() {
+          _documentoConfirmado = true;
+          _alterandoTitular = false;
+        });
+      }
     });
+  }
+
+  /// PIX e cartão gravam na hora; o crediário só depois de escolher o prazo ("Pedir prazo").
+  void _escolherForma(FormaPagamento forma) {
+    setState(() => _forma = forma);
+    if (forma != FormaPagamento.crediario) {
+      _ocupar(() => widget.escolherPagamento(forma, null));
+    }
   }
 
   /// Com link enviado, "Eu pago" desliga o link do cliente (e o aviso de "Já paguei"): confirma antes.
@@ -283,7 +323,7 @@ class _QuemPagaState extends State<QuemPaga> {
     String? pix, {
     required bool semValor,
   }) {
-    if (!_proprioConfirmado) {
+    if (!_proprioConfirmado || _alterandoTitular) {
       return [
         CampoTexto(
           key: const ValueKey('documento'),
@@ -300,15 +340,129 @@ class _QuemPagaState extends State<QuemPaga> {
         ),
       ];
     }
-    if (pix == null) {
-      return [
-        Text(
-          semValor
-              ? 'A nota sai no seu nome.'
-              : 'Combine o pagamento com a loja.',
-          style: t.bodyMedium,
+    final doc = somenteDigitos(_documento.text);
+    final saldoTotal = widget.saldoDisponivel + widget.saldoNoPedido;
+    final saldoLigado = widget.saldoNoPedido > 0;
+    return [
+      Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Nota no nome de ${widget.nomeTitular}',
+                  style: t.titleSmall,
+                ),
+                if (doc.isNotEmpty)
+                  Text(
+                    formatarDocumento(doc),
+                    style: t.bodySmall?.copyWith(color: c.textoSuave),
+                  ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: _ocupado
+                ? null
+                : () => setState(() => _alterandoTitular = true),
+            child: const Text('Alterar'),
+          ),
+        ],
+      ),
+      if (saldoTotal > 0)
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text('Usar saldo da carteira (${brl.format(saldoTotal)})'),
+          subtitle: saldoLigado
+              ? Text('Abate ${brl.format(widget.saldoNoPedido)} neste pedido.')
+              : null,
+          value: saldoLigado,
+          onChanged: _ocupado
+              ? null
+              : (usar) => _ocupar(() => widget.usarSaldo(usar)),
         ),
-      ];
+      const SizedBox(height: Espaco.s3),
+      if (semValor)
+        Text('A nota sai no seu nome.', style: t.bodyMedium)
+      else ...[
+        Text('Forma de pagamento', style: t.titleSmall),
+        const SizedBox(height: Espaco.s2),
+        Wrap(
+          spacing: Espaco.s2,
+          runSpacing: Espaco.s2,
+          children: [
+            for (final f in FormaPagamento.values)
+              ChoiceChip(
+                label: Text(f.rotulo),
+                selected: _forma == f,
+                onSelected: _ocupado ? null : (_) => _escolherForma(f),
+              ),
+          ],
+        ),
+        const SizedBox(height: Espaco.s3),
+        ...switch (_forma) {
+          FormaPagamento.pix => _pagarComPix(t, c, pix),
+          FormaPagamento.cartao => [
+            Text(
+              'Pague na maquininha da loja na entrega ou retirada.',
+              style: t.bodyMedium,
+            ),
+          ],
+          FormaPagamento.crediario => _crediario(t),
+        },
+        const SizedBox(height: Espaco.s3),
+        Row(
+          children: [
+            Expanded(child: Text('Total a pagar', style: t.titleSmall)),
+            Text(brl.format(widget.pedido.total), style: t.titleSmall),
+          ],
+        ),
+      ],
+    ];
+  }
+
+  List<Widget> _crediario(TextTheme t) {
+    final p = widget.pedido;
+    final pedido = p.formaPagamento == FormaPagamento.crediario;
+    final texto = switch (pedido ? p.prazoStatus : null) {
+      StatusPrazo.pendente => 'Aguardando a loja aprovar o prazo.',
+      StatusPrazo.aprovado => 'Prazo aprovado: ${p.prazo} dias.',
+      StatusPrazo.recusado => 'A loja recusou o prazo. Escolha PIX ou cartão.',
+      null => null,
+    };
+    if (texto != null) return [Text(texto, style: t.bodyMedium)];
+    return [
+      Wrap(
+        spacing: Espaco.s2,
+        runSpacing: Espaco.s2,
+        children: [
+          for (final prazo in prazosCrediario)
+            ChoiceChip(
+              label: Text('$prazo dias'),
+              selected: _prazo == prazo,
+              onSelected: _ocupado
+                  ? null
+                  : (_) => setState(() => _prazo = prazo),
+            ),
+        ],
+      ),
+      const SizedBox(height: Espaco.s3),
+      FilledButton(
+        onPressed: _ocupado
+            ? null
+            : () => _ocupar(
+                () =>
+                    widget.escolherPagamento(FormaPagamento.crediario, _prazo),
+              ),
+        child: const Text('Pedir prazo'),
+      ),
+    ];
+  }
+
+  List<Widget> _pagarComPix(TextTheme t, CoresDailyObra c, String? pix) {
+    if (pix == null) {
+      return [Text('Combine o pagamento com a loja.', style: t.bodyMedium)];
     }
     return [
       Text('PIX da loja (copia e cola)', style: t.titleSmall),

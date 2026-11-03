@@ -2,6 +2,7 @@ import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../services/carteira_service.dart';
 import '../services/negociacao_service.dart';
 import '../services/perfil_service.dart';
 import 'componentes.dart';
@@ -74,7 +75,12 @@ class _PedidoScreenState extends State<PedidoScreen> {
   Widget build(BuildContext context) {
     final servico = NegociacaoService.instance;
     return ListenableBuilder(
-      listenable: servico,
+      // Carteira e perfil entram no "Eu pago" (saldo e titular da nota)
+      listenable: Listenable.merge([
+        servico,
+        CarteiraService.instance,
+        PerfilService.instance,
+      ]),
       builder: (context, _) {
         final p = servico.propostaDoPedido(widget.pedidoId);
         final pedido = p?.pedido;
@@ -228,10 +234,17 @@ class _PedidoScreenState extends State<PedidoScreen> {
           QuemPaga(
             pedido: pedido,
             nomeLoja: p.lojaNome,
+            nomeTitular: PerfilService.instance.nome,
             documentoDoPerfil: PerfilService.instance.documento,
+            saldoDisponivel: CarteiraService.instance.disponivel,
+            saldoNoPedido: p.saldoAplicado,
             pix: () => NegociacaoService.instance.pixDoPedido(pedido.id),
             pagarEuMesmo: (doc) =>
                 NegociacaoService.instance.pagarEuMesmo(pedido.id, doc),
+            usarSaldo: (usar) =>
+                NegociacaoService.instance.usarSaldo(pedido.id, usar),
+            escolherPagamento: (forma, prazo) => NegociacaoService.instance
+                .escolherPagamento(pedido.id, forma, prazo: prazo),
             criarLink: (nome, zap) => NegociacaoService.instance.criarLink(
               pedido.id,
               nome: nome,

@@ -85,7 +85,8 @@ class NegociacaoService extends ChangeNotifier {
       'lojas(id, nome, descricao, logo_path, capa_path, whatsapp, cidade, uf, frete_fixo, pedido_minimo, aberta, criada_em), '
       'proposta_itens(item_id, nome, unidade, tier, quantidade, preco_anunciado, preco_ofertado), '
       'pedidos(id, status, total, pagamento_confirmado_em, entregue_em, criado_em, pagador, pagador_nome, '
-      'pagador_whatsapp, link_codigo, documento_informado_em, pagamento_informado_em)';
+      'pagador_whatsapp, link_codigo, documento_informado_em, pagamento_informado_em, forma_pagamento, prazo, '
+      'prazo_status, prazo_respondido_em)';
 
   /// Chamado ao entrar: carrega e passa a ouvir as mudanças das propostas e pedidos do usuário.
   void iniciar() {
@@ -246,6 +247,21 @@ class NegociacaoService extends ChangeNotifier {
   /// "Eu pago": a nota sai no CPF/CNPJ do construtor (fica salvo no perfil).
   Future<void> pagarEuMesmo(String pedidoId, String documento) =>
       _acao('pagar_eu_mesmo', {'p_pedido': pedidoId, 'p_documento': documento});
+
+  /// Liga ou desliga o saldo da carteira no pedido (função usar_saldo; só no "Eu pago").
+  Future<void> usarSaldo(String pedidoId, bool usar) =>
+      _acao('usar_saldo', {'p_pedido': pedidoId, 'p_usar': usar});
+
+  /// PIX, cartão na loja ou crediário (com o prazo pedido, que a loja aprova).
+  Future<void> escolherPagamento(
+    String pedidoId,
+    FormaPagamento forma, {
+    String? prazo,
+  }) => _acao('escolher_pagamento', {
+    'p_pedido': pedidoId,
+    'p_forma': forma.codigo,
+    'p_prazo': prazo,
+  });
 
   /// Cria (ou troca) o link de pagamento do cliente e devolve o código.
   Future<String> criarLink(

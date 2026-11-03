@@ -8,8 +8,15 @@ import 'pedido_loja_screen.dart';
 
 /// Proposta recebida: quem pediu, produtos, valores e a resposta da loja.
 class PropostaLojaScreen extends StatefulWidget {
-  const PropostaLojaScreen({super.key, required this.id});
+  const PropostaLojaScreen({
+    super.key,
+    required this.id,
+    this.embutida = false,
+  });
   final String id;
+
+  /// Ao lado da lista (Propostas no computador): sem barra de título própria.
+  final bool embutida;
 
   @override
   State<PropostaLojaScreen> createState() => _PropostaLojaScreenState();
@@ -67,204 +74,217 @@ class _PropostaLojaScreenState extends State<PropostaLojaScreen> {
       builder: (context, _) {
         final p = servico.proposta(widget.id);
         if (p == null) {
-          return Scaffold(
-            appBar: AppBar(),
-            body: const EstadoVazio(
-              titulo: 'Proposta não encontrada',
-              texto: 'Volte e puxe a lista para atualizar.',
-            ),
+          const vazio = EstadoVazio(
+            titulo: 'Proposta não encontrada',
+            texto: 'Volte e puxe a lista para atualizar.',
           );
+          return widget.embutida
+              ? vazio
+              : Scaffold(appBar: AppBar(), body: vazio);
         }
         final t = Theme.of(context).textTheme;
         final c = context.cores;
         final quem = servico.construtor(p.construtorId);
         final (selo, tom) = seloParaLoja(p);
         final aberta = p.status == StatusProposta.enviada;
+        final corpo = ListView(
+          padding: const EdgeInsets.fromLTRB(
+            Espaco.s4,
+            Espaco.s4,
+            Espaco.s4,
+            Espaco.s8,
+          ),
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(quem.exibicao, style: t.titleLarge),
+                      if (quem.empresa.isNotEmpty)
+                        Text(
+                          quem.empresa,
+                          style: t.bodyMedium?.copyWith(color: c.textoSuave),
+                        ),
+                      if (quem.telefone != null)
+                        SelectableText(
+                          telefone(quem.telefone!),
+                          style: t.bodyMedium,
+                        ),
+                    ],
+                  ),
+                ),
+                Selo(selo, tom: tom),
+              ],
+            ),
+            const SizedBox(height: Espaco.s3),
+            Aviso(switch (p.status) {
+              StatusProposta.enviada =>
+                p.modo == ModoProposta.pedido
+                    ? 'Pedido direto: confirme ou recuse até ${dataHora(p.validaAte)} (${prazo(p.validaAte)}).'
+                    : 'Responda até ${dataHora(p.validaAte)} (${prazo(p.validaAte)}): aceite, recuse ou mande uma contraproposta.',
+              StatusProposta.contraproposta =>
+                'Contraproposta enviada. O construtor responde até ${dataHora(p.validaAte)}.',
+              StatusProposta.aceita => 'Aceita. O pedido está em Pedidos.',
+              StatusProposta.recusada =>
+                'Recusada${p.motivoRecusa == null ? '' : ': ${p.motivoRecusa}'}',
+              StatusProposta.cancelada =>
+                'O construtor cancelou esta proposta.',
+              StatusProposta.expirada => 'O prazo de resposta acabou.',
+            }, tom: aberta ? TomSelo.aviso : TomSelo.info),
+            if (p.mensagemConstrutor != null &&
+                p.mensagemConstrutor!.isNotEmpty) ...[
+              const SizedBox(height: Espaco.s3),
+              Painel(
+                titulo: 'Mensagem do construtor',
+                child: Padding(
+                  padding: const EdgeInsets.all(Espaco.s4),
+                  child: Text(p.mensagemConstrutor!, style: t.bodyMedium),
+                ),
+              ),
+            ],
+            const SizedBox(height: Espaco.s3),
+            Painel(
+              titulo: 'Produtos',
+              child: Padding(
+                padding: const EdgeInsets.all(Espaco.s4),
+                child: Column(
+                  children: [
+                    for (final i in p.itens)
+                      LinhaValor(
+                        '${formatarQuantidade(i.quantidade)} ${i.unidade} · ${i.nome}',
+                        brl.format(i.total),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: Espaco.s3),
+            Painel(
+              titulo: 'Valores',
+              child: Padding(
+                padding: const EdgeInsets.all(Espaco.s4),
+                child: Column(
+                  children: [
+                    LinhaValor('Produtos', brl.format(p.subtotalFinal)),
+                    if (p.desconto > 0)
+                      LinhaValor('Desconto', '- ${brl.format(p.desconto)}'),
+                    LinhaValor(
+                      'Frete',
+                      p.frete == 0 ? 'Grátis' : brl.format(p.frete),
+                    ),
+                    LinhaValor('Total', brl.format(p.total), destaque: true),
+                    if (p.saldoAplicado > 0)
+                      LinhaValor(
+                        'Pago com saldo DailyObra',
+                        brl.format(p.saldoAplicado),
+                        cor: c.sucesso,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            if (p.saldoAplicado > 0) ...[
+              const SizedBox(height: Espaco.s2),
+              Text(
+                'O construtor usou saldo do Clube DailyObra; esse valor é acertado pelo DailyObra.',
+                style: t.bodySmall?.copyWith(color: c.textoSuave),
+              ),
+            ],
+          ],
+        );
+        final rodape = switch (p.status) {
+          StatusProposta.enviada => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Espaco.s4,
+                Espaco.s2,
+                Espaco.s4,
+                Espaco.s3,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _ocupado ? null : () => _recusar(p),
+                          child: const Text('Recusar'),
+                        ),
+                      ),
+                      const SizedBox(width: Espaco.s2),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: _ocupado ? null : () => _aceitar(p),
+                          child: Text(
+                            p.modo == ModoProposta.pedido
+                                ? 'Confirmar'
+                                : 'Aceitar',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (p.modo == ModoProposta.negociacao)
+                    TextButton(
+                      onPressed: _ocupado
+                          ? null
+                          : () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    ContrapropostaScreen(propostaId: p.id),
+                              ),
+                            ),
+                      child: const Text('Mandar contraproposta'),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          StatusProposta.aceita when p.pedido != null => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Espaco.s4,
+                Espaco.s2,
+                Espaco.s4,
+                Espaco.s3,
+              ),
+              child: FilledButton(
+                onPressed: () => Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PedidoLojaScreen(pedidoId: p.pedido!.id),
+                  ),
+                ),
+                child: const Text('Ver pedido'),
+              ),
+            ),
+          ),
+          _ => null,
+        };
+        if (widget.embutida) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: corpo),
+              ?rodape,
+            ],
+          );
+        }
         return Scaffold(
           appBar: AppBar(
             title: Text(
               p.modo == ModoProposta.pedido ? 'Pedido direto' : 'Proposta',
             ),
           ),
-          body: ListView(
-            padding: const EdgeInsets.fromLTRB(
-              Espaco.s4,
-              Espaco.s4,
-              Espaco.s4,
-              Espaco.s8,
-            ),
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(quem.exibicao, style: t.titleLarge),
-                        if (quem.empresa.isNotEmpty)
-                          Text(
-                            quem.empresa,
-                            style: t.bodyMedium?.copyWith(color: c.textoSuave),
-                          ),
-                        if (quem.telefone != null)
-                          SelectableText(
-                            telefone(quem.telefone!),
-                            style: t.bodyMedium,
-                          ),
-                      ],
-                    ),
-                  ),
-                  Selo(selo, tom: tom),
-                ],
-              ),
-              const SizedBox(height: Espaco.s3),
-              Aviso(switch (p.status) {
-                StatusProposta.enviada =>
-                  p.modo == ModoProposta.pedido
-                      ? 'Pedido direto: confirme ou recuse até ${dataHora(p.validaAte)} (${prazo(p.validaAte)}).'
-                      : 'Responda até ${dataHora(p.validaAte)} (${prazo(p.validaAte)}): aceite, recuse ou mande uma contraproposta.',
-                StatusProposta.contraproposta =>
-                  'Contraproposta enviada. O construtor responde até ${dataHora(p.validaAte)}.',
-                StatusProposta.aceita => 'Aceita. O pedido está em Pedidos.',
-                StatusProposta.recusada =>
-                  'Recusada${p.motivoRecusa == null ? '' : ': ${p.motivoRecusa}'}',
-                StatusProposta.cancelada =>
-                  'O construtor cancelou esta proposta.',
-                StatusProposta.expirada => 'O prazo de resposta acabou.',
-              }, tom: aberta ? TomSelo.aviso : TomSelo.info),
-              if (p.mensagemConstrutor != null &&
-                  p.mensagemConstrutor!.isNotEmpty) ...[
-                const SizedBox(height: Espaco.s3),
-                Painel(
-                  titulo: 'Mensagem do construtor',
-                  child: Padding(
-                    padding: const EdgeInsets.all(Espaco.s4),
-                    child: Text(p.mensagemConstrutor!, style: t.bodyMedium),
-                  ),
-                ),
-              ],
-              const SizedBox(height: Espaco.s3),
-              Painel(
-                titulo: 'Produtos',
-                child: Padding(
-                  padding: const EdgeInsets.all(Espaco.s4),
-                  child: Column(
-                    children: [
-                      for (final i in p.itens)
-                        LinhaValor(
-                          '${formatarQuantidade(i.quantidade)} ${i.unidade} · ${i.nome}',
-                          brl.format(i.total),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: Espaco.s3),
-              Painel(
-                titulo: 'Valores',
-                child: Padding(
-                  padding: const EdgeInsets.all(Espaco.s4),
-                  child: Column(
-                    children: [
-                      LinhaValor('Produtos', brl.format(p.subtotalFinal)),
-                      if (p.desconto > 0)
-                        LinhaValor('Desconto', '- ${brl.format(p.desconto)}'),
-                      LinhaValor(
-                        'Frete',
-                        p.frete == 0 ? 'Grátis' : brl.format(p.frete),
-                      ),
-                      LinhaValor('Total', brl.format(p.total), destaque: true),
-                      if (p.saldoAplicado > 0)
-                        LinhaValor(
-                          'Pago com saldo DailyObra',
-                          brl.format(p.saldoAplicado),
-                          cor: c.sucesso,
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              if (p.saldoAplicado > 0) ...[
-                const SizedBox(height: Espaco.s2),
-                Text(
-                  'O construtor usou saldo do Clube DailyObra; esse valor é acertado pelo DailyObra.',
-                  style: t.bodySmall?.copyWith(color: c.textoSuave),
-                ),
-              ],
-            ],
-          ),
-          bottomNavigationBar: switch (p.status) {
-            StatusProposta.enviada => SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  Espaco.s4,
-                  Espaco.s2,
-                  Espaco.s4,
-                  Espaco.s3,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: _ocupado ? null : () => _recusar(p),
-                            child: const Text('Recusar'),
-                          ),
-                        ),
-                        const SizedBox(width: Espaco.s2),
-                        Expanded(
-                          child: FilledButton(
-                            onPressed: _ocupado ? null : () => _aceitar(p),
-                            child: Text(
-                              p.modo == ModoProposta.pedido
-                                  ? 'Confirmar'
-                                  : 'Aceitar',
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (p.modo == ModoProposta.negociacao)
-                      TextButton(
-                        onPressed: _ocupado
-                            ? null
-                            : () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      ContrapropostaScreen(propostaId: p.id),
-                                ),
-                              ),
-                        child: const Text('Mandar contraproposta'),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            StatusProposta.aceita when p.pedido != null => SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  Espaco.s4,
-                  Espaco.s2,
-                  Espaco.s4,
-                  Espaco.s3,
-                ),
-                child: FilledButton(
-                  onPressed: () => Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => PedidoLojaScreen(pedidoId: p.pedido!.id),
-                    ),
-                  ),
-                  child: const Text('Ver pedido'),
-                ),
-              ),
-            ),
-            _ => null,
-          },
+          body: ColunaCentral(child: corpo),
+          bottomNavigationBar: rodape == null
+              ? null
+              : ColunaCentral(child: rodape),
         );
       },
     );
@@ -475,107 +495,113 @@ class _ContrapropostaScreenState extends State<ContrapropostaScreen> {
     final formatos = [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))];
     return Scaffold(
       appBar: AppBar(title: const Text('Contraproposta')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(
-          Espaco.s4,
-          Espaco.s4,
-          Espaco.s4,
-          Espaco.s8,
-        ),
-        children: [
-          Text(
-            'Baixe o preço de algum produto ou dê desconto no total. O construtor aceita ou recusa.',
-            style: t.bodyMedium?.copyWith(color: c.textoSuave),
+      body: ColunaCentral(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(
+            Espaco.s4,
+            Espaco.s4,
+            Espaco.s4,
+            Espaco.s8,
           ),
-          const SizedBox(height: Espaco.s4),
-          for (final i in p.itens) ...[
-            Text(i.nome, style: t.titleSmall),
+          children: [
             Text(
-              '${formatarQuantidade(i.quantidade)} ${i.unidade} · anunciado ${brl.format(i.precoAnunciado)}',
-              style: t.bodySmall?.copyWith(color: c.textoSuave),
+              'Baixe o preço de algum produto ou dê desconto no total. O construtor aceita ou recusa.',
+              style: t.bodyMedium?.copyWith(color: c.textoSuave),
             ),
-            const SizedBox(height: Espaco.s1),
+            const SizedBox(height: Espaco.s4),
+            for (final i in p.itens) ...[
+              Text(i.nome, style: t.titleSmall),
+              Text(
+                '${formatarQuantidade(i.quantidade)} ${i.unidade} · anunciado ${brl.format(i.precoAnunciado)}',
+                style: t.bodySmall?.copyWith(color: c.textoSuave),
+              ),
+              const SizedBox(height: Espaco.s1),
+              TextField(
+                controller: _precos[i.itemId],
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                inputFormatters: formatos,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  prefixText: 'R\$ ',
+                  suffixText: '/ ${i.unidade}',
+                  errorText: _erros[i.itemId],
+                ),
+              ),
+              const SizedBox(height: Espaco.s4),
+            ],
+            const Rotulo('Desconto no total (R\$)'),
             TextField(
-              controller: _precos[i.itemId],
+              controller: _desconto,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
               inputFormatters: formatos,
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
+                hintText: '0,00',
                 prefixText: 'R\$ ',
-                suffixText: '/ ${i.unidade}',
-                errorText: _erros[i.itemId],
+                errorText: _erroDesconto,
               ),
             ),
             const SizedBox(height: Espaco.s4),
-          ],
-          const Rotulo('Desconto no total (R\$)'),
-          TextField(
-            controller: _desconto,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: formatos,
-            onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(
-              hintText: '0,00',
-              prefixText: 'R\$ ',
-              errorText: _erroDesconto,
+            const Rotulo('Prazo para o construtor responder'),
+            Segmentado<int>(
+              valor: _validade,
+              opcoes: const [(24, '24 h'), (48, '48 h'), (72, '72 h')],
+              onChanged: (v) => setState(() => _validade = v),
             ),
-          ),
-          const SizedBox(height: Espaco.s4),
-          const Rotulo('Prazo para o construtor responder'),
-          Segmentado<int>(
-            valor: _validade,
-            opcoes: const [(24, '24 h'), (48, '48 h'), (72, '72 h')],
-            onChanged: (v) => setState(() => _validade = v),
-          ),
-          const SizedBox(height: Espaco.s4),
-          const Rotulo('Mensagem (opcional)'),
-          TextField(
-            controller: _mensagem,
-            maxLength: 500,
-            minLines: 2,
-            maxLines: 4,
-            decoration: const InputDecoration(
-              hintText: 'Ex.: entrego na sexta pela manhã',
-            ),
-          ),
-          const SizedBox(height: Espaco.s3),
-          Painel(
-            child: Padding(
-              padding: const EdgeInsets.all(Espaco.s4),
-              child: Column(
-                children: [
-                  LinhaValor('Produtos', brl.format(calc.subtotal)),
-                  if (calc.desconto > 0)
-                    LinhaValor('Desconto', '- ${brl.format(calc.desconto)}'),
-                  LinhaValor(
-                    'Frete',
-                    p.frete == 0 ? 'Grátis' : brl.format(p.frete),
-                  ),
-                  LinhaValor(
-                    'Novo total',
-                    brl.format(total < 0 ? 0 : total),
-                    destaque: true,
-                  ),
-                  LinhaValor('Total anterior', brl.format(p.total)),
-                ],
+            const SizedBox(height: Espaco.s4),
+            const Rotulo('Mensagem (opcional)'),
+            TextField(
+              controller: _mensagem,
+              maxLength: 500,
+              minLines: 2,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                hintText: 'Ex.: entrego na sexta pela manhã',
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: Espaco.s3),
+            Painel(
+              child: Padding(
+                padding: const EdgeInsets.all(Espaco.s4),
+                child: Column(
+                  children: [
+                    LinhaValor('Produtos', brl.format(calc.subtotal)),
+                    if (calc.desconto > 0)
+                      LinhaValor('Desconto', '- ${brl.format(calc.desconto)}'),
+                    LinhaValor(
+                      'Frete',
+                      p.frete == 0 ? 'Grátis' : brl.format(p.frete),
+                    ),
+                    LinhaValor(
+                      'Novo total',
+                      brl.format(total < 0 ? 0 : total),
+                      destaque: true,
+                    ),
+                    LinhaValor('Total anterior', brl.format(p.total)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            Espaco.s4,
-            Espaco.s2,
-            Espaco.s4,
-            Espaco.s3,
-          ),
-          child: FilledButton(
-            onPressed: _enviando ? null : () => _enviar(p),
-            child: Text(_enviando ? 'Enviando…' : 'Enviar contraproposta'),
+      bottomNavigationBar: ColunaCentral(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              Espaco.s4,
+              Espaco.s2,
+              Espaco.s4,
+              Espaco.s3,
+            ),
+            child: FilledButton(
+              onPressed: _enviando ? null : () => _enviar(p),
+              child: Text(_enviando ? 'Enviando…' : 'Enviar contraproposta'),
+            ),
           ),
         ),
       ),

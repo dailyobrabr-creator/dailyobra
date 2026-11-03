@@ -140,120 +140,126 @@ class _OfertaScreenState extends State<OfertaScreen> {
       appBar: AppBar(
         title: Text(_atual == null ? 'Colocar preço' : 'Editar preço'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(
-          Espaco.s4,
-          Espaco.s4,
-          Espaco.s4,
-          Espaco.s8,
-        ),
-        children: [
-          Row(
-            children: [
-              ImagemProduto(item: item, tamanho: 56),
-              const SizedBox(width: Espaco.s3),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item.nome, style: t.titleMedium),
-                    Text(
-                      'Vendido por ${item.unidade}',
-                      style: t.bodySmall?.copyWith(color: c.textoSuave),
-                    ),
-                  ],
+      body: ColunaCentral(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(
+            Espaco.s4,
+            Espaco.s4,
+            Espaco.s4,
+            Espaco.s8,
+          ),
+          children: [
+            Row(
+              children: [
+                ImagemProduto(item: item, tamanho: 56),
+                const SizedBox(width: Espaco.s3),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(item.nome, style: t.titleMedium),
+                      Text(
+                        'Vendido por ${item.unidade}',
+                        style: t.bodySmall?.copyWith(color: c.textoSuave),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: Espaco.s5),
-          const Rotulo('Preço', obrigatorio: true),
-          TextField(
-            controller: _preco,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: formato,
-            decoration: InputDecoration(
-              prefixText: 'R\$ ',
-              suffixText: '/ ${item.unidade}',
-              errorText: _erroPreco,
+              ],
             ),
-          ),
-          const SizedBox(height: Espaco.s3),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _emPromocao,
-            onChanged: (v) => setState(() => _emPromocao = v),
-            title: const Text('Em promoção'),
-            subtitle: const Text(
-              'Aparece em Ofertas no app do construtor, com o preço normal riscado.',
-            ),
-          ),
-          if (_emPromocao) ...[
-            const Rotulo('Preço da promoção'),
+            const SizedBox(height: Espaco.s5),
+            const Rotulo('Preço', obrigatorio: true),
             TextField(
-              controller: _promo,
+              controller: _preco,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
               inputFormatters: formato,
               decoration: InputDecoration(
                 prefixText: 'R\$ ',
-                errorText: _erroPromo,
-                errorMaxLines: 2,
+                suffixText: '/ ${item.unidade}',
+                errorText: _erroPreco,
               ),
             ),
-            const SizedBox(height: Espaco.s2),
-            OutlinedButton.icon(
-              onPressed: _escolherData,
-              icon: const Icon(Icons.event_outlined),
-              label: Text(
-                _promoAte == null
-                    ? 'Válida até…'
-                    : 'Válida até ${dataHora(_promoAte!).split(' ').first}',
+            const SizedBox(height: Espaco.s3),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _emPromocao,
+              onChanged: (v) => setState(() => _emPromocao = v),
+              title: const Text('Em promoção'),
+              subtitle: const Text(
+                'Aparece em Ofertas no app do construtor, com o preço normal riscado.',
               ),
             ),
+            if (_emPromocao) ...[
+              const Rotulo('Preço da promoção'),
+              TextField(
+                controller: _promo,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                inputFormatters: formato,
+                decoration: InputDecoration(
+                  prefixText: 'R\$ ',
+                  errorText: _erroPromo,
+                  errorMaxLines: 2,
+                ),
+              ),
+              const SizedBox(height: Espaco.s2),
+              OutlinedButton.icon(
+                onPressed: _escolherData,
+                icon: const Icon(Icons.event_outlined),
+                label: Text(
+                  _promoAte == null
+                      ? 'Válida até…'
+                      : 'Válida até ${dataHora(_promoAte!).split(' ').first}',
+                ),
+              ),
+            ],
+            const SizedBox(height: Espaco.s4),
+            const Rotulo('Disponibilidade'),
+            Segmentado<Disponibilidade>(
+              valor: _disponibilidade,
+              opcoes: [for (final d in Disponibilidade.values) (d, d.rotulo)],
+              onChanged: (d) => setState(() => _disponibilidade = d),
+            ),
+            const SizedBox(height: Espaco.s3),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _pausada,
+              onChanged: (v) => setState(() => _pausada = v),
+              title: const Text('Pausar este produto'),
+              subtitle: const Text(
+                'Some das cotações sem perder o preço cadastrado.',
+              ),
+            ),
+            if (_atual != null) ...[
+              const SizedBox(height: Espaco.s2),
+              TextButton.icon(
+                onPressed: _remover,
+                icon: Icon(Icons.delete_outline, color: c.erro),
+                label: Text(
+                  'Tirar o preço deste produto',
+                  style: TextStyle(color: c.erro),
+                ),
+              ),
+            ],
           ],
-          const SizedBox(height: Espaco.s4),
-          const Rotulo('Disponibilidade'),
-          Segmentado<Disponibilidade>(
-            valor: _disponibilidade,
-            opcoes: [for (final d in Disponibilidade.values) (d, d.rotulo)],
-            onChanged: (d) => setState(() => _disponibilidade = d),
-          ),
-          const SizedBox(height: Espaco.s3),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _pausada,
-            onChanged: (v) => setState(() => _pausada = v),
-            title: const Text('Pausar este produto'),
-            subtitle: const Text(
-              'Some das cotações sem perder o preço cadastrado.',
-            ),
-          ),
-          if (_atual != null) ...[
-            const SizedBox(height: Espaco.s2),
-            TextButton.icon(
-              onPressed: _remover,
-              icon: Icon(Icons.delete_outline, color: c.erro),
-              label: Text(
-                'Tirar o preço deste produto',
-                style: TextStyle(color: c.erro),
-              ),
-            ),
-          ],
-        ],
+        ),
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            Espaco.s4,
-            Espaco.s2,
-            Espaco.s4,
-            Espaco.s3,
-          ),
-          child: FilledButton(
-            onPressed: _salvando ? null : _salvar,
-            child: Text(_salvando ? 'Salvando…' : 'Salvar preço'),
+      bottomNavigationBar: ColunaCentral(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              Espaco.s4,
+              Espaco.s2,
+              Espaco.s4,
+              Espaco.s3,
+            ),
+            child: FilledButton(
+              onPressed: _salvando ? null : _salvar,
+              child: Text(_salvando ? 'Salvando…' : 'Salvar preço'),
+            ),
           ),
         ),
       ),

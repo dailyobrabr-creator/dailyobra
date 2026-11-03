@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../services/loja_service.dart';
 import '../services/ofertas_service.dart';
+import 'componentes.dart';
 
 /// Arquivo escolhido pela loja (nome com a extensão e o conteúdo).
 class ArquivoPlanilha {
@@ -144,12 +145,14 @@ class _ImportarPlanilhaScreenState extends State<ImportarPlanilhaScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Importar planilha')),
-      body: switch (_passo) {
-        _Passo.arquivo => _passoArquivo(context),
-        _Passo.colunas => _passoColunas(context),
-        _Passo.revisao => _passoRevisao(context),
-        _Passo.resumo => _passoResumo(context),
-      },
+      body: ColunaCentral(
+        child: switch (_passo) {
+          _Passo.arquivo => _passoArquivo(context),
+          _Passo.colunas => _passoColunas(context),
+          _Passo.revisao => _passoRevisao(context),
+          _Passo.resumo => _passoResumo(context),
+        },
+      ),
     );
   }
 

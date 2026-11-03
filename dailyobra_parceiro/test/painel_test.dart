@@ -1,4 +1,5 @@
 import 'package:dailyobra_comum/dailyobra_comum.dart';
+import 'package:dailyobra_parceiro/screens/importar_planilha_screen.dart';
 import 'package:dailyobra_parceiro/screens/inicio_screen.dart';
 import 'package:dailyobra_parceiro/screens/minha_loja_screen.dart';
 import 'package:dailyobra_parceiro/screens/oferta_screen.dart';
@@ -124,6 +125,12 @@ void preparar({
 Finder valorDo(String rotulo, String valor) => find.descendant(
   of: find.widgetWithText(Indicador, rotulo),
   matching: find.text(valor),
+);
+
+/// Cartão da lista pelo selo (`Proposta nova` é a p1; `Pedido novo`, a p2).
+Finder cartao(String selo) => find.ancestor(
+  of: find.text(selo),
+  matching: find.byType(CartaoPropostaLoja),
 );
 
 void main() {
@@ -545,6 +552,153 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('Prazo para aprovar'), findsOneWidget);
         expect(find.text('Confirmado'), findsNothing);
+      });
+
+      testWidgets('propostas no computador abrem ao lado', (tester) async {
+        preparar();
+        await abrirLargura(
+          tester,
+          const PropostasScreen(),
+          1366,
+          escuro: escuro,
+        );
+        expect(find.text('Escolha uma proposta ou pedido'), findsOneWidget);
+        await tester.tap(find.byType(CartaoPropostaLoja).first);
+        await tester.pumpAndSettle();
+        expect(find.byType(PropostaLojaScreen), findsOneWidget);
+        expect(find.text('Escolha uma proposta ou pedido'), findsNothing);
+        expect(find.byType(AppBar), findsOneWidget);
+        expect(find.widgetWithText(OutlinedButton, 'Recusar'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('pedido aberto ao lado tem as ações no pé', (tester) async {
+        preparar();
+        await abrirLargura(
+          tester,
+          const PropostasScreen(),
+          1366,
+          escuro: escuro,
+        );
+        await tester.tap(find.textContaining('Pedidos'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byType(CartaoPropostaLoja).first);
+        await tester.pumpAndSettle();
+        expect(
+          find.widgetWithText(FilledButton, 'Marcar como em separação'),
+          findsOneWidget,
+        );
+        expect(find.byType(AppBar), findsOneWidget);
+        // A lista continua na tela: o pedido abriu ao lado, não por cima
+        expect(find.byType(PropostasScreen), findsOneWidget);
+      });
+
+      testWidgets('aceitar abre o pedido na mesma coluna', (tester) async {
+        preparar();
+        await abrirLargura(
+          tester,
+          const PropostasScreen(),
+          1366,
+          escuro: escuro,
+        );
+        await tester.tap(cartao('Proposta nova').first);
+        await tester.pumpAndSettle();
+        preparar(
+          propostas: [
+            proposta(
+              'p1',
+              status: StatusProposta.aceita,
+              pedido: pedido(StatusPedido.confirmado),
+            ),
+          ],
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(PedidoLojaScreen), findsOneWidget);
+        expect(
+          find.widgetWithText(FilledButton, 'Marcar como em separação'),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('proposta que some da lista volta ao aviso', (tester) async {
+        preparar();
+        await abrirLargura(
+          tester,
+          const PropostasScreen(),
+          1366,
+          escuro: escuro,
+        );
+        await tester.tap(cartao('Proposta nova').first);
+        await tester.pumpAndSettle();
+        preparar(propostas: [proposta('p2', modo: ModoProposta.pedido)]);
+        await tester.pumpAndSettle();
+        expect(find.text('Escolha uma proposta ou pedido'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('no celular a proposta abre em tela cheia', (tester) async {
+        preparar();
+        await abrir(tester, const PropostasScreen(), escuro: escuro);
+        await tester.tap(cartao('Proposta nova').first);
+        await tester.pumpAndSettle();
+        expect(find.byType(PropostaLojaScreen), findsOneWidget);
+        expect(find.byType(PropostasScreen), findsNothing);
+      });
+
+      testWidgets('tela aberta por cima fica numa coluna no computador', (
+        tester,
+      ) async {
+        preparar();
+        await abrirLargura(
+          tester,
+          const PedidoLojaScreen(pedidoId: 'ped1'),
+          1366,
+          escuro: escuro,
+        );
+        expect(
+          tester.getSize(find.byType(ListView).first).width,
+          lessThanOrEqualTo(760),
+        );
+        expect(
+          tester
+              .getSize(
+                find.widgetWithText(FilledButton, 'Marcar como em separação'),
+              )
+              .width,
+          lessThanOrEqualTo(760),
+        );
+      });
+
+      testWidgets('oferta e importação ficam numa coluna no computador', (
+        tester,
+      ) async {
+        preparar();
+        await abrirLargura(
+          tester,
+          OfertaScreen(itemId: 'cimento-cp2-50kg', salvar: (_) async {}),
+          1366,
+          escuro: escuro,
+        );
+        expect(
+          tester.getSize(find.byType(ListView).first).width,
+          lessThanOrEqualTo(760),
+        );
+        expect(
+          tester
+              .getSize(find.widgetWithText(FilledButton, 'Salvar preço'))
+              .width,
+          lessThanOrEqualTo(760),
+        );
+        await abrirLargura(
+          tester,
+          ImportarPlanilhaScreen(escolher: () async => null),
+          1366,
+          escuro: escuro,
+        );
+        expect(
+          tester.getSize(find.byType(ListView).first).width,
+          lessThanOrEqualTo(760),
+        );
       });
 
       testWidgets('minha loja salva a chave pix', (tester) async {

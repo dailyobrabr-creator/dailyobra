@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../services/loja_service.dart';
+import 'componentes.dart';
 
 /// Formata o CNPJ enquanto digita (00.000.000/0000-00).
 class _MascaraCnpj extends TextInputFormatter {
@@ -132,164 +133,170 @@ class _CadastroLojaScreenState extends State<CadastroLojaScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(
-          Espaco.s4,
-          Espaco.s4,
-          Espaco.s4,
-          Espaco.s8,
-        ),
-        children: [
-          Text('Sua loja no DailyObra', style: t.headlineSmall),
-          const SizedBox(height: Espaco.s1),
-          Text(
-            'Construtores da sua região vão ver seus preços e ofertas e mandar orçamentos para você.',
-            style: t.bodyMedium?.copyWith(color: c.textoSuave),
+      body: ColunaCentral(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(
+            Espaco.s4,
+            Espaco.s4,
+            Espaco.s4,
+            Espaco.s8,
           ),
-          const SizedBox(height: Espaco.s5),
-          CampoTexto(
-            rotulo: 'Nome da loja',
-            controller: _nome,
-            obrigatorio: true,
-            erro: _erros['nome'],
-            maxLength: 80,
-            acao: TextInputAction.next,
-          ),
-          const SizedBox(height: Espaco.s3),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Rotulo('CNPJ', obrigatorio: true),
-              TextField(
-                controller: _cnpj,
-                keyboardType: TextInputType.number,
-                textInputAction: TextInputAction.next,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9./-]')),
-                  _MascaraCnpj(),
-                ],
-                decoration: InputDecoration(
-                  hintText: '00.000.000/0000-00',
-                  errorText: _erros['cnpj'],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: Espaco.s3),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: CampoTexto(
-                  rotulo: 'Cidade',
-                  controller: _cidade,
-                  obrigatorio: true,
-                  erro: _erros['cidade'],
-                  acao: TextInputAction.next,
-                ),
-              ),
-              const SizedBox(width: Espaco.s3),
-              SizedBox(
-                width: 96,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Rotulo('UF', obrigatorio: true),
-                    DropdownButtonFormField<String>(
-                      initialValue: _uf,
-                      isExpanded: true,
-                      hint: const Text('UF'),
-                      decoration: InputDecoration(
-                        errorText: _erros['uf'],
-                        errorMaxLines: 2,
-                      ),
-                      items: [
-                        for (final u in ufs)
-                          DropdownMenuItem(value: u, child: Text(u)),
-                      ],
-                      onChanged: (u) => setState(() => _uf = u),
-                    ),
+          children: [
+            Text('Sua loja no DailyObra', style: t.headlineSmall),
+            const SizedBox(height: Espaco.s1),
+            Text(
+              'Construtores da sua região vão ver seus preços e ofertas e mandar orçamentos para você.',
+              style: t.bodyMedium?.copyWith(color: c.textoSuave),
+            ),
+            const SizedBox(height: Espaco.s5),
+            CampoTexto(
+              rotulo: 'Nome da loja',
+              controller: _nome,
+              obrigatorio: true,
+              erro: _erros['nome'],
+              maxLength: 80,
+              acao: TextInputAction.next,
+            ),
+            const SizedBox(height: Espaco.s3),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Rotulo('CNPJ', obrigatorio: true),
+                TextField(
+                  controller: _cnpj,
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.next,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9./-]')),
+                    _MascaraCnpj(),
                   ],
+                  decoration: InputDecoration(
+                    hintText: '00.000.000/0000-00',
+                    errorText: _erros['cnpj'],
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: Espaco.s3),
-          CampoTexto(
-            rotulo: 'WhatsApp da loja',
-            controller: _whatsapp,
-            teclado: TextInputType.phone,
-            dica: '(44) 99999-0000',
-            erro: _erros['whatsapp'],
-            acao: TextInputAction.next,
-          ),
-          const SizedBox(height: Espaco.s3),
-          CampoTexto(
-            rotulo: 'Endereço',
-            controller: _endereco,
-            maxLength: 200,
-            acao: TextInputAction.next,
-          ),
-          const SizedBox(height: Espaco.s3),
-          CampoTexto(
-            rotulo: 'Horário de atendimento',
-            controller: _horario,
-            dica: 'Seg a sex 7h às 18h, sáb 7h às 12h',
-            maxLength: 120,
-            acao: TextInputAction.next,
-          ),
-          const SizedBox(height: Espaco.s3),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: CampoTexto(
-                  rotulo: 'Frete (R\$)',
-                  controller: _frete,
-                  teclado: const TextInputType.numberWithOptions(decimal: true),
-                  dica: '0 = grátis',
-                  erro: _erros['frete'],
-                ),
-              ),
-              const SizedBox(width: Espaco.s3),
-              Expanded(
-                child: CampoTexto(
-                  rotulo: 'Pedido mínimo (R\$)',
-                  controller: _minimo,
-                  teclado: const TextInputType.numberWithOptions(decimal: true),
-                  dica: '0 = sem mínimo',
-                  erro: _erros['minimo'],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: Espaco.s3),
-          CampoTexto(
-            rotulo: 'Sobre a loja',
-            controller: _descricao,
-            maxLength: 600,
-            dica: 'O que a loja tem de melhor',
-          ),
-          const SizedBox(height: Espaco.s5),
-          if (_erroServidor != null) ...[
-            Aviso(_erroServidor!),
+              ],
+            ),
             const SizedBox(height: Espaco.s3),
-          ],
-          if (_erros.isNotEmpty) ...[
-            const Aviso('Confira os campos marcados.', tom: TomSelo.aviso),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: CampoTexto(
+                    rotulo: 'Cidade',
+                    controller: _cidade,
+                    obrigatorio: true,
+                    erro: _erros['cidade'],
+                    acao: TextInputAction.next,
+                  ),
+                ),
+                const SizedBox(width: Espaco.s3),
+                SizedBox(
+                  width: 96,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Rotulo('UF', obrigatorio: true),
+                      DropdownButtonFormField<String>(
+                        initialValue: _uf,
+                        isExpanded: true,
+                        hint: const Text('UF'),
+                        decoration: InputDecoration(
+                          errorText: _erros['uf'],
+                          errorMaxLines: 2,
+                        ),
+                        items: [
+                          for (final u in ufs)
+                            DropdownMenuItem(value: u, child: Text(u)),
+                        ],
+                        onChanged: (u) => setState(() => _uf = u),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: Espaco.s3),
+            CampoTexto(
+              rotulo: 'WhatsApp da loja',
+              controller: _whatsapp,
+              teclado: TextInputType.phone,
+              dica: '(44) 99999-0000',
+              erro: _erros['whatsapp'],
+              acao: TextInputAction.next,
+            ),
+            const SizedBox(height: Espaco.s3),
+            CampoTexto(
+              rotulo: 'Endereço',
+              controller: _endereco,
+              maxLength: 200,
+              acao: TextInputAction.next,
+            ),
+            const SizedBox(height: Espaco.s3),
+            CampoTexto(
+              rotulo: 'Horário de atendimento',
+              controller: _horario,
+              dica: 'Seg a sex 7h às 18h, sáb 7h às 12h',
+              maxLength: 120,
+              acao: TextInputAction.next,
+            ),
+            const SizedBox(height: Espaco.s3),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: CampoTexto(
+                    rotulo: 'Frete (R\$)',
+                    controller: _frete,
+                    teclado: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    dica: '0 = grátis',
+                    erro: _erros['frete'],
+                  ),
+                ),
+                const SizedBox(width: Espaco.s3),
+                Expanded(
+                  child: CampoTexto(
+                    rotulo: 'Pedido mínimo (R\$)',
+                    controller: _minimo,
+                    teclado: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    dica: '0 = sem mínimo',
+                    erro: _erros['minimo'],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: Espaco.s3),
+            CampoTexto(
+              rotulo: 'Sobre a loja',
+              controller: _descricao,
+              maxLength: 600,
+              dica: 'O que a loja tem de melhor',
+            ),
+            const SizedBox(height: Espaco.s5),
+            if (_erroServidor != null) ...[
+              Aviso(_erroServidor!),
+              const SizedBox(height: Espaco.s3),
+            ],
+            if (_erros.isNotEmpty) ...[
+              const Aviso('Confira os campos marcados.', tom: TomSelo.aviso),
+              const SizedBox(height: Espaco.s3),
+            ],
+            FilledButton(
+              onPressed: _enviando ? null : _cadastrar,
+              child: Text(_enviando ? 'Cadastrando…' : 'Cadastrar loja'),
+            ),
+            const SizedBox(height: Espaco.s2),
+            Text(
+              'Logo, capa e preços você coloca depois, no painel da loja.',
+              textAlign: TextAlign.center,
+              style: t.bodySmall?.copyWith(color: c.textoSuave),
+            ),
           ],
-          FilledButton(
-            onPressed: _enviando ? null : _cadastrar,
-            child: Text(_enviando ? 'Cadastrando…' : 'Cadastrar loja'),
-          ),
-          const SizedBox(height: Espaco.s2),
-          Text(
-            'Logo, capa e preços você coloca depois, no painel da loja.',
-            textAlign: TextAlign.center,
-            style: t.bodySmall?.copyWith(color: c.textoSuave),
-          ),
-        ],
+        ),
       ),
     );
   }

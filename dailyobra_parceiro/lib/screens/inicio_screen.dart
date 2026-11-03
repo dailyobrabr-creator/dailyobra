@@ -255,8 +255,19 @@ class _Abertura extends StatelessWidget {
 
 /// Cartão de proposta ou pedido na lista da loja.
 class CartaoPropostaLoja extends StatelessWidget {
-  const CartaoPropostaLoja({super.key, required this.proposta});
+  const CartaoPropostaLoja({
+    super.key,
+    required this.proposta,
+    this.onAbrir,
+    this.selecionado = false,
+  });
   final PropostaResumo proposta;
+
+  /// Propostas no computador: abre ao lado da lista em vez de empilhar a tela.
+  final ValueChanged<PropostaResumo>? onAbrir;
+
+  /// A que está aberta ao lado da lista.
+  final bool selecionado;
 
   @override
   Widget build(BuildContext context) {
@@ -267,22 +278,25 @@ class CartaoPropostaLoja extends StatelessWidget {
     final (selo, tom) = seloParaLoja(p);
     final n = p.itens.length;
     final urgente = p.status == StatusProposta.enviada;
+    final abrir = onAbrir;
     return Material(
-      color: c.superficie,
+      color: selecionado ? c.superficieSutil : c.superficie,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Raio.lg),
         side: BorderSide(color: urgente ? c.acao : c.borda),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => p.pedido == null
-                ? PropostaLojaScreen(id: p.id)
-                : PedidoLojaScreen(pedidoId: p.pedido!.id),
-          ),
-        ),
+        onTap: abrir != null
+            ? () => abrir(p)
+            : () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => p.pedido == null
+                      ? PropostaLojaScreen(id: p.id)
+                      : PedidoLojaScreen(pedidoId: p.pedido!.id),
+                ),
+              ),
         child: Padding(
           padding: const EdgeInsets.all(Espaco.s3),
           child: Column(

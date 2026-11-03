@@ -11,6 +11,23 @@ void irParaAba(BuildContext context, Aba aba) {
   abaAtual.value = aba;
 }
 
+/// Telas abertas por cima da navegação: no computador o conteúdo fica numa coluna de no máximo
+/// 760 px. Com `heightFactor: 1` serve no `body` e no `bottomNavigationBar` do `Scaffold`.
+class ColunaCentral extends StatelessWidget {
+  const ColunaCentral({super.key, required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.topCenter,
+    heightFactor: 1,
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 760),
+      child: child,
+    ),
+  );
+}
+
 void avisar(BuildContext context, String texto) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()

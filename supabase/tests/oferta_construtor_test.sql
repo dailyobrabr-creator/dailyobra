@@ -42,7 +42,7 @@ create function pg_temp.p(k text) returns public.propostas language sql as $$
 create function pg_temp.oferta(k text, valor numeric, mensagem text default 'null') returns text language sql as $$
   select format('select public.fazer_oferta(%L, %s, %s)', pg_temp.pegar(k), valor, mensagem) $$;
 create function pg_temp.resposta(k text, aprovar boolean, motivo text default 'null') returns text language sql as $$
-  select format('select public.responder_oferta(%L, %s, %s)', pg_temp.pegar(k), aprovar, motivo) $$;
+  select format('select public.responder_oferta(%L, %L, %s)', pg_temp.pegar(k), aprovar, motivo) $$;
 
 insert into auth.users (id, email, aud, role) values
   ('00000000-0000-0000-0000-00000000d001', 'dono.a@teste.dailyobra', 'authenticated', 'authenticated'),
@@ -166,6 +166,23 @@ select pg_temp.conferir('saldo reservado acima da oferta volta para a carteira',
   and (select coalesce(sum(valor), 0) from public.carteira_lancamentos where proposta_id = pg_temp.pegar('saldo')::uuid and conta = 'disponivel') = -600
   and (select coalesce(sum(valor), 0) from public.carteira_lancamentos where proposta_id = pg_temp.pegar('saldo')::uuid and conta = 'reservado') = 0,
   pg_temp.pegar('aprova saldo'));
+
+-- A resposta normal continua valendo sem oferta pendente
+select pg_temp.proposta('sem oferta', 'enviada');
+select pg_temp.proposta('depois da recusa', 'enviada');
+select pg_temp.como('00000000-0000-0000-0000-00000000c001');
+select pg_temp.tentar('oferta recusada', pg_temp.oferta('depois da recusa', 700));
+select pg_temp.como('00000000-0000-0000-0000-00000000d001');
+select pg_temp.tentar('recusa 2', pg_temp.resposta('depois da recusa', false, '''Abaixo do que podemos'''));
+select pg_temp.tentar('aceita sem oferta', format('select public.responder_proposta(%L, ''aceitar'', null, null, null, null, null)', pg_temp.pegar('sem oferta')));
+select pg_temp.tentar('aceita depois', format('select public.responder_proposta(%L, ''aceitar'', null, null, null, null, null)', pg_temp.pegar('depois da recusa')));
+select pg_temp.admin();
+select pg_temp.conferir('sem oferta a loja responde como antes',
+  pg_temp.pegar('aceita sem oferta') = 'passou' and (pg_temp.p('sem oferta')).status = 'aceita' and (pg_temp.p('sem oferta')).total = 1050,
+  pg_temp.pegar('aceita sem oferta'));
+select pg_temp.conferir('depois de recusar a oferta a loja responde pela tela normal',
+  pg_temp.pegar('aceita depois') = 'passou' and (pg_temp.p('depois da recusa')).status = 'aceita' and (pg_temp.p('depois da recusa')).total = 1050,
+  pg_temp.pegar('aceita depois'));
 
 select pg_temp.admin();
 do $$ declare total int; ok int; falhas text; begin

@@ -16,27 +16,6 @@ String nomeDoRelatorio(SemanaObra semana) =>
 List<FotoDia> fotosDoRelatorio(ResumoDaSemana resumo) =>
     resumo.fotos.reversed.take(fotosNoRelatorio).toList().reversed.toList();
 
-pw.Widget _numero(String rotulo, String valor) => pw.Expanded(
-  child: pw.Column(
-    crossAxisAlignment: pw.CrossAxisAlignment.start,
-    children: [
-      pw.Text(
-        pdfLimpo(rotulo),
-        style: const pw.TextStyle(fontSize: 8.5, color: pdfSuave),
-      ),
-      pw.SizedBox(height: 2),
-      pw.Text(
-        pdfLimpo(valor),
-        style: pw.TextStyle(
-          fontSize: 13,
-          fontWeight: pw.FontWeight.bold,
-          color: pdfTexto,
-        ),
-      ),
-    ],
-  ),
-);
-
 /// A semana da obra como documento para o cliente: sem valores, com a marca de quem assina.
 Future<Uint8List> pdfDaSemana({
   required Obra obra,
@@ -123,10 +102,10 @@ Future<Uint8List> pdfDaSemana({
         pw.Row(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            _numero('Andamento', '${relatorio.andamento}%'),
-            _numero('Dias registrados', '${resumo.dias.length}'),
-            _numero('Pessoas por dia', '${resumo.mediaDePessoas}'),
-            _numero(
+            pdfNumero('Andamento', '${relatorio.andamento}%'),
+            pdfNumero('Dias registrados', '${resumo.dias.length}'),
+            pdfNumero('Pessoas por dia', '${resumo.mediaDePessoas}'),
+            pdfNumero(
               'Previsão de término',
               termino == null ? '-' : '${dataCurta(termino)}/${termino.year}',
             ),

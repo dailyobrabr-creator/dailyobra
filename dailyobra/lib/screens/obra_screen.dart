@@ -6,12 +6,14 @@ import '../services/carrinho_service.dart';
 import '../services/catalogo_service.dart';
 import '../services/obras_service.dart';
 import 'caixa_screen.dart';
+import 'checklists_screen.dart';
 import 'compras_screen.dart';
 import 'componentes.dart';
 import 'contratos_screen.dart';
 import 'cronograma_screen.dart';
 import 'diario_screen.dart';
 import 'dinheiro_screen.dart';
+import 'documentos_screen.dart';
 import 'equipe_screen.dart';
 import 'mao_de_obra_screen.dart';
 import 'mudancas_screen.dart';
@@ -226,6 +228,12 @@ class _ObraScreenState extends State<ObraScreen> {
             ],
             if (funcao.veMudancas) ...[
               EntradaDoRelatorio(obra: obra),
+              const SizedBox(height: Espaco.s2),
+            ],
+            EntradaDosDocumentos(obra: obra),
+            const SizedBox(height: Espaco.s2),
+            if (funcao.inspeciona) ...[
+              EntradaDosChecklists(obra: obra),
               const SizedBox(height: Espaco.s2),
             ],
             EntradaDaEquipe(obra: obra),

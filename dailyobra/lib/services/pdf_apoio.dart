@@ -128,6 +128,47 @@ pw.Widget pdfFoto(pw.MemoryImage imagem, String legenda) => pw.SizedBox(
   ),
 );
 
+pw.Widget pdfAssinatura(String rotulo, String nome) => pw.Expanded(
+  child: pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.start,
+    children: [
+      pw.SizedBox(height: 34),
+      pw.Container(height: 0.6, color: pdfTexto),
+      pw.SizedBox(height: 4),
+      pw.Text(
+        nome.isEmpty ? rotulo : pdfLimpo(nome),
+        style: const pw.TextStyle(fontSize: 9, color: pdfTexto),
+      ),
+      if (nome.isNotEmpty)
+        pw.Text(
+          rotulo,
+          style: const pw.TextStyle(fontSize: 8, color: pdfSuave),
+        ),
+    ],
+  ),
+);
+
+pw.Widget pdfNumero(String rotulo, String valor) => pw.Expanded(
+  child: pw.Column(
+    crossAxisAlignment: pw.CrossAxisAlignment.start,
+    children: [
+      pw.Text(
+        pdfLimpo(rotulo),
+        style: const pw.TextStyle(fontSize: 8.5, color: pdfSuave),
+      ),
+      pw.SizedBox(height: 2),
+      pw.Text(
+        pdfLimpo(valor),
+        style: pw.TextStyle(
+          fontSize: 13,
+          fontWeight: pw.FontWeight.bold,
+          color: pdfTexto,
+        ),
+      ),
+    ],
+  ),
+);
+
 String pdfLugar(Obra obra) => [
   obra.dados.endereco.trim(),
   [

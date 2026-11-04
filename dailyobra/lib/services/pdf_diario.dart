@@ -15,26 +15,6 @@ String _quantidade(double? q) {
       : q.toString().replaceAll('.', ',');
 }
 
-pw.Widget _assinatura(String rotulo, String nome) => pw.Expanded(
-  child: pw.Column(
-    crossAxisAlignment: pw.CrossAxisAlignment.start,
-    children: [
-      pw.SizedBox(height: 34),
-      pw.Container(height: 0.6, color: pdfTexto),
-      pw.SizedBox(height: 4),
-      pw.Text(
-        nome.isEmpty ? rotulo : pdfLimpo(nome),
-        style: const pw.TextStyle(fontSize: 9, color: pdfTexto),
-      ),
-      if (nome.isNotEmpty)
-        pw.Text(
-          rotulo,
-          style: const pw.TextStyle(fontSize: 8, color: pdfSuave),
-        ),
-    ],
-  ),
-);
-
 /// O dia como documento: pronto para mandar ao cliente ou guardar na pasta da obra.
 Future<Uint8List> pdfDoDia({
   required Obra obra,
@@ -228,9 +208,9 @@ Future<Uint8List> pdfDoDia({
         pw.Row(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            _assinatura('Responsável pela obra', obra.dados.responsavel),
+            pdfAssinatura('Responsável pela obra', obra.dados.responsavel),
             pw.SizedBox(width: 32),
-            _assinatura('Cliente ou fiscalização', ''),
+            pdfAssinatura('Cliente ou fiscalização', ''),
           ],
         ),
       ],

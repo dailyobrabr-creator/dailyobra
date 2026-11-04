@@ -132,7 +132,7 @@ select pg_temp.tentar('fora muda de outra obra', format('select public.salvar_ch
 select pg_temp.como('mestre');
 select pg_temp.tentar('sem nome', format('select public.salvar_checklist(%L, null, %L)', pg_temp.pegar('O'), pg_temp.lista(' ', array['ok'])));
 select pg_temp.tentar('sem itens', format('select public.salvar_checklist(%L, null, %L)', pg_temp.pegar('O'), json_build_object('titulo', 'x', 'data', pg_temp.pegar('hoje'), 'itens', json_build_array())));
-select pg_temp.tentar('futuro', format('select public.salvar_checklist(%L, null, %L)', pg_temp.pegar('O'), json_build_object('titulo', 'x', 'data', pg_temp.pegar('futuro'), 'itens', json_build_array(json_build_object('texto', 'a')))));
+select pg_temp.tentar('data futura', format('select public.salvar_checklist(%L, null, %L)', pg_temp.pegar('O'), json_build_object('titulo', 'x', 'data', pg_temp.pegar('futuro'), 'itens', json_build_array(json_build_object('texto', 'a')))));
 select pg_temp.tentar('resposta errada', format('select public.salvar_checklist(%L, null, %L)', pg_temp.pegar('O'), pg_temp.lista('x', array['talvez'])));
 select pg_temp.tentar('foto alheia', format('select public.salvar_checklist(%L, null, %L)', pg_temp.pegar('O'), json_build_object('titulo', 'x', 'data', pg_temp.pegar('hoje'), 'itens', json_build_array(json_build_object('texto', 'a', 'foto_path', pg_temp.pegar('O2') || '/f.jpg')))));
 select pg_temp.tentar('falta responder', format('select public.salvar_checklist(%L, %L, %L, true)', pg_temp.pegar('O'), pg_temp.pegar('l1'), pg_temp.lista('Segurança', array['ok', null])));
@@ -155,11 +155,11 @@ select pg_temp.conferir('empreiteiro e cliente não entram',
 select pg_temp.conferir('quem é de fora não entra', pg_temp.pegar('fora salva') = 'Só o responsável, o mestre e o estagiário preenchem checklists.', pg_temp.pegar('fora salva'));
 select pg_temp.conferir('checklist de outra obra não muda pela obra dele', pg_temp.pegar('fora muda de outra obra') = 'Checklist não encontrado.', pg_temp.pegar('fora muda de outra obra'));
 select pg_temp.conferir('checklist precisa de nome e itens', pg_temp.pegar('sem nome') = 'Diga o nome do checklist.' and pg_temp.pegar('sem itens') = 'O checklist precisa de pelo menos um item.', pg_temp.pegar('sem itens'));
-select pg_temp.conferir('data futura recusada', pg_temp.pegar('futuro') = 'Escolha uma data até hoje.', pg_temp.pegar('futuro'));
+select pg_temp.conferir('data futura recusada', pg_temp.pegar('data futura') = 'Escolha uma data até hoje.', pg_temp.pegar('data futura'));
 select pg_temp.conferir('resposta só da lista', pg_temp.pegar('resposta errada') = 'Resposta inválida.', pg_temp.pegar('resposta errada'));
 select pg_temp.conferir('foto de outra obra recusada', pg_temp.pegar('foto alheia') = 'Foto de outra obra.', pg_temp.pegar('foto alheia'));
 select pg_temp.conferir('não conclui com item sem resposta', pg_temp.pegar('falta responder') = 'Responda todos os itens antes de concluir.', pg_temp.pegar('falta responder'));
-select pg_temp.conferir('concluir não mudou o que sumiu: tudo passou', pg_temp.pegar('conclui') = 'passou', pg_temp.pegar('conclui'));
+select pg_temp.conferir('quem lidera conclui com tudo respondido', pg_temp.pegar('conclui') = 'passou', pg_temp.pegar('conclui'));
 select pg_temp.conferir('cada item não conforme vira uma pendência', pg_temp.pegar('pendencias vistas') = '2', pg_temp.pegar('pendencias vistas'));
 select pg_temp.conferir('pendência explica o que aconteceu',
   exists (select 1 from public.obra_pendencias where obra_id = pg_temp.pegar('O')::uuid and descricao = 'Segurança: Item 2 (Falta guarda-corpo)' and etapa = 'alvenaria' and situacao = 'aberta'));

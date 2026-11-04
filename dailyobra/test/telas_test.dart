@@ -13,6 +13,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 
+import 'apoio.dart' show rolarAte;
+
 Obra obraExemplo({
   String id = 'a1',
   Papel papel = Papel.admin,

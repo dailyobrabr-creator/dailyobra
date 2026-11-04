@@ -50,6 +50,132 @@ void avisar(BuildContext context, String texto) {
     ..showSnackBar(SnackBar(content: Text(texto)));
 }
 
+/// Linha na tela da obra que leva a uma parte dela. Com [alerta], o texto vem em destaque e com ícone.
+class EntradaDaObra extends StatelessWidget {
+  const EntradaDaObra({
+    super.key,
+    required this.icone,
+    required this.titulo,
+    required this.detalhe,
+    required this.aoTocar,
+    this.alerta = false,
+  });
+
+  final IconData icone;
+  final String titulo;
+  final String detalhe;
+  final VoidCallback aoTocar;
+  final bool alerta;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final cor = alerta ? context.cores.erro : context.cores.textoSuave;
+    return Painel(
+      child: InkWell(
+        onTap: aoTocar,
+        child: Padding(
+          padding: const EdgeInsets.all(Espaco.s4),
+          child: Row(
+            children: [
+              Icon(icone, color: context.cores.textoSuave),
+              const SizedBox(width: Espaco.s3),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(titulo, style: t.titleSmall),
+                    Row(
+                      children: [
+                        if (alerta) ...[
+                          Icon(Icons.warning_amber, size: 14, color: cor),
+                          const SizedBox(width: Espaco.s1),
+                        ],
+                        Expanded(
+                          child: Text(
+                            detalhe,
+                            style: t.bodySmall?.copyWith(color: cor),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: context.cores.textoSuave),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Campo de data: tocar abre o calendário. Mostra "Escolher data" enquanto estiver vazio.
+class CampoData extends StatelessWidget {
+  const CampoData({
+    super.key,
+    required this.rotulo,
+    required this.valor,
+    required this.aoMudar,
+    this.ate,
+    this.limpavel = true,
+  });
+
+  final String rotulo;
+  final DateTime? valor;
+  final ValueChanged<DateTime?> aoMudar;
+
+  /// Última data que pode ser escolhida.
+  final DateTime? ate;
+  final bool limpavel;
+
+  Future<void> _escolher(BuildContext context) async {
+    final ultima = ate ?? DateTime(2100);
+    final atual = valor ?? DateTime.now();
+    final data = await showDatePicker(
+      context: context,
+      initialDate: atual.isAfter(ultima) ? ultima : atual,
+      firstDate: DateTime(2000),
+      lastDate: ultima,
+      helpText: rotulo,
+    );
+    if (data != null) aoMudar(data);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final v = valor;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Rotulo(rotulo),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _escolher(context),
+                icon: const Icon(Icons.calendar_today_outlined, size: 16),
+                label: Text(
+                  v == null
+                      ? 'Escolher data'
+                      : '${v.day.toString().padLeft(2, '0')}/${v.month.toString().padLeft(2, '0')}/${v.year}',
+                ),
+              ),
+            ),
+            if (limpavel && v != null)
+              IconButton(
+                tooltip: 'Limpar $rotulo',
+                onPressed: () => aoMudar(null),
+                icon: const Icon(Icons.close, size: 18),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
 /// − quantidade + ; tocar no número abre o teclado para digitar.
 class SeletorQuantidade extends StatelessWidget {
   const SeletorQuantidade({

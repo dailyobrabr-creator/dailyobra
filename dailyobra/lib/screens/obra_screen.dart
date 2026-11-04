@@ -6,9 +6,11 @@ import '../services/carrinho_service.dart';
 import '../services/catalogo_service.dart';
 import '../services/obras_service.dart';
 import 'componentes.dart';
+import 'cronograma_screen.dart';
 import 'diario_screen.dart';
 import 'equipe_screen.dart';
 import 'obra_form_screen.dart';
+import 'pendencias_screen.dart';
 
 class ObraScreen extends StatefulWidget {
   const ObraScreen({super.key, required this.id});
@@ -93,6 +95,17 @@ class _ObraScreenState extends State<ObraScreen> {
     final calculo = Calculo.de(obra.parametros);
     final funcao = obra.funcao;
     final admin = funcao.administra;
+    final agora = DateTime.now();
+    final resumo = resumirCronograma(
+      etapas: [
+        for (final e in calculo.resultado?.etapas ?? const <LinhaResultado>[])
+          e.etapa,
+      ],
+      datas: obra.cronograma,
+      status: obra.statusEtapas,
+      hoje: agora,
+    );
+    final alerta = alertaDaObra(resumo, obra.pendenciasVencidas(agora));
     final endereco = [
       obra.dados.endereco,
       [obra.dados.cidade, obra.dados.uf].where((s) => s.isNotEmpty).join(' – '),
@@ -164,8 +177,18 @@ class _ObraScreenState extends State<ObraScreen> {
               ),
               const SizedBox(height: Espaco.s4),
             ],
+            if (alerta != null) ...[
+              Aviso(alerta, tom: TomSelo.aviso),
+              const SizedBox(height: Espaco.s4),
+            ],
             EntradaDoDiario(obra: obra),
             const SizedBox(height: Espaco.s4),
+            EntradaDoCronograma(obra: obra, resumo: resumo),
+            const SizedBox(height: Espaco.s2),
+            if (funcao.registra) ...[
+              EntradaDasPendencias(obra: obra),
+              const SizedBox(height: Espaco.s2),
+            ],
             EntradaDaEquipe(obra: obra),
             const SizedBox(height: Espaco.s4),
             if (calculo.resultado == null)

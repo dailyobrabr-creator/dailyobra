@@ -251,8 +251,16 @@ class _CartaoObra extends StatelessWidget {
     final pct = progresso(etapas, obra.statusEtapas);
     final atual = etapaAtual(etapas, obra.statusEtapas);
     final situacoes = obra.statusEtapas.values;
+    final atrasada = !resumirCronograma(
+      etapas: [for (final e in etapas) e.etapa],
+      datas: obra.cronograma,
+      status: obra.statusEtapas,
+      hoje: DateTime.now(),
+    ).emDia;
     final selo = situacoes.contains(StatusEtapa.bloqueada)
         ? const Selo('Com bloqueio', tom: TomSelo.erro)
+        : atrasada
+        ? const Selo('Atrasada', tom: TomSelo.erro)
         : etapas.isNotEmpty && atual == null
         ? const Selo('Concluída', tom: TomSelo.sucesso)
         : situacoes.any(

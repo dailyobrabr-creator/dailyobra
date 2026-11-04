@@ -4,6 +4,7 @@
 
 import '../orcamento/orcamento.dart';
 import '../orcamento/tabelas.dart';
+import 'cronograma.dart';
 import 'equipe.dart';
 
 enum StatusEtapa {
@@ -269,6 +270,8 @@ class Obra {
     required this.criadaEm,
     required this.atualizadaEm,
     this.pessoas = 1,
+    this.cronograma = const {},
+    this.prazosAbertos = const [],
   });
 
   final String id;
@@ -282,6 +285,15 @@ class Obra {
 
   /// Quantas pessoas estão na equipe.
   final int pessoas;
+
+  /// Datas de cada etapa; etapa sem linha aqui não tem datas.
+  final Map<EtapaId, DatasEtapa> cronograma;
+
+  /// Prazo de cada pendência aberta, nulo quando não tem prazo. O cliente não vê pendências.
+  final List<DateTime?> prazosAbertos;
+
+  int get pendenciasAbertas => prazosAbertos.length;
+  int pendenciasVencidas(DateTime hoje) => prazosAbertos.where((p) => p != null && diasEntre(p, hoje) > 0).length;
 
   String get nome => dados.nome;
 
@@ -306,6 +318,8 @@ class Obra {
         criadaEm: criadaEm,
         atualizadaEm: atualizadaEm,
         pessoas: pessoas,
+        cronograma: cronograma,
+        prazosAbertos: prazosAbertos,
       );
 }
 

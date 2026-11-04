@@ -488,41 +488,13 @@ class EntradaDaEquipe extends StatelessWidget {
   final Obra obra;
 
   @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    return Painel(
-      child: InkWell(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => EquipeScreen(obra: obra)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(Espaco.s4),
-          child: Row(
-            children: [
-              Icon(Icons.groups_outlined, color: context.cores.textoSuave),
-              const SizedBox(width: Espaco.s3),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Equipe', style: t.titleSmall),
-                    Text(
-                      obra.pessoas == 1
-                          ? '1 pessoa'
-                          : '${obra.pessoas} pessoas',
-                      style: t.bodySmall?.copyWith(
-                        color: context.cores.textoSuave,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right, color: context.cores.textoSuave),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => EntradaDaObra(
+    icone: Icons.groups_outlined,
+    titulo: 'Equipe',
+    detalhe: obra.pessoas == 1 ? '1 pessoa' : '${obra.pessoas} pessoas',
+    aoTocar: () => Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => EquipeScreen(obra: obra)),
+    ),
+  );
 }

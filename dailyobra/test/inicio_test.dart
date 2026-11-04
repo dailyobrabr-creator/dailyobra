@@ -83,6 +83,43 @@ void main() {
         await rolarAteOFim(tester);
       });
 
+      testWidgets('início avisa da obra atrasada', (tester) async {
+        preparar();
+        final etapa = Calculo.de(const ParametrosObra(area: '120'))
+            .resultado!
+            .etapas
+            .first
+            .etapa;
+        ObrasService.instance.definirParaTeste(
+          obras: [
+            Obra(
+              id: 'o1',
+              papel: Papel.admin,
+              dados: const DadosObra(nome: 'Residência Silva'),
+              parametros: const ParametrosObra(area: '120'),
+              statusEtapas: const {},
+              cronograma: {
+                etapa: DatasEtapa(
+                  inicioPrevisto: DateTime(hoje.year, hoje.month, hoje.day - 9),
+                  fimPrevisto: DateTime(hoje.year, hoje.month, hoje.day - 5),
+                ),
+              },
+              criadaEm: DateTime(2026, 11),
+              atualizadaEm: DateTime(2026, 11),
+            ),
+          ],
+        );
+        await abrir(tester, const InicioScreen(), escuro: escuro);
+        await rolarAte(
+          tester,
+          find.text('1 etapa atrasada, a maior com 5 dias.'),
+        );
+        expect(
+          find.text('1 etapa atrasada, a maior com 5 dias.'),
+          findsOneWidget,
+        );
+      });
+
       testWidgets('início sem lojas orienta o construtor', (tester) async {
         preparar(lojas: const [], ofertas: const []);
         await abrir(tester, const InicioScreen(), escuro: escuro);

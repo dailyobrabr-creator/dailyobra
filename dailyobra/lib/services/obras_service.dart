@@ -90,7 +90,7 @@ class ObrasService extends ChangeNotifier {
   }
 
   static const _colunas =
-      'id, nome, cidade, uf, endereco, cep, logradouro, numero, complemento, bairro, responsavel, data_inicio, parametros, created_at, updated_at, obra_etapas(etapa, status), obra_membros(user_id, papel, funcao)';
+      'id, nome, cidade, uf, endereco, cep, logradouro, numero, complemento, bairro, responsavel, data_inicio, parametros, created_at, updated_at, obra_etapas(etapa, status, inicio_previsto, fim_previsto, inicio_real, fim_real), obra_membros(user_id, papel, funcao), obra_pendencias(situacao, prazo)';
 
   void _limpar() {
     _pedido++;
@@ -122,9 +122,15 @@ class ObrasService extends ChangeNotifier {
 
   Obra _paraObra(Map<String, dynamic> l, String usuario) {
     final status = <EtapaId, StatusEtapa>{};
+    final cronograma = <EtapaId, DatasEtapa>{};
     for (final e in (l['obra_etapas'] as List? ?? const [])) {
       final id = EtapaId.doCodigo(e['etapa'] as String);
-      if (id != null) status[id] = StatusEtapa.doCodigo(e['status'] as String?);
+      if (id != null) {
+        status[id] = StatusEtapa.doCodigo(e['status'] as String?);
+        cronograma[id] = DatasEtapa.fromJson(
+          Map<String, dynamic>.from(e as Map),
+        );
+      }
     }
     final membros = l['obra_membros'] as List? ?? const [];
     String? papel;
@@ -140,6 +146,12 @@ class ObrasService extends ChangeNotifier {
       papel: Papel.doCodigo(papel),
       funcao: funcao == null ? null : FuncaoObra.doCodigo(funcao),
       pessoas: membros.length,
+      cronograma: cronograma,
+      prazosAbertos: [
+        for (final p in (l['obra_pendencias'] as List? ?? const []))
+          if (p['situacao'] == 'aberta')
+            p['prazo'] == null ? null : DateTime.parse(p['prazo'] as String),
+      ],
       dados: DadosObra(
         nome: l['nome'] as String? ?? '',
         cidade: l['cidade'] as String? ?? '',

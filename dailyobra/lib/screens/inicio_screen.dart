@@ -495,6 +495,14 @@ class _Vitrine {
     final feitas = etapas
         .where((e) => obra.statusEtapas[e.etapa] == StatusEtapa.concluida)
         .length;
+    final agora = DateTime.now();
+    final resumo = resumirCronograma(
+      etapas: [for (final e in etapas) e.etapa],
+      datas: obra.cronograma,
+      status: obra.statusEtapas,
+      hoje: agora,
+    );
+    final alerta = alertaDaObra(resumo, obra.pendenciasVencidas(agora));
     return _Cartao(
       onTap: () => _abrir(ObraScreen(id: obra.id)),
       child: Column(
@@ -538,6 +546,22 @@ class _Vitrine {
               ),
             ],
           ),
+          if (alerta != null) ...[
+            const SizedBox(height: Espaco.s2),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.warning_amber, size: 14, color: c.erro),
+                const SizedBox(width: Espaco.s1),
+                Expanded(
+                  child: Text(
+                    alerta,
+                    style: t.bodySmall?.copyWith(color: c.erro),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

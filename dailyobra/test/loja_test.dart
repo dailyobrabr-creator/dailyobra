@@ -2,6 +2,7 @@ import 'package:dailyobra/screens/loja_screen.dart';
 import 'package:dailyobra/services/carrinho_service.dart';
 import 'package:dailyobra/services/catalogo_service.dart';
 import 'package:dailyobra_comum/dailyobra_comum.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -113,6 +114,45 @@ void main() {
         await abrir(tester, const LojaScreen(lojaId: 'a'), escuro: escuro);
         await rolarAte(tester, find.text('Básico · 2'));
         expect(find.byType(ChipCategoria), findsNothing);
+      });
+
+      testWidgets('banner aparece na página da loja', (tester) async {
+        CatalogoService.instance.definirParaTeste(
+          categorias: categoriasTeste,
+          itens: itensTeste,
+          lojas: const [
+            Loja(
+              id: 'w',
+              nome: 'Operário',
+              cidade: 'Rondonópolis',
+              uf: 'MT',
+              bannerUrl: 'https://exemplo.test/banner.jpg',
+            ),
+          ],
+        );
+        await abrir(tester, const LojaScreen(lojaId: 'w'), escuro: escuro);
+        await rolarAte(tester, find.byType(BannerLoja));
+        expect(find.byType(BannerLoja), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('loja sem banner não mostra o espaço', (tester) async {
+        preparar();
+        await abrir(tester, const LojaScreen(lojaId: 'a'), escuro: escuro);
+        expect(find.byType(BannerLoja), findsNothing);
+      });
+
+      testWidgets('banner que não carrega some sem erro', (tester) async {
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(
+              body: BannerLoja(url: 'https://exemplo.test/quebrado.jpg'),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(tester.getSize(find.byType(BannerLoja)).height, 0);
       });
 
       testWidgets('telefone da loja abre o WhatsApp', (tester) async {

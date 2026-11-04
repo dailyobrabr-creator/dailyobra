@@ -4,6 +4,19 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Papel de quem usa o app na loja: dono e gerente gerem tudo; vendedor responde propostas.
+/// Imagens que a loja envia: nome do arquivo no Storage, coluna em `lojas` e maior lado depois de reduzida.
+enum ImagemLoja {
+  logo('logo', 'logo_path', 800, 'Logo atualizada.'),
+  capa('capa', 'capa_path', 1600, 'Capa atualizada.'),
+  banner('banner', 'banner_path', 1920, 'Banner atualizado.');
+
+  const ImagemLoja(this.arquivo, this.coluna, this.maiorLado, this.feito);
+  final String arquivo;
+  final String coluna;
+  final double maiorLado;
+  final String feito;
+}
+
 enum PapelLoja {
   dono('dono', 'Dono'),
   gerente('gerente', 'Gerente'),
@@ -86,6 +99,10 @@ class LojaService extends ChangeNotifier {
   @visibleForTesting
   final atualizacoesDeTeste = <Map<String, dynamic>>[];
 
+  /// O que [enviarImagem] mandaria ao Storage, quando montado por [definirParaTeste].
+  @visibleForTesting
+  final imagensDeTeste = <ImagemLoja>[];
+
   /// O que [salvarChavePix] mandaria ao banco, quando montado por [definirParaTeste].
   @visibleForTesting
   final chavesDeTeste = <String?>[];
@@ -112,6 +129,7 @@ class LojaService extends ChangeNotifier {
     _erro = null;
     _teste = true;
     atualizacoesDeTeste.clear();
+    imagensDeTeste.clear();
     chavesDeTeste.clear();
     notifyListeners();
   }
@@ -126,7 +144,7 @@ class LojaService extends ChangeNotifier {
   }
 
   static const _colunas =
-      'id, nome, cnpj, descricao, logo_path, capa_path, whatsapp, endereco, cidade, uf, horario, '
+      'id, nome, cnpj, descricao, logo_path, capa_path, banner_path, whatsapp, endereco, cidade, uf, horario, '
       'frete_fixo, pedido_minimo, aberta, status, criada_em, estoque_atualizado_em, '
       'cep, logradouro, numero, complemento, bairro, outras_unidades';
 
@@ -230,9 +248,9 @@ class LojaService extends ChangeNotifier {
     await carregar();
   }
 
-  /// Logo ou capa já reduzida pelo seletor (JPEG). Guarda em `lojas/{id}/logo.jpg` ou `capa.jpg`
+  /// Imagem já reduzida pelo seletor (JPEG). Guarda em `lojas/{id}/logo.jpg`, `capa.jpg` ou `banner.jpg`
   /// e devolve o endereço público com `?v=` para o app não mostrar a imagem antiga do cache.
-  Future<String> enviarImagem(XFile arquivo, {required bool capa}) async {
+  Future<String> enviarImagem(XFile arquivo, ImagemLoja tipo) async {
     final loja = _loja;
     if (loja == null) {
       throw const FalhaComMensagem('Cadastre a loja antes de enviar imagens.');
@@ -243,7 +261,11 @@ class LojaService extends ChangeNotifier {
         'A imagem passou de 2 MB. Escolha outra foto ou recorte antes.',
       );
     }
-    final caminho = '${loja.id}/${capa ? 'capa' : 'logo'}.jpg';
+    if (_teste) {
+      imagensDeTeste.add(tipo);
+      return '';
+    }
+    final caminho = '${loja.id}/${tipo.arquivo}.jpg';
     await comMensagem(
       () => _db.storage
           .from('lojas')
@@ -257,7 +279,7 @@ class LojaService extends ChangeNotifier {
             ),
           ),
     );
-    await atualizar({capa ? 'capa_path' : 'logo_path': caminho});
+    await atualizar({tipo.coluna: caminho});
     return '${urlPublica(caminho)}?v=${DateTime.now().millisecondsSinceEpoch}';
   }
 

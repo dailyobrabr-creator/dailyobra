@@ -122,6 +122,7 @@ class _LojaScreenState extends State<LojaScreen> {
         ),
       ],
     ];
+    final bannerUrl = loja.bannerUrl;
     const fechada = Aviso(
       'Esta loja pausou os pedidos pelo app. Os preços aparecem, mas ela não entra na cotação.',
       tom: TomSelo.aviso,
@@ -220,6 +221,10 @@ class _LojaScreenState extends State<LojaScreen> {
                             const SizedBox(height: Espaco.s4),
                             fechada,
                           ],
+                          if (bannerUrl != null) ...[
+                            const SizedBox(height: Espaco.s4),
+                            BannerLoja(url: bannerUrl),
+                          ],
                           titulo,
                           if (atalhos.isNotEmpty)
                             Wrap(
@@ -273,6 +278,10 @@ class _LojaScreenState extends State<LojaScreen> {
                     if (!loja.aberta) ...[
                       const SizedBox(height: Espaco.s3),
                       fechada,
+                    ],
+                    if (bannerUrl != null) ...[
+                      const SizedBox(height: Espaco.s3),
+                      BannerLoja(url: bannerUrl),
                     ],
                     titulo,
                   ],
@@ -355,6 +364,40 @@ String _telefone(String d) {
     return '(${d.substring(0, 2)}) ${d.substring(2, 6)}-${d.substring(6)}';
   }
   return d;
+}
+
+/// Banner de campanha inteiro, na largura do conteúdo. A proporção é a da imagem, com limite de altura para uma foto em
+/// pé não tomar a tela. Se a imagem não carrega, o espaço some.
+class BannerLoja extends StatelessWidget {
+  const BannerLoja({super.key, required this.url});
+  final String url;
+
+  @override
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: const BoxConstraints(maxHeight: 420),
+    child: Image.network(
+      url,
+      width: double.infinity,
+      fit: BoxFit.fitWidth,
+      semanticLabel: 'Banner da loja',
+      frameBuilder: (context, imagem, quadro, carregouNaHora) =>
+          quadro == null && !carregouNaHora
+          ? AspectRatio(
+              aspectRatio: 3.2,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: context.cores.superficieSutil,
+                  borderRadius: BorderRadius.circular(Raio.lg),
+                ),
+              ),
+            )
+          : ClipRRect(
+              borderRadius: BorderRadius.circular(Raio.lg),
+              child: imagem,
+            ),
+      errorBuilder: (_, _, _) => const SizedBox.shrink(),
+    ),
+  );
 }
 
 /// Capa com a logo sobreposta: 136 px no celular; 220 px de largura total no tablet e no

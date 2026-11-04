@@ -158,6 +158,8 @@ Na proposta aberta em negociação o construtor pode tocar em **Fazer uma oferta
 
 Loja nova se cadastra sozinha no Parceiros pelo CNPJ. Loja que o DailyObra deixou pré-cadastrada não tem equipe e o CNPJ dela já existe, então o cadastro recusa quem é da empresa: nesse caso o dono toca em **Minha loja já está no DailyObra** e informa o CNPJ e um código de acesso. O código é gerado no SQL Editor com `select private.gerar_codigo_loja('<id da loja>');`, aparece uma vez só, vale 30 dias e bloqueia depois de cinco erros. Só o hash fica guardado.
 
+Em **Configurações > Perfil da loja**, dono e gerente enviam o **banner** da campanha (imagem deitada, 1920 × 600), que aparece inteiro na página da loja, abaixo dos dados, porque o recorte da capa cortaria o texto. O site `operariotem.com.br` recusa acesso automático (403), então a atualização sozinha a partir do site depende de a empresa liberar o robô do DailyObra ou oferecer um link fixo.
+
 ## Pendências no painel do Supabase
 
 - **Authentication > URL Configuration > Redirect URLs**: adicione `dailyobra://login`, `dailyobraparceiros://login` e o endereço do site no GitHub Pages; em **Site URL**, o endereço do site (links de confirmação de conta e de nova senha voltam para o app ou para o site certo).

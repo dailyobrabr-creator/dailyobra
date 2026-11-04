@@ -86,6 +86,7 @@ class Loja {
     this.descricao = '',
     this.logoUrl,
     this.capaUrl,
+    this.bannerUrl,
     this.whatsapp = '',
     required this.cidade,
     required this.uf,
@@ -108,6 +109,9 @@ class Loja {
   final String descricao;
   final String? logoUrl;
   final String? capaUrl;
+
+  /// Banner de campanha, mostrado inteiro na página da loja.
+  final String? bannerUrl;
   final String whatsapp;
   final String cidade;
   final String uf;
@@ -146,6 +150,7 @@ class Loja {
       descricao: (j['descricao'] as String?) ?? '',
       logoUrl: urlPublica(j['logo_path'] as String?),
       capaUrl: urlPublica(j['capa_path'] as String?),
+      bannerUrl: urlPublica(j['banner_path'] as String?),
       whatsapp: (j['whatsapp'] as String?) ?? '',
       cidade: j['cidade'] as String,
       uf: j['uf'] as String,

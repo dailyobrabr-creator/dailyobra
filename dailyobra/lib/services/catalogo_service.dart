@@ -135,7 +135,7 @@ class CatalogoService extends ChangeNotifier {
         _db
             .from('lojas')
             .select(
-              'id, nome, descricao, logo_path, capa_path, whatsapp, endereco, outras_unidades, cidade, uf, horario, frete_fixo, pedido_minimo, frete_a_combinar, aberta, criada_em',
+              'id, nome, descricao, logo_path, capa_path, banner_path, whatsapp, endereco, outras_unidades, cidade, uf, horario, frete_fixo, pedido_minimo, frete_a_combinar, aberta, criada_em',
             )
             .eq('status', 'ativa'),
         _db

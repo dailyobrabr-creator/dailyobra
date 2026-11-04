@@ -92,7 +92,10 @@ mixin _Gravacao<T extends StatefulWidget> on State<T> {
 
 /// Logo, capa, nome, descrição e WhatsApp: o que o construtor vê no topo da loja.
 class SecaoPerfil extends StatefulWidget {
-  const SecaoPerfil({super.key});
+  const SecaoPerfil({super.key, this.escolherImagem});
+
+  /// Quem escolhe a imagem; o padrão é a galeria do aparelho.
+  final Future<XFile?> Function(ImagemLoja tipo)? escolherImagem;
 
   @override
   State<SecaoPerfil> createState() => _SecaoPerfilState();
@@ -136,25 +139,35 @@ class _SecaoPerfilState extends State<SecaoPerfil> with _Gravacao {
     );
   }
 
-  Future<void> _trocarImagem({required bool capa}) async {
-    final arquivo = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      maxWidth: capa ? 1600 : 800,
-      maxHeight: capa ? 1600 : 800,
-      imageQuality: 82,
-    );
+  Future<XFile?> _daGaleria(ImagemLoja tipo) => ImagePicker().pickImage(
+    source: ImageSource.gallery,
+    maxWidth: tipo.maiorLado,
+    maxHeight: tipo.maiorLado,
+    imageQuality: 82,
+  );
+
+  Future<void> _trocarImagem(ImagemLoja tipo) async {
+    final arquivo = await (widget.escolherImagem ?? _daGaleria)(tipo);
     if (arquivo == null) return;
     setState(() => _enviandoImagem = true);
     try {
-      await _servico.enviarImagem(arquivo, capa: capa);
-      if (mounted) {
-        avisar(context, capa ? 'Capa atualizada.' : 'Logo atualizada.');
-      }
+      await _servico.enviarImagem(arquivo, tipo);
+      if (mounted) avisar(context, tipo.feito);
     } on FalhaComMensagem catch (e) {
       if (mounted) avisar(context, e.mensagem);
     } finally {
       if (mounted) setState(() => _enviandoImagem = false);
     }
+  }
+
+  Future<void> _removerBanner() async {
+    final ok = await confirmar(
+      context,
+      titulo: 'Remover o banner?',
+      texto: 'Ele some da página da loja. Você pode enviar outro depois.',
+      acao: 'Remover',
+    );
+    if (ok) await gravar(() => _servico.atualizar({'banner_path': null}));
   }
 
   @override
@@ -173,10 +186,17 @@ class _SecaoPerfilState extends State<SecaoPerfil> with _Gravacao {
                   _Capa(
                     loja: loja,
                     pode: _servico.meuPapel.gere && !_enviandoImagem,
-                    onCapa: () => _trocarImagem(capa: true),
-                    onLogo: () => _trocarImagem(capa: false),
+                    onCapa: () => _trocarImagem(ImagemLoja.capa),
+                    onLogo: () => _trocarImagem(ImagemLoja.logo),
                   ),
                   if (_enviandoImagem) const LinearProgressIndicator(),
+                  _BlocoBanner(
+                    loja: loja,
+                    gere: _servico.meuPapel.gere,
+                    ocupado: _enviandoImagem,
+                    onEnviar: () => _trocarImagem(ImagemLoja.banner),
+                    onRemover: _removerBanner,
+                  ),
                 ],
               ),
         campos: [
@@ -204,6 +224,74 @@ class _SecaoPerfilState extends State<SecaoPerfil> with _Gravacao {
       );
     },
   );
+}
+
+/// Banner de campanha da loja: como ele aparece, e enviar, trocar ou remover para quem gere.
+class _BlocoBanner extends StatelessWidget {
+  const _BlocoBanner({
+    required this.loja,
+    required this.gere,
+    required this.ocupado,
+    required this.onEnviar,
+    required this.onRemover,
+  });
+  final Loja loja;
+  final bool gere;
+  final bool ocupado;
+  final VoidCallback onEnviar;
+  final VoidCallback onRemover;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final url = loja.bannerUrl;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Espaco.s4, Espaco.s4, Espaco.s4, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Banner da loja', style: t.titleSmall),
+          const SizedBox(height: 2),
+          Text(
+            'Sua campanha na página da loja, abaixo dos dados. Use imagem deitada, de 1920 × 600 pixels.',
+            style: t.bodySmall?.copyWith(color: context.cores.textoSuave),
+          ),
+          if (url != null) ...[
+            const SizedBox(height: Espaco.s2),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(Raio.md),
+              child: Image.network(
+                url,
+                width: double.infinity,
+                fit: BoxFit.fitWidth,
+                semanticLabel: 'Banner da loja',
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              ),
+            ),
+          ],
+          if (gere) ...[
+            const SizedBox(height: Espaco.s2),
+            Wrap(
+              spacing: Espaco.s2,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: ocupado ? null : onEnviar,
+                  icon: const Icon(Icons.photo_outlined, size: 18),
+                  label: Text(url == null ? 'Enviar banner' : 'Trocar banner'),
+                ),
+                if (url != null)
+                  TextButton(
+                    onPressed: ocupado ? null : onRemover,
+                    child: const Text('Remover'),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 /// Endereço pelo CEP e horário por dia. Loja antiga sem CEP: o endereço só é conferido (e enviado)

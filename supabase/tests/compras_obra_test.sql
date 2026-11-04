@@ -135,7 +135,7 @@ select pg_temp.tentar('cliente pedidos', format('select public.itens_dos_pedidos
 select pg_temp.como('fora');
 select pg_temp.tentar('fora pedidos', format('select public.itens_dos_pedidos(%L)', pg_temp.pegar('O')));
 select pg_temp.admin();
-select pg_temp.conferir('pedidos da obra, sem cancelado', pg_temp.pegar('pedidos') = 'Cimento:50', pg_temp.pegar('pedidos'));
+select pg_temp.conferir('pedidos da obra, sem cancelado', pg_temp.pegar('pedidos') = 'Cimento:50.000', pg_temp.pegar('pedidos'));
 select pg_temp.conferir('quem não cuida das compras não vê os pedidos',
   pg_temp.pegar('empreiteiro pedidos') = 'Obra não encontrada.' and pg_temp.pegar('cliente pedidos') = 'Obra não encontrada.' and pg_temp.pegar('fora pedidos') = 'Obra não encontrada.', pg_temp.pegar('cliente pedidos'));
 select pg_temp.conferir('lista de pedidos não traz preço',

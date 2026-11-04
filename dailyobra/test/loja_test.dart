@@ -115,6 +115,68 @@ void main() {
         expect(find.byType(ChipCategoria), findsNothing);
       });
 
+      testWidgets('telefone da loja abre o WhatsApp', (tester) async {
+        final links = <Uri>[];
+        CatalogoService.instance.definirParaTeste(
+          categorias: categoriasTeste,
+          itens: itensTeste,
+          lojas: const [
+            Loja(
+              id: 'w',
+              nome: 'Operário',
+              cidade: 'Rondonópolis',
+              uf: 'MT',
+              whatsapp: '6634112520',
+            ),
+          ],
+        );
+        await abrir(
+          tester,
+          LojaScreen(
+            lojaId: 'w',
+            abrirLink: (uri) async {
+              links.add(uri);
+              return true;
+            },
+          ),
+          escuro: escuro,
+        );
+        await rolarAte(tester, find.textContaining('(66) 3411-2520'));
+        await tester.tap(find.textContaining('(66) 3411-2520'));
+        await tester.pump();
+        expect(links.single.host, 'wa.me');
+        expect(links.single.path, '/556634112520');
+        expect(
+          links.single.queryParameters['text'],
+          'Olá! Vi a Operário no DailyObra.',
+        );
+      });
+
+      testWidgets('avisa quando o WhatsApp não abre', (tester) async {
+        CatalogoService.instance.definirParaTeste(
+          categorias: categoriasTeste,
+          itens: itensTeste,
+          lojas: const [
+            Loja(
+              id: 'w',
+              nome: 'Operário',
+              cidade: 'Rondonópolis',
+              uf: 'MT',
+              whatsapp: '6634112520',
+            ),
+          ],
+        );
+        await abrir(
+          tester,
+          LojaScreen(lojaId: 'w', abrirLink: (_) async => false),
+          escuro: escuro,
+        );
+        await rolarAte(tester, find.textContaining('(66) 3411-2520'));
+        await tester.tap(find.textContaining('(66) 3411-2520'));
+        await tester.pump();
+        expect(find.text('Não deu para abrir o WhatsApp.'), findsOneWidget);
+      });
+
       testWidgets('loja mostra outras unidades', (tester) async {
         CatalogoService.instance.definirParaTeste(
           categorias: categoriasTeste,

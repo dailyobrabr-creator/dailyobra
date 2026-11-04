@@ -1,16 +1,27 @@
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/carrinho_service.dart';
 import '../services/catalogo_service.dart';
 import 'componentes.dart';
 import 'produto_screen.dart';
 
+Future<bool> _abrirNoAparelho(Uri uri) =>
+    launchUrl(uri, mode: LaunchMode.externalApplication);
+
 /// Vitrine de uma loja: capa, logo, frete, pedido mínimo e os produtos com preço, separados por categoria.
 /// Produto adicionado daqui fica fixado nesta loja na cotação.
 class LojaScreen extends StatefulWidget {
-  const LojaScreen({super.key, required this.lojaId});
+  const LojaScreen({
+    super.key,
+    required this.lojaId,
+    this.abrirLink = _abrirNoAparelho,
+  });
   final String lojaId;
+
+  /// Abre o WhatsApp da loja; devolve falso quando não consegue.
+  final Future<bool> Function(Uri uri) abrirLink;
 
   @override
   State<LojaScreen> createState() => _LojaScreenState();
@@ -90,13 +101,24 @@ class _LojaScreenState extends State<LojaScreen> {
         ),
       ],
       if (loja.whatsapp.isNotEmpty) ...[
-        const SizedBox(height: Espaco.s2),
-        Row(
-          children: [
-            Icon(Icons.chat_outlined, size: 16, color: c.textoSuave),
-            const SizedBox(width: Espaco.s1),
-            SelectableText(_telefone(loja.whatsapp), style: t.bodyMedium),
-          ],
+        const SizedBox(height: Espaco.s3),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            onPressed: () async {
+              final abriu = await widget.abrirLink(
+                linkWhatsApp(
+                  loja.whatsapp,
+                  'Olá! Vi a ${loja.nome} no DailyObra.',
+                ),
+              );
+              if (!abriu && context.mounted) {
+                avisar(context, 'Não deu para abrir o WhatsApp.');
+              }
+            },
+            icon: const Icon(Icons.chat_outlined, size: 18),
+            label: Text('WhatsApp ${_telefone(loja.whatsapp)}'),
+          ),
         ),
       ],
     ];

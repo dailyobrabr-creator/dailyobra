@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dailyobra_comum/dailyobra_comum.dart';
-import 'package:dailyobra_parceiro/screens/campos_endereco.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -123,8 +122,7 @@ void main() {
         expect(texto(tester, 'cep'), '78700-000');
         expect(texto(tester, 'rua'), 'R. Fernando Corrêa da Costa');
         expect(texto(tester, 'bairro'), 'Vila Operária');
-        expect(texto(tester, 'cidade'), 'Rondonópolis');
-        expect(find.text('MT'), findsOneWidget);
+        expect(find.text('Rondonópolis · MT'), findsOneWidget);
         await tester.enterText(campo('numero'), '1500');
         await tester.pumpAndSettle();
         expect(c.campos(), {
@@ -191,7 +189,7 @@ void main() {
         esperas['78700000']!.complete(rondonopolis);
         await tester.pumpAndSettle();
         expect(texto(tester, 'rua'), 'Praça da Sé');
-        expect(texto(tester, 'cidade'), 'São Paulo');
+        expect(find.text('São Paulo · SP'), findsOneWidget);
       });
     });
   }

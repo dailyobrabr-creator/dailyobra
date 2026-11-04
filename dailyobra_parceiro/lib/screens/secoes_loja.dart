@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../services/loja_service.dart';
-import 'campos_endereco.dart';
 import 'componentes.dart';
 import 'editor_horario.dart';
 
@@ -387,6 +386,7 @@ class _SecaoEnderecoHorarioState extends State<SecaoEnderecoHorario>
             const SizedBox(height: Espaco.s2),
           ],
           CamposEndereco(
+            comOutrasUnidades: true,
             controle: _endereco,
             erros: _erros,
             buscar: widget.buscarCep,

@@ -203,21 +203,33 @@ class Calculo {
 }
 
 class DadosObra {
-  const DadosObra({this.nome = '', this.cidade = '', this.uf = '', this.endereco = '', this.responsavel = '', this.inicioPrevisto = ''});
+  const DadosObra({this.nome = '', this.cidade = '', this.uf = '', this.endereco = '', this.cep = '', this.logradouro = '', this.numero = '', this.complemento = '', this.bairro = '', this.responsavel = '', this.inicioPrevisto = ''});
   final String nome;
   final String cidade;
   final String uf;
+
+  /// Texto mostrado nas telas, montado das partes abaixo. Obra antiga só tem este texto.
   final String endereco;
+  final String cep;
+  final String logradouro;
+  final String numero;
+  final String complemento;
+  final String bairro;
   final String responsavel;
 
   /// AAAA-MM-DD ou vazio
   final String inicioPrevisto;
 
-  DadosObra copyWith({String? nome, String? cidade, String? uf, String? endereco, String? responsavel, String? inicioPrevisto}) => DadosObra(
+  DadosObra copyWith({String? nome, String? cidade, String? uf, String? endereco, String? cep, String? logradouro, String? numero, String? complemento, String? bairro, String? responsavel, String? inicioPrevisto}) => DadosObra(
         nome: nome ?? this.nome,
         cidade: cidade ?? this.cidade,
         uf: uf ?? this.uf,
         endereco: endereco ?? this.endereco,
+        cep: cep ?? this.cep,
+        logradouro: logradouro ?? this.logradouro,
+        numero: numero ?? this.numero,
+        complemento: complemento ?? this.complemento,
+        bairro: bairro ?? this.bairro,
         responsavel: responsavel ?? this.responsavel,
         inicioPrevisto: inicioPrevisto ?? this.inicioPrevisto,
       );

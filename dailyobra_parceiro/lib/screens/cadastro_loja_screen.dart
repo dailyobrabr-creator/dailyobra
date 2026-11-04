@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 
 import '../services/loja_service.dart';
 import 'assumir_loja_screen.dart';
-import 'campos_endereco.dart';
 import 'componentes.dart';
 import 'editor_horario.dart';
 
@@ -194,6 +193,7 @@ class _CadastroLojaScreenState extends State<CadastroLojaScreen> {
             ),
             const SizedBox(height: Espaco.s3),
             CamposEndereco(
+              comOutrasUnidades: true,
               controle: _endereco,
               erros: _erros,
               buscar: widget.buscarCep,

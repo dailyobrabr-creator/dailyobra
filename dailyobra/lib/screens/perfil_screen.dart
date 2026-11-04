@@ -27,9 +27,17 @@ class _PerfilScreenState extends State<PerfilScreen> {
   final _perfil = PerfilService.instance;
   late final _nome = TextEditingController(text: _perfil.nome);
   late final _empresa = TextEditingController(text: _perfil.empresa);
-  late String _cidade = _perfil.cidade ?? '';
+  late final _endereco = ControleEndereco(
+    cep: _perfil.endereco['cep'],
+    logradouro: _perfil.endereco['logradouro'] ?? '',
+    numero: _perfil.endereco['numero'] ?? '',
+    complemento: _perfil.endereco['complemento'] ?? '',
+    bairro: _perfil.endereco['bairro'] ?? '',
+    cidade: _perfil.cidade ?? '',
+    uf: _perfil.uf,
+  );
+  Map<String, String> _errosEndereco = const {};
   late final _documento = TextEditingController(text: _perfil.documento ?? '');
-  late String? _uf = _perfil.uf;
   bool _salvando = false;
 
   @override
@@ -44,6 +52,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
     _nome.dispose();
     _empresa.dispose();
     _documento.dispose();
+    _endereco.dispose();
     super.dispose();
   }
 
@@ -52,10 +61,19 @@ class _PerfilScreenState extends State<PerfilScreen> {
     if (_nome.text.isEmpty) _nome.text = _perfil.nome;
     if (_empresa.text.isEmpty) _empresa.text = _perfil.empresa;
     if (_documento.text.isEmpty) _documento.text = _perfil.documento ?? '';
-    setState(() {
-      if (_cidade.isEmpty) _cidade = _perfil.cidade ?? '';
-      _uf ??= _perfil.uf;
-    });
+    if (!_endereco.alterado) {
+      setState(
+        () => _endereco.preencher(
+          cep: _perfil.endereco['cep'],
+          logradouro: _perfil.endereco['logradouro'] ?? '',
+          numero: _perfil.endereco['numero'] ?? '',
+          complemento: _perfil.endereco['complemento'] ?? '',
+          bairro: _perfil.endereco['bairro'] ?? '',
+          cidade: _perfil.cidade ?? '',
+          uf: _perfil.uf,
+        ),
+      );
+    }
   }
 
   Future<void> _salvar() async {
@@ -68,14 +86,21 @@ class _PerfilScreenState extends State<PerfilScreen> {
       avisar(context, 'CPF ou CNPJ inválido. Confira os números.');
       return;
     }
+    final erros = _endereco.validarOpcional();
+    setState(() => _errosEndereco = erros);
+    if (erros.isNotEmpty) {
+      avisar(context, 'Confira o endereço.');
+      return;
+    }
     setState(() => _salvando = true);
     try {
       await _perfil.salvar(
         nome: _nome.text,
         empresa: _empresa.text,
-        cidade: _cidade,
-        uf: _uf,
+        cidade: _endereco.cidade.text,
+        uf: _endereco.uf,
         documento: _documento.text,
+        endereco: _endereco.partes(),
       );
       if (mounted) avisar(context, 'Perfil salvo.');
     } catch (e) {
@@ -187,15 +212,15 @@ class _PerfilScreenState extends State<PerfilScreen> {
                         ajuda: 'Vai na nota quando você mesmo paga o pedido.',
                       ),
                       const SizedBox(height: Espaco.s3),
-                      CampoRegiao(
-                        cidade: _cidade,
-                        uf: _uf ?? '',
-                        ajuda: 'As lojas dela aparecem primeiro.',
-                        consultarCep: widget.consultarCep,
-                        onEscolher: (cidade, uf) => setState(() {
-                          _cidade = cidade;
-                          _uf = uf;
-                        }),
+                      Text('Endereço', style: t.titleSmall),
+                      const SizedBox(height: Espaco.s2),
+                      CamposEndereco(
+                        controle: _endereco,
+                        erros: _errosEndereco,
+                        buscar: widget.consultarCep,
+                        exigeEndereco: false,
+                        exigeCidade: false,
+                        ajudaCidade: 'As lojas dela aparecem primeiro.',
                       ),
                       const SizedBox(height: Espaco.s4),
                       FilledButton(

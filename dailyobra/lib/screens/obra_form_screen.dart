@@ -31,7 +31,17 @@ class _ObraFormScreenState extends State<ObraFormScreen> {
       widget.parametrosIniciais ??
       const ParametrosObra();
   late final _nome = TextEditingController(text: _dados.nome);
-  late final _endereco = TextEditingController(text: _dados.endereco);
+  // Obra antiga só tem o texto: ele vai para a rua, para não se perder
+  late final _endereco = ControleEndereco(
+    cep: _dados.cep,
+    logradouro: _dados.logradouro.isEmpty ? _dados.endereco : _dados.logradouro,
+    numero: _dados.numero,
+    complemento: _dados.complemento,
+    bairro: _dados.bairro,
+    cidade: _dados.cidade,
+    uf: ufs.contains(_dados.uf) ? _dados.uf : null,
+  );
+  Map<String, String> _errosEndereco = const {};
   late final _responsavel = TextEditingController(text: _dados.responsavel);
   bool _tentou = false;
   bool _salvando = false;
@@ -42,19 +52,34 @@ class _ObraFormScreenState extends State<ObraFormScreen> {
 
   @override
   void dispose() {
-    for (final c in [_nome, _endereco, _responsavel]) {
+    for (final c in [_nome, _responsavel]) {
       c.dispose();
     }
+    _endereco.dispose();
     _rolagem.dispose();
     super.dispose();
   }
 
-  /// Rua e bairro do CEP entram no endereço só se ele ainda estiver vazio.
-  void _preencherEndereco(EnderecoCep e) {
-    final rua = [e.logradouro, e.bairro].where((p) => p.isNotEmpty).join(' – ');
-    if (rua.isEmpty || _endereco.text.trim().isNotEmpty) return;
-    _endereco.text = rua;
-    setState(() => _dados = _dados.copyWith(endereco: rua));
+  /// Leva o que está nos campos do endereço para os dados da obra.
+  void _lerEndereco() {
+    final e = _endereco;
+    final partes = e.partes();
+    _dados = _dados.copyWith(
+      cidade: e.cidade.text.trim(),
+      uf: e.uf ?? '',
+      cep: partes['cep'] ?? '',
+      logradouro: partes['logradouro'] ?? '',
+      numero: partes['numero'] ?? '',
+      complemento: partes['complemento'] ?? '',
+      bairro: partes['bairro'] ?? '',
+      endereco: enderecoEmTexto(
+        logradouro: e.logradouro.text,
+        numero: e.numero.text,
+        complemento: e.complemento.text,
+        bairro: e.bairro.text,
+        cep: e.cep.text,
+      ),
+    );
   }
 
   Future<void> _escolherData() async {
@@ -78,16 +103,19 @@ class _ObraFormScreenState extends State<ObraFormScreen> {
 
   Future<void> _salvar() async {
     if (_salvando) return;
+    _lerEndereco();
     final erros = validarDados(_dados);
     final calculo = Calculo.de(_parametros);
+    final errosEndereco = _endereco.validarOpcional();
     setState(() {
       _tentou = true;
       _falha = null;
+      _errosEndereco = errosEndereco;
     });
-    if (erros.isNotEmpty || calculo.erro != null) {
+    if (erros.isNotEmpty || errosEndereco.isNotEmpty || calculo.erro != null) {
       // Os dados da obra ficam no topo e a área logo abaixo: subir mostra o primeiro problema
       _rolagem.animateTo(
-        erros.isNotEmpty ? 0 : 420,
+        erros.isNotEmpty || errosEndereco.isNotEmpty ? 0 : 420,
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOut,
       );
@@ -145,25 +173,16 @@ class _ObraFormScreenState extends State<ObraFormScreen> {
                         setState(() => _dados = _dados.copyWith(nome: v)),
                   ),
                   const SizedBox(height: Espaco.s4),
-                  CampoRegiao(
-                    obrigatorio: true,
-                    cidade: _dados.cidade,
-                    uf: _dados.uf,
-                    erro: erros['cidade'] ?? erros['uf'],
-                    consultarCep: widget.consultarCep,
-                    onEscolher: (cidade, uf) => setState(
-                      () => _dados = _dados.copyWith(cidade: cidade, uf: uf),
-                    ),
-                    onCep: _preencherEndereco,
-                  ),
-                  const SizedBox(height: Espaco.s4),
-                  CampoTexto(
-                    rotulo: 'Endereço',
-                    controller: _endereco,
-                    dica: 'Rua, número, bairro',
-                    autofill: const [AutofillHints.fullStreetAddress],
-                    onChanged: (v) =>
-                        setState(() => _dados = _dados.copyWith(endereco: v)),
+                  CamposEndereco(
+                    controle: _endereco,
+                    erros: {
+                      ..._errosEndereco,
+                      if (erros['cidade'] != null) 'cidade': erros['cidade']!,
+                      if (erros['uf'] != null) 'uf': erros['uf']!,
+                    },
+                    buscar: widget.consultarCep,
+                    exigeEndereco: false,
+                    aoMudar: () => setState(_lerEndereco),
                   ),
                   const SizedBox(height: Espaco.s4),
                   CampoTexto(

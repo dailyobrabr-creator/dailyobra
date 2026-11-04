@@ -75,6 +75,11 @@ Future<void> rolarAteOFim(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+final campoCep = find.descendant(
+  of: find.byKey(const Key('endereco-cep')),
+  matching: find.byType(TextField),
+);
+
 void main() {
   setUpAll(() => initializeDateFormatting('pt_BR'));
   tearDown(() => ObrasService.instance.definirParaTeste());
@@ -211,40 +216,23 @@ void main() {
           ),
         );
         expect(find.text('Estado *'), findsNothing);
-        await tester.enterText(find.byKey(const Key('regiao-cep')), '78720586');
+        await tester.enterText(campoCep, '78720586');
         await tester.pumpAndSettle();
         expect(find.text('Rondonópolis · MT'), findsOneWidget);
-        expect(
-          find.text('Av. João Ponce de Arruda – Vila Operária'),
-          findsOneWidget,
-        );
+        expect(find.text('Av. João Ponce de Arruda'), findsOneWidget);
+        expect(find.text('Vila Operária'), findsOneWidget);
         await tester.tap(find.widgetWithText(FilledButton, 'Cadastrar'));
         await tester.pumpAndSettle();
         expect(find.text('Informe a cidade.'), findsNothing);
         expect(find.text('Escolha o estado.'), findsNothing);
       });
 
-      testWidgets('cadastro: CEP não apaga o endereço já escrito', (
+      testWidgets('edição: obra antiga mantém o endereço na rua', (
         tester,
       ) async {
-        await abrir(
-          tester,
-          ObraFormScreen(
-            consultarCep: (_) async => const EnderecoCep(
-              logradouro: 'Av. João Ponce de Arruda',
-              bairro: 'Vila Operária',
-              cidade: 'Rondonópolis',
-              uf: 'MT',
-            ),
-          ),
-        );
-        await tester.enterText(
-          find.widgetWithText(TextField, 'Rua, número, bairro'),
-          'Rua da Obra, 10',
-        );
-        await tester.enterText(find.byKey(const Key('regiao-cep')), '78720586');
-        await tester.pumpAndSettle();
-        expect(find.text('Rua da Obra, 10'), findsOneWidget);
+        await abrir(tester, ObraFormScreen(obra: obraExemplo()));
+        expect(find.text('Rua das Flores, 120'), findsOneWidget);
+        expect(find.text('Maringá · PR'), findsOneWidget);
       });
 
       testWidgets('edição: abre com os dados da obra', (tester) async {

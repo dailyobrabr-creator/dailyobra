@@ -12,6 +12,9 @@ class PerfilService extends ChangeNotifier {
 
   SupabaseClient get _db => Supabase.instance.client;
 
+  bool _teste = false;
+  Map<String, String?> _endereco = const {};
+
   String _nome = '';
   String _empresa = '';
   String? _cidade;
@@ -25,6 +28,13 @@ class PerfilService extends ChangeNotifier {
   String? get cidade => _cidade;
   String? get uf => _uf;
   String? get telefone => _telefone;
+
+  /// Cep, logradouro, numero, complemento e bairro, salvos fora do perfil que as lojas leem.
+  Map<String, String?> get endereco => _endereco;
+
+  /// O que [salvar] mandaria ao banco, quando montado por [definirParaTeste].
+  @visibleForTesting
+  final salvosDeTeste = <Map<String, Object?>>[];
 
   /// CPF ou CNPJ só com dígitos; vai na nota quando o construtor mesmo paga o pedido.
   String? get documento => _documento;
@@ -43,7 +53,11 @@ class PerfilService extends ChangeNotifier {
     String? uf,
     String? email,
     String? documento,
+    Map<String, String?> endereco = const {},
   }) {
+    _teste = true;
+    salvosDeTeste.clear();
+    _endereco = endereco;
     _nome = nome;
     _empresa = empresa;
     _cidade = cidade;
@@ -57,6 +71,7 @@ class PerfilService extends ChangeNotifier {
   void limpar() {
     _nome = _empresa = '';
     _cidade = _uf = _telefone = _documento = null;
+    _endereco = const {};
     notifyListeners();
   }
 
@@ -75,6 +90,11 @@ class PerfilService extends ChangeNotifier {
           .select('documento')
           .eq('user_id', id)
           .maybeSingle();
+      final endereco = await _db
+          .from('construtor_enderecos')
+          .select('cep, logradouro, numero, complemento, bairro')
+          .eq('user_id', id)
+          .maybeSingle();
       final meta = _db.auth.currentUser?.userMetadata ?? const {};
       _nome = (j?['nome'] as String?) ?? (meta['nome'] as String?) ?? '';
       _empresa = (j?['empresa'] as String?) ?? '';
@@ -82,6 +102,10 @@ class PerfilService extends ChangeNotifier {
       _uf = (j?['uf'] as String?)?.trim();
       _telefone = j?['telefone'] as String?;
       _documento = doc?['documento'] as String?;
+      _endereco = {
+        for (final e in (endereco ?? const <String, dynamic>{}).entries)
+          e.key: e.value as String?,
+      };
       CatalogoService.instance.definirCidade(_cidade);
       notifyListeners();
     } catch (_) {
@@ -96,7 +120,12 @@ class PerfilService extends ChangeNotifier {
     String? cidade,
     String? uf,
     String? documento,
+    Map<String, String?> endereco = const {},
   }) async {
+    if (_teste) {
+      salvosDeTeste.add({'cidade': cidade, 'uf': uf, ...endereco});
+      return;
+    }
     final id = _db.auth.currentUser?.id;
     if (id == null) throw Exception('Entre de novo para salvar o perfil.');
     final doc = somenteDigitos(documento ?? '');
@@ -114,6 +143,10 @@ class PerfilService extends ChangeNotifier {
       } else {
         await documentos.upsert({'user_id': id, 'documento': doc});
       }
+      await _db.from('construtor_enderecos').upsert({
+        'user_id': id,
+        ...endereco,
+      });
     } catch (e) {
       throw Exception(mensagemDoServidor(e));
     }
@@ -122,6 +155,7 @@ class PerfilService extends ChangeNotifier {
     _cidade = dados['cidade'];
     _uf = dados['uf'];
     _documento = doc.isEmpty ? null : doc;
+    _endereco = endereco;
     CatalogoService.instance.definirCidade(_cidade);
     notifyListeners();
   }

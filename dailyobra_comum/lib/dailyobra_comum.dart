@@ -30,7 +30,7 @@ export 'src/tema/categorias.dart';
 export 'src/tema/cores.dart';
 export 'src/tema/preferencia_tema.dart';
 export 'src/tema/tema.dart';
-export 'src/ui/campo_regiao.dart';
+export 'src/ui/campos_endereco.dart';
 export 'src/ui/faixa_obra.dart';
 export 'src/ui/formato.dart';
 export 'src/ui/marketplace_ui.dart';

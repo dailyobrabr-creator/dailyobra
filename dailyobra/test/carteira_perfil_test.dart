@@ -15,6 +15,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'apoio.dart';
 
+final campoCep = find.descendant(
+  of: find.byKey(const Key('endereco-cep')),
+  matching: find.byType(TextField),
+);
+
 void main() {
   setUpAll(() => initializeDateFormatting('pt_BR'));
   setUp(() async {
@@ -143,6 +148,7 @@ void main() {
       '123',
     );
     await tester.ensureVisible(find.text('Salvar'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Salvar'));
     await tester.pump();
     expect(
@@ -167,8 +173,8 @@ void main() {
         home: PerfilScreen(
           tema: tema,
           consultarCep: (_) async => const EnderecoCep(
-            logradouro: '',
-            bairro: '',
+            logradouro: 'Av. João Ponce de Arruda',
+            bairro: 'Vila Operária',
             cidade: 'Rondonópolis',
             uf: 'MT',
           ),
@@ -176,13 +182,35 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Cidade'), findsNothing);
+    for (final nome in ['cep', 'rua', 'numero', 'complemento', 'bairro']) {
+      expect(find.byKey(Key('endereco-$nome')), findsOneWidget, reason: nome);
+    }
     expect(find.text('UF'), findsNothing);
-    await tester.tap(find.text('Trocar'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('regiao-cep')), '78720586');
+    await tester.enterText(campoCep, '78720586');
     await tester.pumpAndSettle();
     expect(find.text('Rondonópolis · MT'), findsOneWidget);
+    expect(find.text('Av. João Ponce de Arruda'), findsOneWidget);
+    expect(find.text('Vila Operária'), findsOneWidget);
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const Key('endereco-numero')),
+        matching: find.byType(TextField),
+      ),
+      '4885',
+    );
+    await tester.ensureVisible(find.text('Salvar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Salvar'));
+    await tester.pumpAndSettle();
+    expect(PerfilService.instance.salvosDeTeste.single, {
+      'cidade': 'Rondonópolis',
+      'uf': 'MT',
+      'cep': '78720586',
+      'logradouro': 'Av. João Ponce de Arruda',
+      'numero': '4885',
+      'complemento': null,
+      'bairro': 'Vila Operária',
+    });
     expect(tester.takeException(), isNull);
   });
 

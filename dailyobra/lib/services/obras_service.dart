@@ -90,7 +90,7 @@ class ObrasService extends ChangeNotifier {
   }
 
   static const _colunas =
-      'id, nome, cidade, uf, endereco, responsavel, data_inicio, parametros, created_at, updated_at, obra_etapas(etapa, status), obra_membros(user_id, papel)';
+      'id, nome, cidade, uf, endereco, cep, logradouro, numero, complemento, bairro, responsavel, data_inicio, parametros, created_at, updated_at, obra_etapas(etapa, status), obra_membros(user_id, papel)';
 
   void _limpar() {
     _pedido++;
@@ -138,6 +138,11 @@ class ObrasService extends ChangeNotifier {
         cidade: l['cidade'] as String? ?? '',
         uf: l['uf'] as String? ?? '',
         endereco: l['endereco'] as String? ?? '',
+        cep: l['cep'] as String? ?? '',
+        logradouro: l['logradouro'] as String? ?? '',
+        numero: l['numero'] as String? ?? '',
+        complemento: l['complemento'] as String? ?? '',
+        bairro: l['bairro'] as String? ?? '',
         responsavel: l['responsavel'] as String? ?? '',
         inicioPrevisto: l['data_inicio'] as String? ?? '',
       ),
@@ -157,6 +162,11 @@ class ObrasService extends ChangeNotifier {
       'cidade': ouNulo(d.cidade),
       'uf': ouNulo(d.uf),
       'endereco': ouNulo(d.endereco),
+      'cep': ouNulo(d.cep),
+      'logradouro': ouNulo(d.logradouro),
+      'numero': ouNulo(d.numero),
+      'complemento': ouNulo(d.complemento),
+      'bairro': ouNulo(d.bairro),
       'responsavel': ouNulo(d.responsavel),
       'data_inicio': ouNulo(d.inicioPrevisto),
       'parametros': p.toJson(),

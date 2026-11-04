@@ -267,8 +267,8 @@ void main() {
           escuro: escuro,
           secao: 'Endereço e horário',
         );
-        await rolarAte(tester, campoDoEndereco('cidade'));
-        await tester.enterText(campoDoEndereco('cidade'), 'Rondonópolis');
+        await rolarAte(tester, campoDoEndereco('rua'));
+        await tester.enterText(campoDoEndereco('rua'), 'Rua Nova');
         await salvar(tester);
         expect(LojaService.instance.atualizacoesDeTeste, isEmpty);
         expect(find.text('Informe o CEP com 8 números.'), findsWidgets);

@@ -79,8 +79,9 @@ class _DiaObraScreenState extends State<DiaObraScreen> {
   bool _ocupado = false;
   bool _enviandoFoto = false;
 
-  bool get _registra => widget.obra.papel != Papel.cliente;
-  bool get _admin => widget.obra.papel == Papel.admin;
+  bool get _registra => widget.obra.funcao.registra;
+  bool get _admin => widget.obra.funcao.administra;
+  bool get _lidera => widget.obra.funcao.lidera;
   bool get _edita => _registra && !_dia.fechado;
 
   @override
@@ -965,13 +966,15 @@ class _DiaObraScreenState extends State<DiaObraScreen> {
               child: const Text('Salvar rascunho'),
             ),
           ),
-          const SizedBox(width: Espaco.s2),
-          Expanded(
-            child: FilledButton(
-              onPressed: _ocupado ? null : _finalizar,
-              child: const Text('Finalizar o dia'),
+          if (_lidera) ...[
+            const SizedBox(width: Espaco.s2),
+            Expanded(
+              child: FilledButton(
+                onPressed: _ocupado ? null : _finalizar,
+                child: const Text('Finalizar o dia'),
+              ),
             ),
-          ),
+          ],
         ],
       );
     } else if (_admin && _dia.fechado) {

@@ -4,6 +4,7 @@
 
 import '../orcamento/orcamento.dart';
 import '../orcamento/tabelas.dart';
+import 'equipe.dart';
 
 enum StatusEtapa {
   prevista('prevista', 'Prevista'),
@@ -261,32 +262,50 @@ class Obra {
   const Obra({
     required this.id,
     required this.papel,
+    this._funcao,
     required this.dados,
     required this.parametros,
     required this.statusEtapas,
     required this.criadaEm,
     required this.atualizadaEm,
+    this.pessoas = 1,
   });
 
   final String id;
   final Papel papel;
+  final FuncaoObra? _funcao;
   final DadosObra dados;
   final ParametrosObra parametros;
   final Map<EtapaId, StatusEtapa> statusEtapas;
   final DateTime criadaEm;
   final DateTime atualizadaEm;
 
+  /// Quantas pessoas estão na equipe.
+  final int pessoas;
+
   String get nome => dados.nome;
+
+  /// O que a pessoa pode fazer nesta obra.
+  FuncaoObra get funcao =>
+      _funcao ??
+      switch (papel) {
+        Papel.admin => FuncaoObra.responsavel,
+        Papel.membro => FuncaoObra.mestre,
+        Papel.cliente => FuncaoObra.cliente,
+      };
+
   StatusEtapa statusDe(EtapaId e) => statusEtapas[e] ?? StatusEtapa.prevista;
 
   Obra comStatus(EtapaId etapa, StatusEtapa s) => Obra(
         id: id,
         papel: papel,
+        funcao: _funcao,
         dados: dados,
         parametros: parametros,
         statusEtapas: {...statusEtapas, etapa: s},
         criadaEm: criadaEm,
         atualizadaEm: atualizadaEm,
+        pessoas: pessoas,
       );
 }
 

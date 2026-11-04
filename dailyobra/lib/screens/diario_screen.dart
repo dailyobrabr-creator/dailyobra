@@ -18,7 +18,7 @@ class _DiarioScreenState extends State<DiarioScreen> {
   List<DiaObra>? _dias;
   String? _erro;
 
-  bool get _registra => widget.obra.papel != Papel.cliente;
+  bool get _registra => widget.obra.funcao.registra;
 
   @override
   void initState() {
@@ -194,7 +194,7 @@ class _EntradaDoDiarioState extends State<EntradaDoDiario> {
   List<DiaObra>? _dias;
   bool _falhou = false;
 
-  bool get _registra => widget.obra.papel != Papel.cliente;
+  bool get _registra => widget.obra.funcao.registra;
 
   @override
   void initState() {

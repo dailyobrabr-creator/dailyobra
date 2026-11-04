@@ -90,7 +90,7 @@ class ObrasService extends ChangeNotifier {
   }
 
   static const _colunas =
-      'id, nome, cidade, uf, endereco, cep, logradouro, numero, complemento, bairro, responsavel, data_inicio, parametros, created_at, updated_at, obra_etapas(etapa, status), obra_membros(user_id, papel)';
+      'id, nome, cidade, uf, endereco, cep, logradouro, numero, complemento, bairro, responsavel, data_inicio, parametros, created_at, updated_at, obra_etapas(etapa, status), obra_membros(user_id, papel, funcao)';
 
   void _limpar() {
     _pedido++;
@@ -126,13 +126,20 @@ class ObrasService extends ChangeNotifier {
       final id = EtapaId.doCodigo(e['etapa'] as String);
       if (id != null) status[id] = StatusEtapa.doCodigo(e['status'] as String?);
     }
+    final membros = l['obra_membros'] as List? ?? const [];
     String? papel;
-    for (final m in (l['obra_membros'] as List? ?? const [])) {
-      if (m['user_id'] == usuario) papel = m['papel'] as String?;
+    String? funcao;
+    for (final m in membros) {
+      if (m['user_id'] == usuario) {
+        papel = m['papel'] as String?;
+        funcao = m['funcao'] as String?;
+      }
     }
     return Obra(
       id: l['id'] as String,
       papel: Papel.doCodigo(papel),
+      funcao: funcao == null ? null : FuncaoObra.doCodigo(funcao),
+      pessoas: membros.length,
       dados: DadosObra(
         nome: l['nome'] as String? ?? '',
         cidade: l['cidade'] as String? ?? '',

@@ -5,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 
+import 'screens/convite_screen.dart';
 import 'screens/navegacao_screen.dart';
 import 'screens/simulador_screen.dart';
 import 'services/obras_service.dart';
@@ -55,6 +56,9 @@ class _PortaState extends State<_Porta> {
   bool _recuperandoSenha = false;
   late final StreamSubscription<AuthState> _assinatura;
 
+  /// Código do link do convite, que só o site recebe: no app a pessoa digita.
+  final _convite = Uri.base.queryParameters['convite'];
+
   @override
   void initState() {
     super.initState();
@@ -86,7 +90,9 @@ class _PortaState extends State<_Porta> {
     }
     if (_sessao == null) {
       return LoginScreen(
-        subtitulo: 'Compare o preço das lojas, monte o orçamento da obra e negocie direto com quem vende.',
+        subtitulo: _convite != null
+            ? 'Entre ou crie sua conta para aceitar o convite para a obra.'
+            : 'Compare o preço das lojas, monte o orçamento da obra e negocie direto com quem vende.',
         onSimular: () => Navigator.push(
           context,
           MaterialPageRoute(
@@ -95,6 +101,9 @@ class _PortaState extends State<_Porta> {
         ),
       );
     }
-    return NavegacaoScreen(tema: widget.tema);
+    return AbreConvite(
+      codigo: _convite,
+      child: NavegacaoScreen(tema: widget.tema),
+    );
   }
 }

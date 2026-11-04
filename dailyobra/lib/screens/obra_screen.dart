@@ -7,6 +7,7 @@ import '../services/catalogo_service.dart';
 import '../services/obras_service.dart';
 import 'componentes.dart';
 import 'diario_screen.dart';
+import 'equipe_screen.dart';
 import 'obra_form_screen.dart';
 
 class ObraScreen extends StatefulWidget {
@@ -90,8 +91,8 @@ class _ObraScreenState extends State<ObraScreen> {
   Widget _conteudo(Obra obra) {
     final t = Theme.of(context).textTheme;
     final calculo = Calculo.de(obra.parametros);
-    final admin = obra.papel == Papel.admin;
-    final registra = obra.papel != Papel.cliente;
+    final funcao = obra.funcao;
+    final admin = funcao.administra;
     final endereco = [
       obra.dados.endereco,
       [obra.dados.cidade, obra.dados.uf].where((s) => s.isNotEmpty).join(' – '),
@@ -149,7 +150,14 @@ class _ObraScreenState extends State<ObraScreen> {
               ),
             ],
             const SizedBox(height: Espaco.s4),
-            if (!registra) ...[
+            if (!funcao.veValores) ...[
+              const Aviso(
+                'Seu acesso mostra o andamento e o diário da obra, sem valores.',
+                tom: TomSelo.info,
+              ),
+              const SizedBox(height: Espaco.s4),
+            ],
+            if (!funcao.registra) ...[
               const Aviso(
                 'Seu acesso a esta obra é de acompanhamento: você vê o orçamento e o andamento, sem alterar.',
                 tom: TomSelo.info,
@@ -157,6 +165,8 @@ class _ObraScreenState extends State<ObraScreen> {
               const SizedBox(height: Espaco.s4),
             ],
             EntradaDoDiario(obra: obra),
+            const SizedBox(height: Espaco.s4),
+            EntradaDaEquipe(obra: obra),
             const SizedBox(height: Espaco.s4),
             if (calculo.resultado == null)
               Painel(
@@ -182,15 +192,24 @@ class _ObraScreenState extends State<ObraScreen> {
                   ),
                 ),
               )
+            else if (funcao.veValores)
+              ..._resultado(obra, calculo.resultado!, funcao.lidera)
             else
-              ..._resultado(obra, calculo.resultado!, registra),
+              Painel(
+                child: _Andamento(
+                  obra: obra,
+                  etapas: calculo.resultado!.etapas,
+                  comValores: false,
+                  onEscolher: (_) {},
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  List<Widget> _resultado(Obra obra, ResultadoOrcamento r, bool registra) {
+  List<Widget> _resultado(Obra obra, ResultadoOrcamento r, bool lidera) {
     return [
       Painel(
         child: Column(
@@ -230,7 +249,7 @@ class _ObraScreenState extends State<ObraScreen> {
           child: BotaoSituacao(
             nome: l.nome,
             valor: obra.statusDe(l.etapa),
-            onChanged: registra ? (s) => _mudarSituacao(l.etapa, s) : null,
+            onChanged: lidera ? (s) => _mudarSituacao(l.etapa, s) : null,
           ),
         ),
       ),
@@ -401,10 +420,12 @@ class _Andamento extends StatelessWidget {
     required this.obra,
     required this.etapas,
     required this.onEscolher,
+    this.comValores = true,
   });
   final Obra obra;
   final List<LinhaResultado> etapas;
   final ValueChanged<EtapaId> onEscolher;
+  final bool comValores;
 
   @override
   Widget build(BuildContext context) {
@@ -440,6 +461,7 @@ class _Andamento extends StatelessWidget {
             etapas: etapas,
             status: obra.statusEtapas,
             legenda: true,
+            comValores: comValores,
             onEscolher: onEscolher,
             padrao: atual == null
                 ? Text(

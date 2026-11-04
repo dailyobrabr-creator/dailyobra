@@ -47,13 +47,16 @@ class LegendaStatus extends StatelessWidget {
 /// Com [status], o preenchimento mostra a situação; sem, mostra só o peso de cada etapa.
 /// Tocar ou arrastar o dedo sobre a faixa mostra o valor da etapa embaixo.
 class FaixaObra extends StatefulWidget {
-  const FaixaObra({super.key, required this.etapas, this.status, required this.padrao, this.legenda = false, this.onEscolher});
+  const FaixaObra({super.key, required this.etapas, this.status, required this.padrao, this.legenda = false, this.comValores = true, this.onEscolher});
   final List<LinhaResultado> etapas;
   final Map<EtapaId, StatusEtapa>? status;
 
   /// Texto quando nenhuma etapa está em foco
   final Widget padrao;
   final bool legenda;
+
+  /// Sem valores, a etapa em foco mostra só o nome e a situação: o empreiteiro não vê o orçamento.
+  final bool comValores;
 
   /// Toque solto sobre uma etapa (a tela da obra usa para rolar até ela)
   final ValueChanged<EtapaId>? onEscolher;
@@ -144,8 +147,7 @@ class _FaixaObraState extends State<FaixaObra> {
                   TextSpan(children: [
                     TextSpan(text: foco.nome, style: const TextStyle(fontWeight: FontWeight.w600)),
                     TextSpan(
-                      text: ' ${brl.format(foco.total)}, ${_percentual.format(total == 0 ? 0 : foco.total / total)} do custo'
-                          '${widget.status != null ? ', ${(widget.status![foco.etapa] ?? StatusEtapa.prevista).rotulo.toLowerCase()}' : ''}',
+                      text: _detalhe(foco, total),
                       style: TextStyle(color: context.cores.textoSuave, fontFeatures: numerosTabulares),
                     ),
                   ]),
@@ -157,11 +159,16 @@ class _FaixaObraState extends State<FaixaObra> {
     );
   }
 
-  String _rotulo(LinhaResultado e, double total) {
-    final s = widget.status?[e.etapa];
-    return '${e.nome}: ${brl.format(e.total)}, ${_percentual.format(total == 0 ? 0 : e.total / total)} do custo'
-        '${widget.status != null ? ', ${(s ?? StatusEtapa.prevista).rotulo.toLowerCase()}' : ''}';
+  String _detalhe(LinhaResultado e, double total) {
+    final situacao = widget.status == null ? null : (widget.status![e.etapa] ?? StatusEtapa.prevista).rotulo.toLowerCase();
+    final partes = [
+      if (widget.comValores) '${brl.format(e.total)}, ${_percentual.format(total == 0 ? 0 : e.total / total)} do custo',
+      ?situacao,
+    ];
+    return ' ${partes.join(', ')}';
   }
+
+  String _rotulo(LinhaResultado e, double total) => '${e.nome}:${_detalhe(e, total)}';
 }
 
 /// Versão compacta, só leitura, para os cartões da lista de obras

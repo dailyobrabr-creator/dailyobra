@@ -4,6 +4,7 @@ import 'package:dailyobra_comum/dailyobra_comum.dart';
 
 import '../services/obras_service.dart';
 import 'componentes.dart';
+import 'convite_screen.dart';
 import 'obra_form_screen.dart';
 import 'obra_screen.dart';
 
@@ -80,7 +81,10 @@ class ObrasScreen extends StatelessWidget {
                         const SizedBox(height: Espaco.s3),
                       ]
                     else if (obras != null && obras.isEmpty)
-                      _Vazio(onNova: () => _nova(context))
+                      _Vazio(
+                        onNova: () => _nova(context),
+                        onCodigo: () => entrarComConvite(context),
+                      )
                     else if (obras != null) ...[
                       _Resumo(obras: obras),
                       const SizedBox(height: Espaco.s4),
@@ -94,6 +98,13 @@ class ObrasScreen extends StatelessWidget {
                           colunas: formato == Formato.computador ? 3 : 2,
                           filhos: [for (final o in obras) _CartaoObra(obra: o)],
                         ),
+                      const SizedBox(height: Espaco.s2),
+                      Center(
+                        child: TextButton(
+                          onPressed: () => entrarComConvite(context),
+                          child: const Text('Tenho um código de convite'),
+                        ),
+                      ),
                     ],
                   ],
                 ),
@@ -172,7 +183,9 @@ class _Resumo extends StatelessWidget {
     double total = 0;
     var emAndamento = 0;
     for (final o in obras) {
-      total += Calculo.de(o.parametros).resultado?.total ?? 0;
+      if (o.funcao.veValores) {
+        total += Calculo.de(o.parametros).resultado?.total ?? 0;
+      }
       if (o.statusEtapas.values.any(
         (s) => s == StatusEtapa.iniciada || s == StatusEtapa.concluida,
       )) {
@@ -208,15 +221,17 @@ class _Resumo extends StatelessWidget {
             item('Obras', '${obras.length}'),
             const VerticalDivider(width: 1),
             item('Em andamento', '$emAndamento'),
-            const VerticalDivider(width: 1),
-            Expanded(
-              flex: 2,
-              child: Row(
-                children: [
-                  item('Soma das estimativas', brlInteiro.format(total)),
-                ],
+            if (obras.any((o) => o.funcao.veValores)) ...[
+              const VerticalDivider(width: 1),
+              Expanded(
+                flex: 2,
+                child: Row(
+                  children: [
+                    item('Soma das estimativas', brlInteiro.format(total)),
+                  ],
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),
@@ -295,12 +310,13 @@ class _CartaoObra extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: Espaco.s4),
-              Text(
-                c.resultado == null
-                    ? 'Revisar parâmetros'
-                    : brl.format(c.resultado!.total),
-                style: t.titleLarge?.copyWith(fontFeatures: numerosTabulares),
-              ),
+              if (obra.funcao.veValores)
+                Text(
+                  c.resultado == null
+                      ? 'Revisar parâmetros'
+                      : brl.format(c.resultado!.total),
+                  style: t.titleLarge?.copyWith(fontFeatures: numerosTabulares),
+                ),
               Text(
                 '${obra.parametros.area} m², ${obra.parametros.padrao.rotulo.toLowerCase()}',
                 style: t.bodyMedium?.copyWith(color: context.cores.textoSuave),
@@ -357,8 +373,9 @@ class _CartaoObra extends StatelessWidget {
 }
 
 class _Vazio extends StatelessWidget {
-  const _Vazio({required this.onNova});
+  const _Vazio({required this.onNova, required this.onCodigo});
   final VoidCallback onNova;
+  final VoidCallback onCodigo;
 
   @override
   Widget build(BuildContext context) {
@@ -390,6 +407,11 @@ class _Vazio extends StatelessWidget {
           FilledButton(
             onPressed: onNova,
             child: const Text('Cadastrar primeira obra'),
+          ),
+          const SizedBox(height: Espaco.s2),
+          TextButton(
+            onPressed: onCodigo,
+            child: const Text('Tenho um código de convite'),
           ),
         ],
       ),

@@ -151,6 +151,41 @@ void main() {
     );
   });
 
+  testWidgets('perfil escolhe a região pelo CEP, sem digitar a cidade', (
+    tester,
+  ) async {
+    final tema = await PreferenciaTema.carregar();
+    tester.view.physicalSize = const Size(1080, 2340);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      AppComTema(
+        titulo: 'DailyObra',
+        tema: tema,
+        claro: AppTheme.claro(ThemeData.light().textTheme),
+        escuro: AppTheme.escuro(ThemeData.dark().textTheme),
+        home: PerfilScreen(
+          tema: tema,
+          consultarCep: (_) async => const EnderecoCep(
+            logradouro: '',
+            bairro: '',
+            cidade: 'Rondonópolis',
+            uf: 'MT',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Cidade'), findsNothing);
+    expect(find.text('UF'), findsNothing);
+    await tester.tap(find.text('Trocar'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('regiao-cep')), '78720586');
+    await tester.pumpAndSettle();
+    expect(find.text('Rondonópolis · MT'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('perfil troca o tema do app para escuro', (tester) async {
     final tema = await PreferenciaTema.carregar();
     tester.view.physicalSize = const Size(1080, 2340);

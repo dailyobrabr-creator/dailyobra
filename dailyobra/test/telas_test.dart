@@ -193,8 +193,58 @@ void main() {
           findsOneWidget,
         );
         expect(find.text('Informe a cidade.'), findsOneWidget);
-        expect(find.text('Escolha o estado.'), findsOneWidget);
         await rolarAteOFim(tester);
+      });
+
+      testWidgets('cadastro: CEP preenche cidade, estado e endereço', (
+        tester,
+      ) async {
+        await abrir(
+          tester,
+          ObraFormScreen(
+            consultarCep: (_) async => const EnderecoCep(
+              logradouro: 'Av. João Ponce de Arruda',
+              bairro: 'Vila Operária',
+              cidade: 'Rondonópolis',
+              uf: 'MT',
+            ),
+          ),
+        );
+        expect(find.text('Estado *'), findsNothing);
+        await tester.enterText(find.byKey(const Key('regiao-cep')), '78720586');
+        await tester.pumpAndSettle();
+        expect(find.text('Rondonópolis · MT'), findsOneWidget);
+        expect(
+          find.text('Av. João Ponce de Arruda – Vila Operária'),
+          findsOneWidget,
+        );
+        await tester.tap(find.widgetWithText(FilledButton, 'Cadastrar'));
+        await tester.pumpAndSettle();
+        expect(find.text('Informe a cidade.'), findsNothing);
+        expect(find.text('Escolha o estado.'), findsNothing);
+      });
+
+      testWidgets('cadastro: CEP não apaga o endereço já escrito', (
+        tester,
+      ) async {
+        await abrir(
+          tester,
+          ObraFormScreen(
+            consultarCep: (_) async => const EnderecoCep(
+              logradouro: 'Av. João Ponce de Arruda',
+              bairro: 'Vila Operária',
+              cidade: 'Rondonópolis',
+              uf: 'MT',
+            ),
+          ),
+        );
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Rua, número, bairro'),
+          'Rua da Obra, 10',
+        );
+        await tester.enterText(find.byKey(const Key('regiao-cep')), '78720586');
+        await tester.pumpAndSettle();
+        expect(find.text('Rua da Obra, 10'), findsOneWidget);
       });
 
       testWidgets('edição: abre com os dados da obra', (tester) async {

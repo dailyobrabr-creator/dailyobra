@@ -2,7 +2,6 @@ import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../services/cep_service.dart';
 import '../services/loja_service.dart';
 import 'campos_endereco.dart';
 import 'componentes.dart';

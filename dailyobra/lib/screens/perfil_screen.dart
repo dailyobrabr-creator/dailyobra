@@ -9,8 +9,15 @@ import 'simulador_screen.dart';
 
 /// Dados do construtor, cidade (ordena as lojas), tema, obras e saída da conta.
 class PerfilScreen extends StatefulWidget {
-  const PerfilScreen({super.key, required this.tema});
+  const PerfilScreen({
+    super.key,
+    required this.tema,
+    this.consultarCep = buscarCep,
+  });
   final PreferenciaTema tema;
+
+  /// Busca do CEP; o padrão é o ViaCEP.
+  final BuscarCep consultarCep;
 
   @override
   State<PerfilScreen> createState() => _PerfilScreenState();
@@ -20,7 +27,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
   final _perfil = PerfilService.instance;
   late final _nome = TextEditingController(text: _perfil.nome);
   late final _empresa = TextEditingController(text: _perfil.empresa);
-  late final _cidade = TextEditingController(text: _perfil.cidade ?? '');
+  late String _cidade = _perfil.cidade ?? '';
   late final _documento = TextEditingController(text: _perfil.documento ?? '');
   late String? _uf = _perfil.uf;
   bool _salvando = false;
@@ -36,7 +43,6 @@ class _PerfilScreenState extends State<PerfilScreen> {
     _perfil.removeListener(_recarregar);
     _nome.dispose();
     _empresa.dispose();
-    _cidade.dispose();
     _documento.dispose();
     super.dispose();
   }
@@ -45,9 +51,11 @@ class _PerfilScreenState extends State<PerfilScreen> {
   void _recarregar() {
     if (_nome.text.isEmpty) _nome.text = _perfil.nome;
     if (_empresa.text.isEmpty) _empresa.text = _perfil.empresa;
-    if (_cidade.text.isEmpty) _cidade.text = _perfil.cidade ?? '';
     if (_documento.text.isEmpty) _documento.text = _perfil.documento ?? '';
-    setState(() => _uf ??= _perfil.uf);
+    setState(() {
+      if (_cidade.isEmpty) _cidade = _perfil.cidade ?? '';
+      _uf ??= _perfil.uf;
+    });
   }
 
   Future<void> _salvar() async {
@@ -65,7 +73,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
       await _perfil.salvar(
         nome: _nome.text,
         empresa: _empresa.text,
-        cidade: _cidade.text,
+        cidade: _cidade,
         uf: _uf,
         documento: _documento.text,
       );
@@ -179,40 +187,15 @@ class _PerfilScreenState extends State<PerfilScreen> {
                         ajuda: 'Vai na nota quando você mesmo paga o pedido.',
                       ),
                       const SizedBox(height: Espaco.s3),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: CampoTexto(
-                              rotulo: 'Cidade',
-                              controller: _cidade,
-                              ajuda: 'As lojas dela aparecem primeiro.',
-                            ),
-                          ),
-                          const SizedBox(width: Espaco.s3),
-                          SizedBox(
-                            width: 96,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Rotulo('UF'),
-                                DropdownButtonFormField<String>(
-                                  initialValue: ufs.contains(_uf) ? _uf : null,
-                                  isExpanded: true,
-                                  hint: const Text('UF'),
-                                  items: [
-                                    for (final u in ufs)
-                                      DropdownMenuItem(
-                                        value: u,
-                                        child: Text(u),
-                                      ),
-                                  ],
-                                  onChanged: (u) => setState(() => _uf = u),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                      CampoRegiao(
+                        cidade: _cidade,
+                        uf: _uf ?? '',
+                        ajuda: 'As lojas dela aparecem primeiro.',
+                        consultarCep: widget.consultarCep,
+                        onEscolher: (cidade, uf) => setState(() {
+                          _cidade = cidade;
+                          _uf = uf;
+                        }),
                       ),
                       const SizedBox(height: Espaco.s4),
                       FilledButton(

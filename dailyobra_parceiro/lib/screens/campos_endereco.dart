@@ -1,23 +1,5 @@
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-
-import '../services/cep_service.dart';
-
-/// CEP como 00000-000 enquanto a loja digita (só números, até 8).
-class _MascaraCep extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue antigo,
-    TextEditingValue novo,
-  ) {
-    final texto = _comTraco(novo.text.replaceAll(RegExp(r'\D'), ''));
-    return TextEditingValue(
-      text: texto,
-      selection: TextSelection.collapsed(offset: texto.length),
-    );
-  }
-}
 
 String _comTraco(String digitos) {
   final d = digitos.length > 8 ? digitos.substring(0, 8) : digitos;
@@ -227,7 +209,7 @@ class _CamposEnderecoState extends State<CamposEndereco> {
               controller: c.cep,
               keyboardType: TextInputType.number,
               textInputAction: TextInputAction.next,
-              inputFormatters: [_MascaraCep()],
+              inputFormatters: [MascaraCep()],
               onChanged: _cepMudou,
               decoration: InputDecoration(
                 hintText: '00000-000',

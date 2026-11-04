@@ -6,11 +6,19 @@ import '../services/obras_service.dart';
 
 /// Cadastro (sem [obra]) ou edição (com [obra]) de obra. Ao cadastrar, devolve o id da obra criada.
 class ObraFormScreen extends StatefulWidget {
-  const ObraFormScreen({super.key, this.obra, this.parametrosIniciais});
+  const ObraFormScreen({
+    super.key,
+    this.obra,
+    this.parametrosIniciais,
+    this.consultarCep = buscarCep,
+  });
   final Obra? obra;
 
   /// Parâmetros trazidos do simulador
   final ParametrosObra? parametrosIniciais;
+
+  /// Busca do CEP; o padrão é o ViaCEP.
+  final BuscarCep consultarCep;
 
   @override
   State<ObraFormScreen> createState() => _ObraFormScreenState();
@@ -23,7 +31,6 @@ class _ObraFormScreenState extends State<ObraFormScreen> {
       widget.parametrosIniciais ??
       const ParametrosObra();
   late final _nome = TextEditingController(text: _dados.nome);
-  late final _cidade = TextEditingController(text: _dados.cidade);
   late final _endereco = TextEditingController(text: _dados.endereco);
   late final _responsavel = TextEditingController(text: _dados.responsavel);
   bool _tentou = false;
@@ -35,11 +42,19 @@ class _ObraFormScreenState extends State<ObraFormScreen> {
 
   @override
   void dispose() {
-    for (final c in [_nome, _cidade, _endereco, _responsavel]) {
+    for (final c in [_nome, _endereco, _responsavel]) {
       c.dispose();
     }
     _rolagem.dispose();
     super.dispose();
+  }
+
+  /// Rua e bairro do CEP entram no endereço só se ele ainda estiver vazio.
+  void _preencherEndereco(EnderecoCep e) {
+    final rua = [e.logradouro, e.bairro].where((p) => p.isNotEmpty).join(' – ');
+    if (rua.isEmpty || _endereco.text.trim().isNotEmpty) return;
+    _endereco.text = rua;
+    setState(() => _dados = _dados.copyWith(endereco: rua));
   }
 
   Future<void> _escolherData() async {
@@ -130,51 +145,16 @@ class _ObraFormScreenState extends State<ObraFormScreen> {
                         setState(() => _dados = _dados.copyWith(nome: v)),
                   ),
                   const SizedBox(height: Espaco.s4),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: CampoTexto(
-                          rotulo: 'Cidade',
-                          obrigatorio: true,
-                          controller: _cidade,
-                          erro: erros['cidade'],
-                          autofill: const [AutofillHints.addressCity],
-                          onChanged: (v) => setState(
-                            () => _dados = _dados.copyWith(cidade: v),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: Espaco.s3),
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Rotulo('Estado', obrigatorio: true),
-                            DropdownButtonFormField<String>(
-                              initialValue: ufs.contains(_dados.uf)
-                                  ? _dados.uf
-                                  : null,
-                              hint: const Text('UF'),
-                              isExpanded: true,
-                              menuMaxHeight: 360,
-                              decoration: InputDecoration(
-                                errorText: erros['uf'],
-                              ),
-                              items: [
-                                for (final u in ufs)
-                                  DropdownMenuItem(value: u, child: Text(u)),
-                              ],
-                              onChanged: (v) => setState(
-                                () => _dados = _dados.copyWith(uf: v ?? ''),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                  CampoRegiao(
+                    obrigatorio: true,
+                    cidade: _dados.cidade,
+                    uf: _dados.uf,
+                    erro: erros['cidade'] ?? erros['uf'],
+                    consultarCep: widget.consultarCep,
+                    onEscolher: (cidade, uf) => setState(
+                      () => _dados = _dados.copyWith(cidade: cidade, uf: uf),
+                    ),
+                    onCep: _preencherEndereco,
                   ),
                   const SizedBox(height: Espaco.s4),
                   CampoTexto(

@@ -1,7 +1,6 @@
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:dailyobra_parceiro/screens/assumir_loja_screen.dart';
 import 'package:dailyobra_parceiro/screens/cadastro_loja_screen.dart';
-import 'package:dailyobra_parceiro/services/cep_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

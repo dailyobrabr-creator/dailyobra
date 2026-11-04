@@ -36,12 +36,12 @@ insert into auth.users (id, email, aud, role) values
 insert into public.obras (id, nome, created_by) values
   ('00000000-0000-0000-0000-0000000b0001', 'Obra do teste', '00000000-0000-0000-0000-00000000a001'),
   ('00000000-0000-0000-0000-0000000b0002', 'Outra obra', '00000000-0000-0000-0000-00000000a004');
-insert into public.obra_membros (obra_id, user_id, papel) values
-  ('00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-00000000a001', 'admin'),
-  ('00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-00000000a002', 'membro'),
-  ('00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-00000000a003', 'cliente'),
-  ('00000000-0000-0000-0000-0000000b0002', '00000000-0000-0000-0000-00000000a004', 'admin')
-on conflict (obra_id, user_id) do update set papel = excluded.papel;
+insert into public.obra_membros (obra_id, user_id, papel, funcao) values
+  ('00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-00000000a001', 'admin', 'responsavel'),
+  ('00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-00000000a002', 'membro', 'mestre'),
+  ('00000000-0000-0000-0000-0000000b0001', '00000000-0000-0000-0000-00000000a003', 'cliente', 'cliente'),
+  ('00000000-0000-0000-0000-0000000b0002', '00000000-0000-0000-0000-00000000a004', 'admin', 'responsavel')
+on conflict (obra_id, user_id) do update set papel = excluded.papel, funcao = excluded.funcao;
 
 select pg_temp.guardar('O', '00000000-0000-0000-0000-0000000b0001');
 
@@ -114,7 +114,7 @@ select pg_temp.salvar('estranho', pg_temp.pegar('O'), '2026-11-03', '{"observaco
 select pg_temp.guardar('estranho lê', (select count(*)::text from public.rdos where obra_id = '00000000-0000-0000-0000-0000000b0001'));
 select pg_temp.admin();
 select pg_temp.conferir('cliente não preenche', pg_temp.pegar('cliente') = 'Só quem toca a obra preenche o diário.', pg_temp.pegar('cliente'));
-select pg_temp.conferir('cliente acompanha', pg_temp.pegar('cliente lê') = '2' and pg_temp.pegar('cliente lê itens') = '1', pg_temp.pegar('cliente lê'));
+select pg_temp.conferir('cliente não vê rascunho', pg_temp.pegar('cliente lê') = '0' and pg_temp.pegar('cliente lê itens') = '0', pg_temp.pegar('cliente lê'));
 select pg_temp.conferir('quem é de fora não preenche', pg_temp.pegar('estranho') = 'Só quem toca a obra preenche o diário.', pg_temp.pegar('estranho'));
 select pg_temp.conferir('quem é de fora não lê', pg_temp.pegar('estranho lê') = '0', pg_temp.pegar('estranho lê'));
 

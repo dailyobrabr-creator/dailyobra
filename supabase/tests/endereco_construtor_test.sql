@@ -54,7 +54,7 @@ select pg_temp.guardar('loja lê perfil', (select count(*)::text from public.pro
 select pg_temp.guardar('loja lê endereço', (select count(*)::text from public.construtor_enderecos));
 
 select pg_temp.admin();
-execute format('set local role anon');
+set local role anon;
 select pg_temp.tentar('anônimo', 'select * from public.construtor_enderecos');
 select pg_temp.admin();
 

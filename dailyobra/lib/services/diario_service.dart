@@ -226,10 +226,13 @@ class DiarioService {
   }
 
   /// As fotos do dia para o PDF. Uma que não baixar fica de fora, sem impedir o documento.
-  Future<Map<String, Uint8List>> bytesDasFotos(DiaObra dia) async {
+  Future<Map<String, Uint8List>> bytesDasFotos(DiaObra dia) =>
+      bytesDe(dia.fotos);
+
+  Future<Map<String, Uint8List>> bytesDe(List<FotoDia> fotos) async {
     if (_teste != null) return const {};
     final baixadas = await Future.wait([
-      for (final f in dia.fotos)
+      for (final f in fotos)
         _db.storage
             .from(_balde)
             .download(f.caminho)

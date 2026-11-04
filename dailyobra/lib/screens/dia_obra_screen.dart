@@ -3,9 +3,10 @@ import 'dart:typed_data';
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:share_plus/share_plus.dart';
 
+import '../services/compartilhar.dart';
 import '../services/diario_service.dart';
+import '../services/marca_service.dart';
 import '../services/obras_service.dart';
 import '../services/pdf_diario.dart';
 import 'componentes.dart';
@@ -234,19 +235,15 @@ class _DiaObraScreenState extends State<DiaObraScreen> {
   }
 
   Future<void> _enviarPdf(DiaObra dia) async {
+    final marca = await MarcaService.instance.daObra(widget.obra.id);
     final bytes = await pdfDoDia(
       obra: widget.obra,
       dia: dia,
       fotos: await DiarioService.instance.bytesDasFotos(dia),
+      marca: marca,
+      logo: await MarcaService.instance.logoBytes(marca?.logoPath),
     );
-    final nome = nomeDoPdf(dia);
-    await SharePlus.instance.share(
-      ShareParams(
-        files: [XFile.fromData(bytes, mimeType: 'application/pdf', name: nome)],
-        fileNameOverrides: [nome],
-        title: 'Diário de obra',
-      ),
-    );
+    await compartilharPdf(bytes, nomeDoPdf(dia), titulo: 'Diário de obra');
   }
 
   Future<List<XFile>> _abrirSeletor(bool camera) async {

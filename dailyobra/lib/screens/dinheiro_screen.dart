@@ -25,6 +25,7 @@ ResumoDinheiro _resumo(Obra obra, DadosDinheiro d) {
   return resumirDinheiro(
     etapas: o?.etapas ?? const [],
     adicionais: o?.totalAdicionais ?? 0,
+    mudancas: d.mudancas,
     orcado: d.orcado,
     lancamentos: d.lancamentos,
   );
@@ -231,6 +232,16 @@ class _DinheiroScreenState extends State<DinheiroScreen> {
                       child: LinhaValor(
                         'Adicionais orçados',
                         brl.format(resumo.adicionais),
+                      ),
+                    ),
+                  ],
+                  if (resumo.mudancas != 0) ...[
+                    const Divider(),
+                    Padding(
+                      padding: const EdgeInsets.all(Espaco.s4),
+                      child: LinhaValor(
+                        'Mudanças aprovadas',
+                        brl.format(resumo.mudancas),
                       ),
                     ),
                   ],

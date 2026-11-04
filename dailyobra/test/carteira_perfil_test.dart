@@ -5,6 +5,7 @@ import 'package:dailyobra/services/carrinho_service.dart';
 import 'package:dailyobra/services/carteira_service.dart';
 import 'package:dailyobra/services/catalogo_service.dart';
 import 'package:dailyobra/services/economia_service.dart';
+import 'package:dailyobra/services/marca_service.dart';
 import 'package:dailyobra/services/obras_service.dart';
 import 'package:dailyobra/services/perfil_service.dart';
 import 'package:dailyobra_comum/dailyobra_comum.dart';
@@ -238,5 +239,25 @@ void main() {
       ThemeMode.dark,
     );
     expect(tema.value, ThemeMode.dark);
+  });
+
+  testWidgets('perfil leva à marca nos documentos', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    MarcaService.instance.definirParaTeste();
+    final tema = await PreferenciaTema.carregar();
+    await tester.pumpWidget(
+      AppComTema(
+        titulo: 'DailyObra',
+        tema: tema,
+        claro: AppTheme.claro(ThemeData.light().textTheme),
+        escuro: AppTheme.escuro(ThemeData.dark().textTheme),
+        home: PerfilScreen(tema: tema),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await rolarAte(tester, find.text('Sua marca nos documentos'));
+    await tester.tap(find.text('Sua marca nos documentos'));
+    await tester.pumpAndSettle();
+    expect(find.text('Registro profissional'), findsOneWidget);
   });
 }

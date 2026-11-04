@@ -4,40 +4,9 @@ import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-const _laranja = PdfColor.fromInt(0xFFA43F05);
-const _texto = PdfColor.fromInt(0xFF22262B);
-const _suave = PdfColor.fromInt(0xFF5C6470);
-const _borda = PdfColor.fromInt(0xFFDCDFE3);
-const _fundo = PdfColor.fromInt(0xFFF5F2EE);
-
-const _trocas = {
-  '–': '-',
-  '—': '-',
-  '“': '"',
-  '”': '"',
-  '‘': "'",
-  '’': "'",
-  '…': '...',
-  '•': '-',
-};
+import 'pdf_apoio.dart';
 
 String nomeDoPdf(DiaObra dia) => 'diario-de-obra-${dataIso(dia.data)}.pdf';
-
-/// A Helvetica do PDF só escreve os acentos do português e o básico: o que o celular digita a
-/// mais (travessão, aspas curvas) vira o equivalente, e emoji sai, para o documento não quebrar.
-String _limpo(String texto) {
-  final s = StringBuffer();
-  for (final r in texto.runes) {
-    final c = String.fromCharCode(r);
-    final troca = _trocas[c];
-    if (troca != null) {
-      s.write(troca);
-    } else if (r == 10 || (r >= 32 && r < 127) || (r >= 160 && r < 256)) {
-      s.write(c);
-    }
-  }
-  return s.toString();
-}
 
 String _quantidade(double? q) {
   if (q == null) return '';
@@ -46,107 +15,22 @@ String _quantidade(double? q) {
       : q.toString().replaceAll('.', ',');
 }
 
-pw.Widget _titulo(String texto) => pw.Padding(
-  padding: const pw.EdgeInsets.only(top: 16, bottom: 6),
-  child: pw.Text(
-    _limpo(texto),
-    style: pw.TextStyle(
-      fontSize: 11,
-      fontWeight: pw.FontWeight.bold,
-      color: _laranja,
-    ),
-  ),
-);
-
-pw.Widget _tabela({
-  required List<String> cabecalho,
-  required List<List<String>> linhas,
-  required Map<int, pw.TableColumnWidth> larguras,
-}) => pw.TableHelper.fromTextArray(
-  headers: [for (final c in cabecalho) _limpo(c)],
-  data: [
-    for (final l in linhas) [for (final c in l) _limpo(c)],
-  ],
-  columnWidths: larguras,
-  headerStyle: pw.TextStyle(
-    fontSize: 9,
-    fontWeight: pw.FontWeight.bold,
-    color: _texto,
-  ),
-  headerDecoration: const pw.BoxDecoration(color: _fundo),
-  headerAlignment: pw.Alignment.centerLeft,
-  cellStyle: const pw.TextStyle(fontSize: 9.5, color: _texto),
-  cellAlignment: pw.Alignment.topLeft,
-  cellPadding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-  border: const pw.TableBorder(
-    bottom: pw.BorderSide(color: _borda, width: 0.5),
-    horizontalInside: pw.BorderSide(color: _borda, width: 0.5),
-  ),
-);
-
-/// Título e conteúdo na mesma página, para o título não ficar sozinho no pé. Conteúdo longo vai
-/// solto, porque só assim consegue continuar na página seguinte.
-List<pw.Widget> _parte(String titulo, pw.Widget corpo, {required int letras}) =>
-    letras <= 1800
-    ? [
-        pw.Inseparable(
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-            children: [_titulo(titulo), corpo],
-          ),
-        ),
-      ]
-    : [_titulo(titulo), corpo];
-
-List<pw.Widget> _parteComTabela(
-  String titulo, {
-  required List<String> cabecalho,
-  required List<List<String>> linhas,
-  required Map<int, pw.TableColumnWidth> larguras,
-}) => _parte(
-  titulo,
-  _tabela(cabecalho: cabecalho, linhas: linhas, larguras: larguras),
-  letras: linhas.fold(
-    0,
-    (soma, l) => soma + 40 + l.fold(0, (s, c) => s + c.length),
-  ),
-);
-
-pw.Widget _foto(pw.MemoryImage imagem, String legenda) => pw.SizedBox(
-  width: 253,
-  child: pw.Column(
-    crossAxisAlignment: pw.CrossAxisAlignment.start,
-    children: [
-      pw.SizedBox(
-        width: 253,
-        height: 180,
-        child: pw.Image(imagem, fit: pw.BoxFit.cover),
-      ),
-      if (legenda.isNotEmpty)
-        pw.Padding(
-          padding: const pw.EdgeInsets.only(top: 3),
-          child: pw.Text(
-            _limpo(legenda),
-            style: const pw.TextStyle(fontSize: 8.5, color: _suave),
-          ),
-        ),
-    ],
-  ),
-);
-
 pw.Widget _assinatura(String rotulo, String nome) => pw.Expanded(
   child: pw.Column(
     crossAxisAlignment: pw.CrossAxisAlignment.start,
     children: [
       pw.SizedBox(height: 34),
-      pw.Container(height: 0.6, color: _texto),
+      pw.Container(height: 0.6, color: pdfTexto),
       pw.SizedBox(height: 4),
       pw.Text(
-        nome.isEmpty ? rotulo : _limpo(nome),
-        style: const pw.TextStyle(fontSize: 9, color: _texto),
+        nome.isEmpty ? rotulo : pdfLimpo(nome),
+        style: const pw.TextStyle(fontSize: 9, color: pdfTexto),
       ),
       if (nome.isNotEmpty)
-        pw.Text(rotulo, style: const pw.TextStyle(fontSize: 8, color: _suave)),
+        pw.Text(
+          rotulo,
+          style: const pw.TextStyle(fontSize: 8, color: pdfSuave),
+        ),
     ],
   ),
 );
@@ -156,20 +40,16 @@ Future<Uint8List> pdfDoDia({
   required Obra obra,
   required DiaObra dia,
   Map<String, Uint8List> fotos = const {},
+  MarcaEngenheiro? marca,
+  Uint8List? logo,
 }) {
   final dataDoDia = '${dataCurta(dia.data)}/${dia.data.year}';
   final doc = pw.Document(
-    title: _limpo('Diário de obra - $dataDoDia'),
+    title: pdfLimpo('Diário de obra - $dataDoDia'),
     author: 'DailyObra',
     creator: 'DailyObra',
   );
-  final lugar = [
-    obra.dados.endereco.trim(),
-    [
-      obra.dados.cidade,
-      obra.dados.uf,
-    ].where((p) => p.trim().isNotEmpty).join(' - '),
-  ].where((p) => p.isNotEmpty).join(' · ');
+  final lugar = pdfLugar(obra);
   final clima = [
     if (dia.climaManha != null) 'Manhã: ${dia.climaManha!.rotulo}',
     if (dia.climaTarde != null) 'Tarde: ${dia.climaTarde!.rotulo}',
@@ -192,10 +72,10 @@ Future<Uint8List> pdfDoDia({
         child: pw.Row(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            _foto(imagens[i].$1, imagens[i].$2),
+            pdfFoto(imagens[i].$1, imagens[i].$2),
             if (i + 1 < imagens.length) ...[
               pw.SizedBox(width: 8),
-              _foto(imagens[i + 1].$1, imagens[i + 1].$2),
+              pdfFoto(imagens[i + 1].$1, imagens[i + 1].$2),
             ],
           ],
         ),
@@ -215,92 +95,44 @@ Future<Uint8List> pdfDoDia({
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
           pw.Text(
-            _limpo('${obra.nome} · $dataDoDia'),
-            style: const pw.TextStyle(fontSize: 8, color: _suave),
+            pdfLimpo('${obra.nome} · $dataDoDia'),
+            style: const pw.TextStyle(fontSize: 8, color: pdfSuave),
           ),
           pw.Text(
-            _limpo(
+            pdfLimpo(
               'Feito no DailyObra · página ${c.pageNumber} de ${c.pagesCount}',
             ),
-            style: const pw.TextStyle(fontSize: 8, color: _suave),
+            style: const pw.TextStyle(fontSize: 8, color: pdfSuave),
           ),
         ],
       ),
       build: (c) => [
-        pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Expanded(
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text(
-                    _limpo('DIÁRIO DE OBRA'),
-                    style: pw.TextStyle(
-                      fontSize: 9,
-                      fontWeight: pw.FontWeight.bold,
-                      color: _laranja,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                  pw.SizedBox(height: 4),
-                  pw.Text(
-                    _limpo(obra.nome),
-                    style: pw.TextStyle(
-                      fontSize: 18,
-                      fontWeight: pw.FontWeight.bold,
-                      color: _texto,
-                    ),
-                  ),
-                  if (lugar.isNotEmpty)
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.only(top: 2),
-                      child: pw.Text(
-                        _limpo(lugar),
-                        style: const pw.TextStyle(fontSize: 9.5, color: _suave),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            if (!dia.fechado)
-              pw.Container(
-                padding: const pw.EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 3,
-                ),
-                decoration: pw.BoxDecoration(
-                  border: pw.Border.all(color: _suave, width: 0.6),
-                  borderRadius: pw.BorderRadius.circular(3),
-                ),
-                child: pw.Text(
-                  'Rascunho',
-                  style: const pw.TextStyle(fontSize: 8.5, color: _suave),
-                ),
-              ),
-          ],
+        ...pdfCabecalho(
+          documento: 'DIÁRIO DE OBRA',
+          titulo: obra.nome,
+          detalhe: lugar,
+          marca: marca,
+          logo: logo,
+          selo: dia.fechado ? null : 'Rascunho',
         ),
-        pw.SizedBox(height: 10),
-        pw.Container(height: 1.5, color: _laranja),
-        pw.SizedBox(height: 10),
         pw.Text(
-          _limpo(diaPorExtenso(dia.data)),
+          pdfLimpo(diaPorExtenso(dia.data)),
           style: pw.TextStyle(
             fontSize: 11,
             fontWeight: pw.FontWeight.bold,
-            color: _texto,
+            color: pdfTexto,
           ),
         ),
         if (clima.isNotEmpty)
           pw.Padding(
             padding: const pw.EdgeInsets.only(top: 3),
             child: pw.Text(
-              _limpo(clima),
-              style: const pw.TextStyle(fontSize: 9.5, color: _suave),
+              pdfLimpo(clima),
+              style: const pw.TextStyle(fontSize: 9.5, color: pdfSuave),
             ),
           ),
         if (dia.equipe.isNotEmpty)
-          ..._parteComTabela(
+          ...pdfParteComTabela(
             'Equipe (${dia.pessoas} ${dia.pessoas == 1 ? 'pessoa' : 'pessoas'})',
             cabecalho: const ['Função', 'Qtd.', 'Empresa'],
             larguras: const {
@@ -314,7 +146,7 @@ Future<Uint8List> pdfDoDia({
             ],
           ),
         if (dia.atividades.isNotEmpty)
-          ..._parteComTabela(
+          ...pdfParteComTabela(
             'O que foi feito',
             cabecalho: const ['Serviço', 'Local', 'Pronto'],
             larguras: const {
@@ -332,7 +164,7 @@ Future<Uint8List> pdfDoDia({
             ],
           ),
         if (dia.ocorrencias.isNotEmpty)
-          ..._parteComTabela(
+          ...pdfParteComTabela(
             'Ocorrências',
             cabecalho: const ['Tipo', 'Descrição'],
             larguras: const {
@@ -344,7 +176,7 @@ Future<Uint8List> pdfDoDia({
             ],
           ),
         if (dia.materiais.isNotEmpty)
-          ..._parteComTabela(
+          ...pdfParteComTabela(
             'Materiais usados',
             cabecalho: const ['Material', 'Qtd.', 'Fornecedor'],
             larguras: const {
@@ -362,7 +194,7 @@ Future<Uint8List> pdfDoDia({
             ],
           ),
         if (dia.equipamentos.isNotEmpty)
-          ..._parteComTabela(
+          ...pdfParteComTabela(
             'Equipamentos',
             cabecalho: const ['Equipamento', 'Qtd.'],
             larguras: const {
@@ -375,11 +207,11 @@ Future<Uint8List> pdfDoDia({
             ],
           ),
         if (dia.observacoes.trim().isNotEmpty)
-          ..._parte(
+          ...pdfParte(
             'Observações',
             pw.Text(
-              _limpo(dia.observacoes.trim()),
-              style: const pw.TextStyle(fontSize: 9.5, color: _texto),
+              pdfLimpo(dia.observacoes.trim()),
+              style: const pw.TextStyle(fontSize: 9.5, color: pdfTexto),
             ),
             letras: dia.observacoes.length,
           ),
@@ -387,7 +219,7 @@ Future<Uint8List> pdfDoDia({
           pw.Inseparable(
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [_titulo('Fotos'), paresDeFotos.first],
+              children: [pdfTitulo('Fotos'), paresDeFotos.first],
             ),
           ),
           ...paresDeFotos.skip(1),

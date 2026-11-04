@@ -80,7 +80,7 @@ class LinhaDinheiro {
 }
 
 class ResumoDinheiro {
-  const ResumoDinheiro({required this.linhas, required this.semEtapa, required this.adicionais});
+  const ResumoDinheiro({required this.linhas, required this.semEtapa, required this.adicionais, this.mudancas = 0});
   final List<LinhaDinheiro> linhas;
 
   /// Lançamentos que ainda não têm etapa: entram no total, não em uma linha.
@@ -89,7 +89,10 @@ class ResumoDinheiro {
   /// Muro, piscina e outros itens do orçamento que não são etapa.
   final double adicionais;
 
-  double get orcado => linhas.fold(adicionais, (s, l) => s + l.orcado);
+  /// Soma do que o cliente aprovou: pode ser negativa, quando a mudança reduz a obra.
+  final double mudancas;
+
+  double get orcado => linhas.fold(adicionais + mudancas, (s, l) => s + l.orcado);
   double get realizado => linhas.fold(semEtapa, (s, l) => s + l.realizado);
   double get saldo => orcado - realizado;
   bool get estourou => realizado > orcado;
@@ -109,7 +112,7 @@ class ResumoDinheiro {
 
 /// Junta o orçamento da obra com o que foi lançado. Lançamento de etapa que saiu do orçamento
 /// (mudaram os parâmetros da obra) fica como "sem etapa", para o dinheiro não sumir da conta.
-ResumoDinheiro resumirDinheiro({required List<LinhaResultado> etapas, double adicionais = 0, Map<EtapaId, double> orcado = const {}, required List<LancamentoObra> lancamentos}) {
+ResumoDinheiro resumirDinheiro({required List<LinhaResultado> etapas, double adicionais = 0, double mudancas = 0, Map<EtapaId, double> orcado = const {}, required List<LancamentoObra> lancamentos}) {
   final conhecidas = {for (final e in etapas) e.etapa};
   final porEtapa = <EtapaId, double>{};
   var semEtapa = 0.0;
@@ -128,5 +131,6 @@ ResumoDinheiro resumirDinheiro({required List<LinhaResultado> etapas, double adi
     ],
     semEtapa: semEtapa,
     adicionais: adicionais,
+    mudancas: mudancas,
   );
 }

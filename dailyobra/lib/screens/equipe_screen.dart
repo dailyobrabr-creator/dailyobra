@@ -1,10 +1,8 @@
 import 'package:dailyobra_comum/dailyobra_comum.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 
+import '../services/compartilhar.dart';
 import '../services/equipe_service.dart';
 import '../services/obras_service.dart';
 import 'componentes.dart';
@@ -76,18 +74,9 @@ class _EquipeScreenState extends State<EquipeScreen> {
     codigo: c.codigo,
   );
 
-  static Future<void> _compartilhar(String texto) async {
-    if (kIsWeb) {
-      final link = 'https://wa.me/?text=${Uri.encodeComponent(texto)}';
-      await launchUrl(Uri.parse(link), webOnlyWindowName: '_blank');
-      return;
-    }
-    await SharePlus.instance.share(ShareParams(text: texto));
-  }
-
   Future<void> _enviar(ConviteObra c) async {
     try {
-      await (widget.compartilhar ?? _compartilhar)(_mensagem(c));
+      await (widget.compartilhar ?? compartilharTexto)(_mensagem(c));
     } catch (_) {
       if (mounted) {
         avisar(context, 'Não foi possível abrir o envio. Use Copiar.');

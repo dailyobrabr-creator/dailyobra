@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/obras_service.dart';
 import '../services/perfil_service.dart';
 import 'componentes.dart';
+import 'marca_screen.dart';
 import 'obras_screen.dart';
 import 'simulador_screen.dart';
 
@@ -263,6 +264,17 @@ class _PerfilScreenState extends State<PerfilScreen> {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const ObrasScreen()),
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.badge_outlined),
+                      title: const Text('Sua marca nos documentos'),
+                      subtitle: const Text('Logo e registro nos PDFs da obra'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const MarcaScreen()),
                       ),
                     ),
                     const Divider(height: 1),

@@ -11,8 +11,10 @@ import 'cronograma_screen.dart';
 import 'diario_screen.dart';
 import 'dinheiro_screen.dart';
 import 'equipe_screen.dart';
+import 'mudancas_screen.dart';
 import 'obra_form_screen.dart';
 import 'pendencias_screen.dart';
+import 'relatorio_screen.dart';
 
 class ObraScreen extends StatefulWidget {
   const ObraScreen({super.key, required this.id});
@@ -97,6 +99,7 @@ class _ObraScreenState extends State<ObraScreen> {
     final calculo = Calculo.de(obra.parametros);
     final funcao = obra.funcao;
     final admin = funcao.administra;
+    final cliente = funcao == FuncaoObra.cliente;
     final agora = DateTime.now();
     final resumo = resumirCronograma(
       etapas: [
@@ -183,6 +186,11 @@ class _ObraScreenState extends State<ObraScreen> {
               Aviso(alerta, tom: TomSelo.aviso),
               const SizedBox(height: Espaco.s4),
             ],
+            if (cliente) ...[
+              EntradaDasMudancas(obra: obra),
+              const SizedBox(height: Espaco.s4),
+              UltimasFotos(obra: obra),
+            ],
             EntradaDoDiario(obra: obra),
             const SizedBox(height: Espaco.s4),
             EntradaDoCronograma(obra: obra, resumo: resumo),
@@ -197,6 +205,14 @@ class _ObraScreenState extends State<ObraScreen> {
             ],
             if (funcao.lidera) ...[
               EntradaDoDinheiro(obra: obra),
+              const SizedBox(height: Espaco.s2),
+            ],
+            if (funcao.veMudancas && !cliente) ...[
+              EntradaDasMudancas(obra: obra),
+              const SizedBox(height: Espaco.s2),
+            ],
+            if (funcao.veMudancas) ...[
+              EntradaDoRelatorio(obra: obra),
               const SizedBox(height: Espaco.s2),
             ],
             EntradaDaEquipe(obra: obra),

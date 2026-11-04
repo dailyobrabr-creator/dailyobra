@@ -2,13 +2,21 @@ import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'mudancas_service.dart';
 import 'obras_service.dart';
 
 /// O que o banco devolve para esta pessoa: tudo para o responsável; para o mestre, só o que ele lançou.
 class DadosDinheiro {
-  const DadosDinheiro({required this.lancamentos, required this.orcado});
+  const DadosDinheiro({
+    required this.lancamentos,
+    required this.orcado,
+    this.mudancas = 0,
+  });
   final List<LancamentoObra> lancamentos;
   final Map<EtapaId, double> orcado;
+
+  /// Soma do que o cliente aprovou.
+  final double mudancas;
 }
 
 /// Gastos, pedidos da obra e valores orçados. As notas ficam em um bucket só delas: a equipe
@@ -27,6 +35,7 @@ class DinheiroService {
   String? _erro;
   List<LancamentoObra> _lancamentos = const [];
   Map<EtapaId, double> _orcado = const {};
+  double _mudancas = 0;
   var _notasDeTeste = 0;
 
   @visibleForTesting
@@ -42,10 +51,12 @@ class DinheiroService {
   void definirParaTeste({
     List<LancamentoObra> lancamentos = const [],
     Map<EtapaId, double> orcado = const {},
+    double mudancas = 0,
     String? erro,
   }) {
     _teste = true;
     _erro = erro;
+    _mudancas = mudancas;
     _lancamentos = [...lancamentos];
     _orcado = {...orcado};
     _notasDeTeste = 0;
@@ -77,12 +88,13 @@ class DinheiroService {
 
   Future<DadosDinheiro> carregar(String obraId) => _executar(
     () async {
-      final (linhas, orcados) = await (
+      final (linhas, orcados, mudancas) = await (
         _db.rpc<List<dynamic>>(
           'lancamentos_da_obra',
           params: {'p_obra': obraId},
         ),
         _db.from('obra_orcado').select('etapa, valor').eq('obra_id', obraId),
+        MudancasService.instance.valorAprovado(obraId),
       ).wait;
       return DadosDinheiro(
         lancamentos: [
@@ -94,11 +106,13 @@ class DinheiroService {
             ?EtapaId.doCodigo(o['etapa'] as String): (o['valor'] as num)
                 .toDouble(),
         },
+        mudancas: mudancas,
       );
     },
     () => DadosDinheiro(
       lancamentos: [..._lancamentos]..sort((a, b) => b.data.compareTo(a.data)),
       orcado: {..._orcado},
+      mudancas: _mudancas,
     ),
     'Não foi possível carregar os valores. Verifique a conexão e tente de novo.',
   );

@@ -36,6 +36,10 @@ class NegociacaoService extends ChangeNotifier {
   RealtimeChannel? _canal;
   Timer? _recarga;
   ResultadoEnvio? _resultadoTeste;
+
+  /// A obra que [enviar] mandaria ao banco, quando montado por [definirParaTeste].
+  @visibleForTesting
+  String? obraDeTeste;
   bool _teste = false;
   String? _pixTeste;
   int _pedido = 0;
@@ -190,7 +194,10 @@ class NegociacaoService extends ChangeNotifier {
     if (itens.isEmpty) {
       throw const FalhaComMensagem('Nenhum produto com oferta para enviar.');
     }
-    if (_resultadoTeste != null) return _resultadoTeste!;
+    if (_resultadoTeste != null) {
+      obraDeTeste = obraId;
+      return _resultadoTeste!;
+    }
     final r = await comMensagem(
       () => _db.rpc(
         'enviar_cotacao',

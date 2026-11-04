@@ -5,6 +5,7 @@ import 'package:dailyobra/services/carrinho_service.dart';
 import 'package:dailyobra/services/carteira_service.dart';
 import 'package:dailyobra/services/catalogo_service.dart';
 import 'package:dailyobra/services/negociacao_service.dart';
+import 'package:dailyobra/services/obras_service.dart';
 import 'package:dailyobra/services/perfil_service.dart';
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
@@ -153,6 +154,68 @@ void main() {
           findsOneWidget,
         );
         expect(CarrinhoService.instance.vazio, isTrue);
+      });
+
+      testWidgets('orçamento vai para a obra escolhida', (tester) async {
+        preparar();
+        ObrasService.instance.definirParaTeste(
+          obras: [
+            Obra(
+              id: 'o1',
+              papel: Papel.admin,
+              dados: const DadosObra(nome: 'Residência Silva'),
+              parametros: const ParametrosObra(area: '120'),
+              statusEtapas: const {},
+              criadaEm: DateTime(2026, 11),
+              atualizadaEm: DateTime(2026, 11),
+            ),
+          ],
+        );
+        NegociacaoService.instance.definirParaTeste(
+          resultadoEnvio: const ResultadoEnvio(
+            orcamentoId: 'o1',
+            precosAtualizados: false,
+            lojas: 1,
+          ),
+        );
+        CarrinhoService.instance.adicionar(torneira.id, 1);
+        await abrir(tester, const OrcamentosScreen(), escuro: escuro);
+        expect(find.text('Para qual obra'), findsOneWidget);
+        await tester.tap(find.text('Sem obra'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Residência Silva').last);
+        await tester.pumpAndSettle();
+        expect(CarrinhoService.instance.obraId, 'o1');
+        await tester.tap(find.widgetWithText(FilledButton, 'Fechar pedido'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilledButton, 'Confirmar pedido'));
+        await tester.pumpAndSettle();
+        expect(NegociacaoService.instance.obraDeTeste, 'o1');
+        expect(CarrinhoService.instance.obraId, isNull);
+      });
+
+      testWidgets('obra que saiu da conta não vai no orçamento', (
+        tester,
+      ) async {
+        preparar();
+        ObrasService.instance.definirParaTeste(obras: const []);
+        NegociacaoService.instance.definirParaTeste(
+          resultadoEnvio: const ResultadoEnvio(
+            orcamentoId: 'o1',
+            precosAtualizados: false,
+            lojas: 1,
+          ),
+        );
+        CarrinhoService.instance
+          ..adicionar(torneira.id, 1)
+          ..escolherObra('sumiu');
+        await abrir(tester, const OrcamentosScreen(), escuro: escuro);
+        expect(find.text('Para qual obra'), findsNothing);
+        await tester.tap(find.widgetWithText(FilledButton, 'Fechar pedido'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilledButton, 'Confirmar pedido'));
+        await tester.pumpAndSettle();
+        expect(NegociacaoService.instance.obraDeTeste, isNull);
       });
 
       testWidgets('cotação não oferece o saldo da carteira', (tester) async {

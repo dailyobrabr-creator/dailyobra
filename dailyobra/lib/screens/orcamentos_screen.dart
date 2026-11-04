@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/carrinho_service.dart';
 import '../services/catalogo_service.dart';
 import '../services/negociacao_service.dart';
+import '../services/obras_service.dart';
 import 'componentes.dart';
 import 'pedido_screen.dart';
 import 'proposta_screen.dart';
@@ -77,6 +78,9 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
         modo: modo,
         cotacao: r,
         mensagem: mensagem,
+        obraId: ObrasService.instance
+            .obra(CarrinhoService.instance.obraId ?? '')
+            ?.id,
       );
       CarrinhoService.instance.limpar();
       if (!mounted) return;
@@ -243,6 +247,7 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
         final pode = motivo == null && !_enviando;
         final largo = formatoDoContexto(context) == Formato.computador;
         final modo = <Widget>[
+          const _ObraDoOrcamento(),
           Segmentado<ModoCotacao>(
             valor: _modo,
             opcoes: [for (final m in ModoCotacao.values) (m, m.rotulo)],
@@ -518,6 +523,48 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
                     ),
             ),
           ],
+        );
+      },
+    );
+  }
+}
+
+/// Para qual obra é o orçamento: é assim que o pedido fechado entra no dinheiro dela.
+class _ObraDoOrcamento extends StatelessWidget {
+  const _ObraDoOrcamento();
+
+  @override
+  Widget build(BuildContext context) {
+    final servico = ObrasService.instance;
+    return ListenableBuilder(
+      listenable: Listenable.merge([servico, CarrinhoService.instance]),
+      builder: (context, _) {
+        final obras = servico.obras ?? const <Obra>[];
+        if (obras.isEmpty) return const SizedBox.shrink();
+        final escolhida = servico.obra(CarrinhoService.instance.obraId ?? '');
+        return Padding(
+          padding: const EdgeInsets.only(bottom: Espaco.s3),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Rotulo('Para qual obra'),
+              DropdownButtonFormField<String?>(
+                key: ValueKey(escolhida?.id),
+                initialValue: escolhida?.id,
+                isExpanded: true,
+                style: Theme.of(context).textTheme.bodyLarge,
+                items: [
+                  const DropdownMenuItem(child: Text('Sem obra')),
+                  for (final o in obras)
+                    DropdownMenuItem(
+                      value: o.id,
+                      child: Text(o.nome, overflow: TextOverflow.ellipsis),
+                    ),
+                ],
+                onChanged: CarrinhoService.instance.escolherObra,
+              ),
+            ],
+          ),
         );
       },
     );

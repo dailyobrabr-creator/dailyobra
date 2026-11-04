@@ -11,8 +11,13 @@ class CarrinhoService extends ChangeNotifier {
 
   static final instance = CarrinhoService._();
   static const chave = 'dailyobra.carrinho.v1';
+  static const chaveObra = 'dailyobra.carrinho.obra.v1';
 
   final List<ItemDesejado> _itens = [];
+  String? _obraId;
+
+  /// Obra para a qual este orçamento é feito: o pedido fechado entra no dinheiro dela.
+  String? get obraId => _obraId;
 
   List<ItemDesejado> get itens => List.unmodifiable(_itens);
   bool get vazio => _itens.isEmpty;
@@ -22,6 +27,7 @@ class CarrinhoService extends ChangeNotifier {
     try {
       final p = await SharedPreferences.getInstance();
       final texto = p.getString(chave);
+      _obraId = p.getString(chaveObra);
       _itens.clear();
       if (texto != null) {
         for (final j in jsonDecode(texto) as List) {
@@ -41,9 +47,21 @@ class CarrinhoService extends ChangeNotifier {
   void _mudou() {
     notifyListeners();
     final texto = jsonEncode([for (final i in _itens) i.toJson()]);
-    SharedPreferences.getInstance()
-        .then((p) => p.setString(chave, texto))
-        .ignore();
+    final obra = _obraId;
+    SharedPreferences.getInstance().then((p) async {
+      await p.setString(chave, texto);
+      if (obra == null) {
+        await p.remove(chaveObra);
+      } else {
+        await p.setString(chaveObra, obra);
+      }
+    }).ignore();
+  }
+
+  void escolherObra(String? obraId) {
+    if (obraId == _obraId) return;
+    _obraId = obraId;
+    _mudou();
   }
 
   int _indice(String itemId) => _itens.indexWhere((i) => i.itemId == itemId);
@@ -96,13 +114,15 @@ class CarrinhoService extends ChangeNotifier {
   }
 
   void limpar() {
-    if (_itens.isEmpty) return;
+    if (_itens.isEmpty && _obraId == null) return;
     _itens.clear();
+    _obraId = null;
     _mudou();
   }
 
   /// Troca todo o orçamento por estas quantidades (lista de materiais de uma obra).
-  void substituirPor(Map<String, double> quantidades) {
+  void substituirPor(Map<String, double> quantidades, {String? obraId}) {
+    _obraId = obraId;
     _itens
       ..clear()
       ..addAll([

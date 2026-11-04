@@ -8,6 +8,7 @@ import '../services/obras_service.dart';
 import 'componentes.dart';
 import 'cronograma_screen.dart';
 import 'diario_screen.dart';
+import 'dinheiro_screen.dart';
 import 'equipe_screen.dart';
 import 'obra_form_screen.dart';
 import 'pendencias_screen.dart';
@@ -189,6 +190,10 @@ class _ObraScreenState extends State<ObraScreen> {
               EntradaDasPendencias(obra: obra),
               const SizedBox(height: Espaco.s2),
             ],
+            if (funcao.lidera) ...[
+              EntradaDoDinheiro(obra: obra),
+              const SizedBox(height: Espaco.s2),
+            ],
             EntradaDaEquipe(obra: obra),
             const SizedBox(height: Espaco.s4),
             if (calculo.resultado == null)
@@ -278,6 +283,7 @@ class _ObraScreenState extends State<ObraScreen> {
       ),
       const SizedBox(height: Espaco.s4),
       _CotarMateriais(
+        obraId: obra.id,
         materiais: listarMateriais(obra.parametros.paraEntrada()),
       ),
       const SizedBox(height: Espaco.s4),
@@ -288,7 +294,8 @@ class _ObraScreenState extends State<ObraScreen> {
 
 /// Leva a lista de materiais da obra para o orçamento do marketplace, já convertida em produtos.
 class _CotarMateriais extends StatelessWidget {
-  const _CotarMateriais({required this.materiais});
+  const _CotarMateriais({required this.obraId, required this.materiais});
+  final String obraId;
   final ResultadoMateriais materiais;
 
   Future<void> _cotar(BuildContext context) async {
@@ -328,7 +335,7 @@ class _CotarMateriais extends StatelessWidget {
       );
       if (ok != true) return;
     }
-    carrinho.substituirPor(quantidades);
+    carrinho.substituirPor(quantidades, obraId: obraId);
     if (!context.mounted) return;
     irParaAba(context, Aba.orcamentos);
     avisar(

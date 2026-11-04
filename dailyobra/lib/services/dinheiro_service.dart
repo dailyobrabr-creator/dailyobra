@@ -19,6 +19,18 @@ class DadosDinheiro {
   final double mudancas;
 }
 
+/// A conta da obra: o orçamento calculado no aparelho com o que veio do banco.
+ResumoDinheiro resumoDaObra(Obra obra, DadosDinheiro d) {
+  final o = Calculo.de(obra.parametros).resultado;
+  return resumirDinheiro(
+    etapas: o?.etapas ?? const [],
+    adicionais: o?.totalAdicionais ?? 0,
+    mudancas: d.mudancas,
+    orcado: d.orcado,
+    lancamentos: d.lancamentos,
+  );
+}
+
 /// Gastos, pedidos da obra e valores orçados. As notas ficam em um bucket só delas: a equipe
 /// inteira lê as fotos do diário, e nota é assunto do responsável e de quem lançou.
 class DinheiroService {

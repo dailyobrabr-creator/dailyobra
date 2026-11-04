@@ -34,7 +34,10 @@ String? _percentual(String v) {
   return n == null || n < 0 || n > 100 ? 'Digite de 0 a 100.' : null;
 }
 
-double? _decimal(String v) => double.tryParse(v.trim().replaceAll(',', '.'));
+double? _decimal(String v) {
+  final n = lerNumero(v);
+  return n.isNaN ? null : n;
+}
 
 String? _numero(String v) {
   if (v.trim().isEmpty) return null;

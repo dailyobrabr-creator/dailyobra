@@ -330,6 +330,14 @@ void main() {
           expect(m.valor, -100);
         });
 
+        testWidgets('editar mantém o valor com milhar', (tester) async {
+          preparar(mudancas: const [piso]);
+          await abrirMudancas(tester, FuncaoObra.responsavel, escuro: escuro);
+          await tocar(tester, find.text(piso.titulo));
+          await tocar(tester, find.text('Salvar'));
+          expect(MudancasService.instance.salvasDeTeste.single.valor, 3500);
+        });
+
         testWidgets('pendente pode ser excluída', (tester) async {
           preparar(mudancas: const [piso]);
           await abrirMudancas(tester, FuncaoObra.responsavel, escuro: escuro);

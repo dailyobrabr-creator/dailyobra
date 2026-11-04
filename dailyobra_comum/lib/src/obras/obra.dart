@@ -29,12 +29,20 @@ enum Papel {
   static Papel doCodigo(String? c) => values.firstWhere((v) => v.name == c, orElse: () => cliente);
 }
 
-/// "1.153,5" ou "153.5" → número; vazio ou inválido → NaN
+/// Só milhares, sem vírgula: "10.000", "1.234.567". Não pega "0.500", que é decimal.
+final _soMilhares = RegExp(r'^[1-9]\d{0,2}(\.\d{3})+$');
+
+/// "1.153,5", "10.000" ou "153.5" → número; vazio ou inválido → NaN
 double lerNumero(String v) {
   final t = v.trim();
   if (t.isEmpty) return double.nan;
-  // Com vírgula, ponto é separador de milhar; sem vírgula, ponto é decimal
-  final normal = t.contains(',') ? t.replaceAll('.', '').replaceAll(',', '.') : t;
+  // Com vírgula, ponto é separador de milhar. Sem vírgula, também é, quando vem em grupos de três:
+  // é assim que os valores aparecem nos campos ao editar. Fora isso, ponto é decimal.
+  final normal = t.contains(',')
+      ? t.replaceAll('.', '').replaceAll(',', '.')
+      : _soMilhares.hasMatch(t)
+      ? t.replaceAll('.', '')
+      : t;
   return double.tryParse(normal) ?? double.nan;
 }
 

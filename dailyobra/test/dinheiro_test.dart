@@ -87,6 +87,22 @@ Finder campo(String rotulo) => find.descendant(
 );
 
 void main() {
+  testWidgets('editar um gasto de R\$ 10.000 mantém o valor', (tester) async {
+    final grande = LancamentoObra(
+      id: 'g9',
+      descricao: 'Telhado',
+      valor: 10000,
+      data: DateTime(2026, 11, 3),
+    );
+    preparar(lancamentos: [grande]);
+    await abrir(
+      tester,
+      GastoScreen(obra: obraDe(FuncaoObra.responsavel), gasto: grande),
+    );
+    await tocar(tester, find.text('Salvar'));
+    expect(DinheiroService.instance.salvosDeTeste.single.valor, 10000);
+  });
+
   for (final escuro in [false, true]) {
     group(escuro ? 'escuro' : 'claro', () {
       testWidgets('responsável vê orçado x realizado por etapa', (

@@ -16,20 +16,9 @@ const _realEscuro = Color(0xFFE8641C);
 Color _corReal(BuildContext c) =>
     Theme.of(c).brightness == Brightness.dark ? _realEscuro : _realClaro;
 
-Map<EtapaId, String> _nomesDasEtapas(ResultadoOrcamento? o) => {
+Map<EtapaId, String> nomesDasEtapas(ResultadoOrcamento? o) => {
   for (final e in o?.etapas ?? const <LinhaResultado>[]) e.etapa: e.nome,
 };
-
-ResumoDinheiro _resumo(Obra obra, DadosDinheiro d) {
-  final o = Calculo.de(obra.parametros).resultado;
-  return resumirDinheiro(
-    etapas: o?.etapas ?? const [],
-    adicionais: o?.totalAdicionais ?? 0,
-    mudancas: d.mudancas,
-    orcado: d.orcado,
-    lancamentos: d.lancamentos,
-  );
-}
 
 /// Orçado x realizado, para o responsável. O mestre entra aqui para lançar e ver o que lançou.
 class DinheiroScreen extends StatefulWidget {
@@ -48,7 +37,7 @@ class _DinheiroScreenState extends State<DinheiroScreen> {
   String? _erro;
   bool _verLancamentos = false;
   late final _orcamento = Calculo.de(widget.obra.parametros).resultado;
-  late final _etapas = _nomesDasEtapas(_orcamento);
+  late final _etapas = nomesDasEtapas(_orcamento);
 
   bool get _administra => widget.obra.funcao.administra;
 
@@ -161,7 +150,7 @@ class _DinheiroScreenState extends State<DinheiroScreen> {
   }
 
   Widget _conteudo(DadosDinheiro dados) {
-    final resumo = _resumo(widget.obra, dados);
+    final resumo = resumoDaObra(widget.obra, dados);
     final lista = _ListaDeLancamentos(
       lancamentos: dados.lancamentos,
       etapas: _etapas,
@@ -567,7 +556,7 @@ class _JanelaEtapaState extends State<_JanelaEtapa> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Rotulo('Em qual etapa este pedido entra'),
-            _SeletorDeEtapa(
+            SeletorDeEtapa(
               etapas: widget.etapas,
               valor: _etapa,
               aoMudar: (v) => setState(() => _etapa = v),
@@ -589,8 +578,9 @@ class _JanelaEtapaState extends State<_JanelaEtapa> {
   }
 }
 
-class _SeletorDeEtapa extends StatelessWidget {
-  const _SeletorDeEtapa({
+class SeletorDeEtapa extends StatelessWidget {
+  const SeletorDeEtapa({
+    super.key,
     required this.etapas,
     required this.valor,
     required this.aoMudar,
@@ -648,7 +638,7 @@ class _GastoScreenState extends State<GastoScreen> {
   String? _erroDescricao;
   String? _erroValor;
   bool _ocupado = false;
-  late final _etapas = _nomesDasEtapas(
+  late final _etapas = nomesDasEtapas(
     Calculo.de(widget.obra.parametros).resultado,
   );
 
@@ -863,7 +853,7 @@ class _GastoScreenState extends State<GastoScreen> {
             ),
             const SizedBox(height: Espaco.s4),
             const Rotulo('Etapa'),
-            _SeletorDeEtapa(
+            SeletorDeEtapa(
               etapas: _etapas,
               valor: _etapa,
               aoMudar: (v) => setState(() => _etapa = v),
@@ -951,7 +941,9 @@ class _EntradaDoDinheiroState extends State<EntradaDoDinheiro> {
   Future<void> _carregar() async {
     try {
       final dados = await DinheiroService.instance.carregar(widget.obra.id);
-      if (mounted) setState(() => _resumoAtual = _resumo(widget.obra, dados));
+      if (mounted) {
+        setState(() => _resumoAtual = resumoDaObra(widget.obra, dados));
+      }
     } on FalhaAoSalvar {
       // Sem os valores, a linha continua levando à tela, que mostra o motivo
     }

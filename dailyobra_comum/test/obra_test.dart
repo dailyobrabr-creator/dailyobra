@@ -10,6 +10,12 @@ void main() {
     expect(lerNumero('153,5'), 153.5);
     expect(lerNumero('1.153,5'), 1153.5);
     expect(lerNumero('153.5'), 153.5);
+    expect(lerNumero('10.000'), 10000);
+    expect(lerNumero('1.234.567'), 1234567);
+    expect(lerNumero('1.000,50'), 1000.5);
+    expect(lerNumero('10.50'), 10.5);
+    expect(lerNumero('0.500'), .5);
+    expect(lerNumero('1.5000'), 1.5);
     expect(lerNumero('').isNaN, isTrue);
     expect(lerNumero('abc').isNaN, isTrue);
   });

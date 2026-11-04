@@ -3,19 +3,22 @@ import 'package:flutter/material.dart';
 
 import 'componentes.dart';
 
-const _itens = [
+typedef _ItemMenu = (Aba, IconData, IconData, String);
+
+const List<_ItemMenu> _itens = [
   (Aba.inicio, Icons.dashboard_outlined, Icons.dashboard, 'Início'),
   (Aba.propostas, Icons.inbox_outlined, Icons.inbox, 'Propostas'),
   (Aba.pedidos, Icons.receipt_long_outlined, Icons.receipt_long, 'Pedidos'),
+  (Aba.mesa, Icons.fact_check_outlined, Icons.fact_check, 'Mesa do Gerente'),
   (Aba.produtos, Icons.sell_outlined, Icons.sell, 'Produtos'),
   (Aba.clientes, Icons.people_outline, Icons.people, 'Clientes'),
   (Aba.configuracoes, Icons.settings_outlined, Icons.settings, 'Configurações'),
 ];
 
-/// O celular só tem cinco abas: Clientes abre pela última, Mais (as configurações).
+/// O celular só tem cinco abas: Mesa e Clientes abrem pela última, Mais (as configurações).
 final _itensDoCelular = [
   for (final item in _itens)
-    if (item.$1 != Aba.clientes) item,
+    if (item.$1 != Aba.clientes && item.$1 != Aba.mesa) item,
 ];
 
 /// Moldura do painel por largura: abas embaixo no celular, trilho no tablet e, no computador,
@@ -27,6 +30,8 @@ class LayoutParceiros extends StatelessWidget {
     required this.onAba,
     required this.novas,
     this.pedidos = 0,
+    this.mesa = 0,
+    this.gere = true,
     required this.loja,
     required this.conteudo,
   });
@@ -38,18 +43,36 @@ class LayoutParceiros extends StatelessWidget {
 
   /// Número sobre Pedidos (pedidos em andamento).
   final int pedidos;
+
+  /// Número sobre a Mesa do Gerente (decisões esperando).
+  final int mesa;
+
+  /// Dono ou gerente: só eles têm a Mesa do Gerente.
+  final bool gere;
   final Loja? loja;
   final Widget conteudo;
+
+  List<_ItemMenu> get _itensDaLargura => [
+    for (final item in _itens)
+      if (item.$1 != Aba.mesa || gere) item,
+  ];
 
   int _numero(Aba a) => switch (a) {
     Aba.propostas => novas,
     Aba.pedidos => pedidos,
+    Aba.mesa when gere => mesa,
     _ => 0,
   };
 
-  Widget _icone(Aba a, IconData icone) => _numero(a) > 0
-      ? Badge(label: Text('${_numero(a)}'), child: Icon(icone))
+  Widget _emblema(int numero, IconData icone) => numero > 0
+      ? Badge(label: Text('$numero'), child: Icon(icone))
       : Icon(icone);
+
+  Widget _icone(Aba a, IconData icone) => _emblema(_numero(a), icone);
+
+  /// No celular a Mesa fica dentro de Mais, então o número dela aparece ali.
+  Widget _iconeDoCelular(Aba a, IconData icone) =>
+      _emblema(a == Aba.configuracoes ? _numero(Aba.mesa) : _numero(a), icone);
 
   @override
   Widget build(BuildContext context) {
@@ -74,14 +97,18 @@ class LayoutParceiros extends StatelessWidget {
             ),
             child: NavigationBar(
               selectedIndex: _itensDoCelular.indexWhere(
-                (i) => i.$1 == (aba == Aba.clientes ? Aba.configuracoes : aba),
+                (i) =>
+                    i.$1 ==
+                    (aba == Aba.clientes || aba == Aba.mesa
+                        ? Aba.configuracoes
+                        : aba),
               ),
               onDestinationSelected: (i) => onAba(_itensDoCelular[i].$1),
               destinations: [
                 for (final (a, icone, selecionado, rotulo) in _itensDoCelular)
                   NavigationDestination(
-                    icon: _icone(a, icone),
-                    selectedIcon: _icone(a, selecionado),
+                    icon: _iconeDoCelular(a, icone),
+                    selectedIcon: _iconeDoCelular(a, selecionado),
                     // "Configurações" não cabe, e a aba também leva a Clientes
                     label: a == Aba.configuracoes ? 'Mais' : rotulo,
                   ),
@@ -94,8 +121,8 @@ class LayoutParceiros extends StatelessWidget {
           body: Row(
             children: [
               NavigationRail(
-                selectedIndex: aba.index,
-                onDestinationSelected: (i) => onAba(Aba.values[i]),
+                selectedIndex: _itensDaLargura.indexWhere((i) => i.$1 == aba),
+                onDestinationSelected: (i) => onAba(_itensDaLargura[i].$1),
                 labelType: NavigationRailLabelType.none,
                 minWidth: 80,
                 leading: const Padding(
@@ -103,7 +130,7 @@ class LayoutParceiros extends StatelessWidget {
                   child: MarcaDailyObra(soSimbolo: true, altura: 36),
                 ),
                 destinations: [
-                  for (final (a, icone, selecionado, rotulo) in _itens)
+                  for (final (a, icone, selecionado, rotulo) in _itensDaLargura)
                     NavigationRailDestination(
                       icon: Tooltip(message: rotulo, child: _icone(a, icone)),
                       selectedIcon: _icone(a, selecionado),
@@ -120,7 +147,12 @@ class LayoutParceiros extends StatelessWidget {
         return Scaffold(
           body: Row(
             children: [
-              _MenuLateral(aba: aba, onAba: onAba, numero: _numero),
+              _MenuLateral(
+                aba: aba,
+                onAba: onAba,
+                numero: _numero,
+                itens: _itensDaLargura,
+              ),
               Expanded(
                 child: Column(
                   children: [
@@ -142,10 +174,12 @@ class _MenuLateral extends StatelessWidget {
     required this.aba,
     required this.onAba,
     required this.numero,
+    required this.itens,
   });
   final Aba aba;
   final ValueChanged<Aba> onAba;
   final int Function(Aba) numero;
+  final List<_ItemMenu> itens;
 
   @override
   Widget build(BuildContext context) {
@@ -177,7 +211,7 @@ class _MenuLateral extends StatelessWidget {
                   child: MarcaDailyObra(soSimbolo: false),
                 ),
               ),
-              for (final (a, icone, selecionado, rotulo) in _itens)
+              for (final (a, icone, selecionado, rotulo) in itens)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Material(

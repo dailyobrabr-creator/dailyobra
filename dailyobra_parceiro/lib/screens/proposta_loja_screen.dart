@@ -2,8 +2,10 @@ import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../services/loja_service.dart';
 import '../services/propostas_loja_service.dart';
 import 'componentes.dart';
+import 'mesa_screen.dart';
 import 'pedido_loja_screen.dart';
 
 /// Proposta recebida: quem pediu, produtos, valores e a resposta da loja.
@@ -40,7 +42,11 @@ class _PropostaLojaScreenState extends State<PropostaLojaScreen> {
   Future<void> _recusar(PropostaResumo p) async {
     final motivo = await showDialog<String>(
       context: context,
-      builder: (_) => const _DialogoRecusa(),
+      builder: (_) => const DialogoRecusa(
+        titulo: 'Recusar a proposta?',
+        texto: 'O construtor vê o motivo. Seja direto: falta de estoque, prazo de entrega, região.',
+        acao: 'Recusar proposta',
+      ),
     );
     if (motivo == null) return;
     await _executar(
@@ -87,6 +93,7 @@ class _PropostaLojaScreenState extends State<PropostaLojaScreen> {
         final quem = servico.construtor(p.construtorId);
         final (selo, tom) = seloParaLoja(p);
         final aberta = p.status == StatusProposta.enviada;
+        final gere = LojaService.instance.meuPapel.gere;
         final corpo = ListView(
           padding: const EdgeInsets.fromLTRB(
             Espaco.s4,
@@ -133,6 +140,14 @@ class _PropostaLojaScreenState extends State<PropostaLojaScreen> {
                 'O construtor cancelou esta proposta.',
               StatusProposta.expirada => 'O prazo de resposta acabou.',
             }, tom: aberta ? TomSelo.aviso : TomSelo.info),
+            if (p.ofertaPendente) ...[
+              const SizedBox(height: Espaco.s3),
+              Aviso(
+                'O cliente ofereceu ${brl.format(p.ofertaValor)} no total. Só o dono ou o gerente responde'
+                '${p.ofertaMensagem == null ? '.' : ': "${p.ofertaMensagem}"'}',
+                tom: TomSelo.aviso,
+              ),
+            ],
             if (p.mensagemConstrutor != null &&
                 p.mensagemConstrutor!.isNotEmpty) ...[
               const SizedBox(height: Espaco.s3),
@@ -195,6 +210,20 @@ class _PropostaLojaScreenState extends State<PropostaLojaScreen> {
           ],
         );
         final rodape = switch (p.status) {
+          _ when p.ofertaPendente =>
+            gere
+                ? SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        Espaco.s4,
+                        Espaco.s2,
+                        Espaco.s4,
+                        Espaco.s3,
+                      ),
+                      child: BotoesDaOferta(proposta: p),
+                    ),
+                  )
+                : null,
           StatusProposta.enviada => SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(
@@ -291,14 +320,23 @@ class _PropostaLojaScreenState extends State<PropostaLojaScreen> {
   }
 }
 
-class _DialogoRecusa extends StatefulWidget {
-  const _DialogoRecusa();
+/// Pede o motivo de uma recusa, que o construtor vai ler. Devolve o motivo.
+class DialogoRecusa extends StatefulWidget {
+  const DialogoRecusa({
+    super.key,
+    required this.titulo,
+    required this.texto,
+    required this.acao,
+  });
+  final String titulo;
+  final String texto;
+  final String acao;
 
   @override
-  State<_DialogoRecusa> createState() => _DialogoRecusaState();
+  State<DialogoRecusa> createState() => _DialogoRecusaState();
 }
 
-class _DialogoRecusaState extends State<_DialogoRecusa> {
+class _DialogoRecusaState extends State<DialogoRecusa> {
   final _motivo = TextEditingController();
   String? _erro;
 
@@ -311,14 +349,12 @@ class _DialogoRecusaState extends State<_DialogoRecusa> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Recusar a proposta?'),
+      title: Text(widget.titulo),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
-            'O construtor vê o motivo. Seja direto: falta de estoque, prazo de entrega, região.',
-          ),
+          Text(widget.texto),
           const SizedBox(height: Espaco.s3),
           TextField(
             controller: _motivo,
@@ -346,7 +382,7 @@ class _DialogoRecusaState extends State<_DialogoRecusa> {
             }
             Navigator.pop(context, _motivo.text.trim());
           },
-          child: const Text('Recusar proposta'),
+          child: Text(widget.acao),
         ),
       ],
     );

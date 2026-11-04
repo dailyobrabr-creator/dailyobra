@@ -62,6 +62,10 @@ class NegociacaoService extends ChangeNotifier {
     return null;
   }
 
+  /// O que [fazerOferta] mandaria ao banco, quando montado por [definirParaTeste].
+  @visibleForTesting
+  final ofertasDeTeste = <(String, double, String?)>[];
+
   @visibleForTesting
   void definirParaTeste({
     List<PropostaResumo> propostas = const [],
@@ -69,6 +73,7 @@ class NegociacaoService extends ChangeNotifier {
     String? erro,
     String? pix,
   }) {
+    ofertasDeTeste.clear();
     _propostas = propostas;
     _resultadoTeste = resultadoEnvio;
     _erro = erro;
@@ -81,6 +86,7 @@ class NegociacaoService extends ChangeNotifier {
   static const _colunas =
       'id, orcamento_id, loja_id, modo, status, subtotal_anunciado, desconto, frete, total, '
       'cashback_previsto, saldo_aplicado, mensagem_construtor, mensagem_loja, motivo_recusa, '
+      'oferta_valor, oferta_status, oferta_mensagem, oferta_motivo, oferta_em, '
       'valida_ate, criada_em, '
       'lojas(id, nome, descricao, logo_path, capa_path, whatsapp, cidade, uf, frete_fixo, pedido_minimo, aberta, criada_em), '
       'proposta_itens(item_id, nome, unidade, tier, quantidade, preco_anunciado, preco_ofertado), '
@@ -229,6 +235,19 @@ class NegociacaoService extends ChangeNotifier {
 
   Future<void> cancelar(String id) =>
       _acao('cancelar_proposta', {'p_proposta': id});
+
+  /// Oferta de [valor] no total da proposta (o servidor confere de novo).
+  Future<void> fazerOferta(String id, double valor, String? mensagem) async {
+    if (_teste) {
+      ofertasDeTeste.add((id, valor, mensagem));
+      return;
+    }
+    await _acao('fazer_oferta', {
+      'p_proposta': id,
+      'p_valor': valor,
+      'p_mensagem': mensagem,
+    });
+  }
 
   Future<void> cancelarPedido(String pedidoId) => _acao('atualizar_pedido', {
     'p_pedido': pedidoId,

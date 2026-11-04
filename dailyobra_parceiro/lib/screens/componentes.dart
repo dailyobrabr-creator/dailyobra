@@ -2,7 +2,7 @@ import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
 
 /// Abas da navegação principal. Qualquer tela pode trocar a aba com [irParaAba].
-enum Aba { inicio, propostas, pedidos, produtos, clientes, configuracoes }
+enum Aba { inicio, propostas, pedidos, mesa, produtos, clientes, configuracoes }
 
 final abaAtual = ValueNotifier<Aba>(Aba.inicio);
 
@@ -78,6 +78,7 @@ String telefone(String d) {
 
 /// Selo do ponto de vista da loja: o que ela precisa fazer.
 (String, TomSelo) seloParaLoja(PropostaResumo p) {
+  if (p.ofertaPendente) return ('Oferta do cliente', TomSelo.aviso);
   final pedido = p.pedido;
   if (pedido != null) {
     // O prazo do crediário espera a resposta do dono ou do gerente

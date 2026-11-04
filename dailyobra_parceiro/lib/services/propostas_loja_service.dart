@@ -71,6 +71,39 @@ class PropostasLojaService extends ChangeNotifier {
   List<PropostaResumo> get pedidosCancelados =>
       pedidos.where((p) => p.pedido!.status == StatusPedido.cancelado).toList();
 
+  /// Ofertas de construtores esperando o dono ou o gerente, a mais antiga primeiro.
+  List<PropostaResumo> get ofertasPendentes =>
+      _propostas.where((p) => p.ofertaPendente).toList()..sort(
+        (a, b) =>
+            (a.ofertaEm ?? a.criadaEm).compareTo(b.ofertaEm ?? b.criadaEm),
+      );
+
+  /// Pedidos com o prazo do crediário esperando o dono ou o gerente.
+  List<PropostaResumo> get prazosPendentes => pedidos
+      .where(
+        (p) =>
+            p.pedido!.prazoStatus == StatusPrazo.pendente &&
+            p.pedido!.status != StatusPedido.cancelado,
+      )
+      .toList();
+
+  /// Quantas decisões esperam na Mesa do Gerente.
+  int get naMesa => ofertasPendentes.length + prazosPendentes.length;
+
+  /// Pedidos não cancelados do construtor entre as propostas carregadas.
+  ({int pedidos, double total}) comprasDe(String? construtor) {
+    var quantos = 0;
+    var total = 0.0;
+    for (final p in pedidos) {
+      if (p.construtorId == construtor &&
+          p.pedido!.status != StatusPedido.cancelado) {
+        quantos++;
+        total += p.total;
+      }
+    }
+    return (pedidos: quantos, total: total);
+  }
+
   List<PropostaResumo> get encerradas =>
       _propostas.where((p) => p.pedido == null && !p.status.aberta).toList();
 
@@ -113,6 +146,7 @@ class PropostasLojaService extends ChangeNotifier {
     _documentosDeTeste = documentos;
     _teste = true;
     prazosDeTeste.clear();
+    ofertasDeTeste.clear();
     _carregado = true;
     _erro = null;
     notifyListeners();
@@ -123,6 +157,10 @@ class PropostasLojaService extends ChangeNotifier {
   /// Respostas ao prazo nos testes (pedido, aprovou), sem chamar o banco.
   @visibleForTesting
   final prazosDeTeste = <(String, bool)>[];
+
+  /// O que [responderOferta] mandaria ao banco, quando montado por [definirParaTeste].
+  @visibleForTesting
+  final ofertasDeTeste = <(String, bool, String?)>[];
 
   Map<String, String>? _documentosDeTeste;
 
@@ -140,7 +178,8 @@ class PropostasLojaService extends ChangeNotifier {
 
   static const _colunas =
       'id, orcamento_id, loja_id, construtor_id, modo, status, subtotal_anunciado, desconto, frete, total, '
-      'cashback_previsto, saldo_aplicado, mensagem_construtor, mensagem_loja, motivo_recusa, valida_ate, criada_em, '
+      'cashback_previsto, saldo_aplicado, mensagem_construtor, mensagem_loja, motivo_recusa, '
+      'oferta_valor, oferta_status, oferta_mensagem, oferta_motivo, oferta_em, valida_ate, criada_em, '
       'proposta_itens(item_id, nome, unidade, tier, quantidade, preco_anunciado, preco_ofertado), '
       'pedidos(id, status, total, pagamento_confirmado_em, entregue_em, criado_em, pagador, pagador_nome, '
       'pagador_whatsapp, link_codigo, documento_informado_em, pagamento_informado_em, forma_pagamento, prazo, '
@@ -297,6 +336,23 @@ class PropostasLojaService extends ChangeNotifier {
 
   Future<void> confirmarPagamento(String pedidoId) =>
       _pedidoRpc('confirmar_pagamento', {'p_pedido': pedidoId});
+
+  /// Dono ou gerente aprova a oferta do construtor (vira pedido) ou recusa com o [motivo].
+  Future<void> responderOferta(
+    String id, {
+    required bool aprovar,
+    String? motivo,
+  }) async {
+    if (_teste) {
+      ofertasDeTeste.add((id, aprovar, motivo));
+      return;
+    }
+    await _pedidoRpc('responder_oferta', {
+      'p_proposta': id,
+      'p_aprovar': aprovar,
+      'p_motivo': motivo,
+    });
+  }
 
   /// Dono ou gerente aprova ou recusa o prazo do crediário pedido pelo construtor.
   Future<void> responderPrazo(String pedidoId, bool aprovar) async {

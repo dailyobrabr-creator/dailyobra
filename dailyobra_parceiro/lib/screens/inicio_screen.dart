@@ -6,6 +6,7 @@ import '../services/ofertas_service.dart';
 import '../services/propostas_loja_service.dart';
 import '../services/resultados_service.dart';
 import 'componentes.dart';
+import 'mesa_screen.dart';
 import 'pedido_loja_screen.dart';
 import 'proposta_loja_screen.dart';
 import 'resultados_mes.dart';
@@ -217,6 +218,10 @@ class InicioScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+                  ],
+                  if (loja.meuPapel.gere && propostas.naMesa > 0) ...[
+                    const SizedBox(height: Espaco.s4),
+                    Painel(child: EntradaDaMesa(decisoes: propostas.naMesa)),
                   ],
                   if (loja.meuPapel.gere) ...[
                     const SizedBox(height: Espaco.s6),

@@ -11,12 +11,13 @@ import 'componentes.dart';
 import 'configuracoes_screen.dart';
 import 'inicio_screen.dart';
 import 'layout_parceiros.dart';
+import 'mesa_screen.dart';
 import 'pedidos_screen.dart';
 import 'produtos_screen.dart';
 import 'propostas_screen.dart';
 
-/// Navegação do painel da loja: Início · Propostas · Pedidos · Produtos · Clientes · Configurações, na moldura de
-/// cada largura.
+/// Navegação do painel da loja: Início · Propostas · Pedidos · Mesa do Gerente · Produtos · Clientes · Configurações,
+/// na moldura de cada largura.
 class NavegacaoScreen extends StatefulWidget {
   const NavegacaoScreen({super.key, required this.tema});
   final PreferenciaTema tema;
@@ -71,6 +72,8 @@ class _NavegacaoScreenState extends State<NavegacaoScreen> {
               onAba: (a) => abaAtual.value = a,
               novas: PropostasLojaService.instance.novas.length,
               pedidos: PropostasLojaService.instance.pedidosEmAndamento.length,
+              mesa: PropostasLojaService.instance.naMesa,
+              gere: LojaService.instance.meuPapel.gere,
               loja: LojaService.instance.minhaLoja,
               conteudo: IndexedStack(
                 index: aba.index,
@@ -78,6 +81,7 @@ class _NavegacaoScreenState extends State<NavegacaoScreen> {
                   const InicioScreen(),
                   const PropostasScreen(),
                   const PedidosScreen(),
+                  const MesaScreen(),
                   const ProdutosScreen(),
                   if (_clientesAberta)
                     const ClientesScreen()

@@ -32,6 +32,18 @@ class _PropostaScreenState extends State<PropostaScreen> {
     }
   }
 
+  Future<void> _fazerOferta(NegociacaoService servico, PropostaResumo p) async {
+    final oferta = await showDialog<(double, String?)>(
+      context: context,
+      builder: (_) => _DialogoOferta(proposta: p),
+    );
+    if (oferta == null) return;
+    await _executar(
+      () => servico.fazerOferta(p.id, oferta.$1, oferta.$2),
+      'Oferta enviada para a loja.',
+    );
+  }
+
   Future<bool> _confirmar(String titulo, String texto, String acao) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -162,6 +174,10 @@ class _PropostaScreenState extends State<PropostaScreen> {
         ),
         const SizedBox(height: Espaco.s4),
         Aviso(aviso, tom: tomAviso),
+        if (_avisoDaOferta(p) case (final texto, final tomDaOferta)?) ...[
+          const SizedBox(height: Espaco.s3),
+          Aviso(texto, tom: tomDaOferta),
+        ],
         if (p.mensagemLoja != null && p.mensagemLoja!.isNotEmpty) ...[
           const SizedBox(height: Espaco.s3),
           Painel(
@@ -231,6 +247,32 @@ class _PropostaScreenState extends State<PropostaScreen> {
     );
   }
 
+  /// Em que pé está a oferta do construtor; nulo sem oferta ou quando ela já não importa.
+  (String, TomSelo)? _avisoDaOferta(PropostaResumo p) {
+    final valor = p.ofertaValor;
+    if (valor == null) return null;
+    final oferta = brl.format(valor);
+    return switch (p.ofertaStatus) {
+      StatusOferta.aprovada => (
+        'A loja aprovou sua oferta de $oferta.',
+        TomSelo.sucesso,
+      ),
+      _ when !p.status.aberta => null,
+      StatusOferta.pendente => (
+        'Sua oferta de $oferta está com a ${p.lojaNome}. A resposta aparece aqui.',
+        TomSelo.info,
+      ),
+      StatusOferta.recusada =>
+        p.ofertaMotivo == null || p.ofertaMotivo!.isEmpty
+            ? ('A loja recusou sua oferta de $oferta.', TomSelo.aviso)
+            : (
+                'A loja recusou sua oferta de $oferta: ${p.ofertaMotivo}',
+                TomSelo.aviso,
+              ),
+      null => null,
+    };
+  }
+
   Widget? _acoes(
     BuildContext context,
     NegociacaoService servico,
@@ -296,9 +338,21 @@ class _PropostaScreenState extends State<PropostaScreen> {
             textAlign: TextAlign.center,
             style: t.bodySmall?.copyWith(color: context.cores.textoSuave),
           ),
+          if (p.aceitaOferta)
+            TextButton(
+              onPressed: _ocupado ? null : () => _fazerOferta(servico, p),
+              child: const Text('Fazer uma oferta'),
+            ),
         ]);
       case StatusProposta.enviada:
         return barra([
+          if (p.aceitaOferta) ...[
+            FilledButton(
+              onPressed: _ocupado ? null : () => _fazerOferta(servico, p),
+              child: const Text('Fazer uma oferta'),
+            ),
+            const SizedBox(height: Espaco.s2),
+          ],
           OutlinedButton(
             onPressed: _ocupado
                 ? null
@@ -335,6 +389,85 @@ class _PropostaScreenState extends State<PropostaScreen> {
       default:
         return null;
     }
+  }
+}
+
+/// Pede o valor da oferta, com as mesmas regras do servidor. Devolve o valor e a mensagem.
+class _DialogoOferta extends StatefulWidget {
+  const _DialogoOferta({required this.proposta});
+  final PropostaResumo proposta;
+
+  @override
+  State<_DialogoOferta> createState() => _DialogoOfertaState();
+}
+
+class _DialogoOfertaState extends State<_DialogoOferta> {
+  final _valor = TextEditingController();
+  final _mensagem = TextEditingController();
+  String? _erro;
+
+  @override
+  void dispose() {
+    _valor.dispose();
+    _mensagem.dispose();
+    super.dispose();
+  }
+
+  void _enviar() {
+    final p = widget.proposta;
+    final valor = lerPreco(_valor.text);
+    final erro = valor == null
+        ? 'Digite o valor da oferta.'
+        : valor >= p.total
+        ? 'Precisa ser menor que ${brl.format(p.total)}.'
+        : valor <= p.frete
+        ? 'Precisa ser maior que o frete de ${brl.format(p.frete)}.'
+        : null;
+    if (erro != null) {
+      setState(() => _erro = erro);
+      return;
+    }
+    final mensagem = _mensagem.text.trim();
+    Navigator.pop(context, (valor!, mensagem.isEmpty ? null : mensagem));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.proposta;
+    return AlertDialog(
+      title: const Text('Fazer uma oferta'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'O total hoje é ${brl.format(p.total)}, com frete. Diga quanto quer pagar no total. Se a ${p.lojaNome} aprovar, vira pedido na hora.',
+            ),
+            const SizedBox(height: Espaco.s3),
+            CampoTexto(
+              rotulo: 'Sua oferta (R\$)',
+              controller: _valor,
+              teclado: const TextInputType.numberWithOptions(decimal: true),
+              erro: _erro,
+            ),
+            const SizedBox(height: Espaco.s3),
+            CampoTexto(
+              rotulo: 'Mensagem para a loja',
+              controller: _mensagem,
+              maxLength: 300,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Voltar'),
+        ),
+        FilledButton(onPressed: _enviar, child: const Text('Enviar oferta')),
+      ],
+    );
   }
 }
 

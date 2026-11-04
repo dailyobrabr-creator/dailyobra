@@ -154,6 +154,8 @@ Em **Clientes** a equipe da loja vê todo construtor que mandou proposta, do con
 
 Em **Início > Resultados do mês**, dono e gerente veem também **Vendas por dia** (colunas; tocar ou passar o mouse mostra o dia, e "Ver dia a dia" abre a lista), o **Funil de propostas** (recebidas no mês, respondidas e as que viraram pedido não cancelado) e os **Produtos mais vendidos** (cinco maiores pelo valor dos itens, sem frete e sem desconto no total). Tudo vem da função `desempenho_loja`, com a mesma regra de venda de `resultados_loja`; o app manda o fuso do aparelho para o dia do gráfico ser o dia da loja.
 
+Na proposta aberta em negociação o construtor pode tocar em **Fazer uma oferta** e dizer quanto quer pagar no total, com frete. A oferta vai para a **Mesa do Gerente** do Parceiros, a fila do que só dono e gerente decidem, junto com os prazos do crediário. **Aprovar negociação** transforma a diferença em desconto no total e cria o pedido na hora; **Recusar oferta** pede o motivo, que o construtor lê, e a proposta segue no valor de antes. Com oferta pendente a resposta normal da proposta fica bloqueada, para a loja não fechar pelo preço cheio quem pediu menos. A margem do modelo original não aparece porque o custo da loja não é importado.
+
 ## Pendências no painel do Supabase
 
 - **Authentication > URL Configuration > Redirect URLs**: adicione `dailyobra://login`, `dailyobraparceiros://login` e o endereço do site no GitHub Pages; em **Site URL**, o endereço do site (links de confirmação de conta e de nova senha voltam para o app ou para o site certo).

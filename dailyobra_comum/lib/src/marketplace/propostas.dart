@@ -117,6 +117,15 @@ class PedidoResumo {
 
 DateTime? _data(Object? v) => v is String ? DateTime.parse(v).toLocal() : null;
 
+/// Resposta da loja à oferta do construtor.
+enum StatusOferta {
+  pendente,
+  aprovada,
+  recusada;
+
+  static StatusOferta? fromCodigo(String? c) => values.where((v) => v.name == c).firstOrNull;
+}
+
 class PropostaResumo {
   const PropostaResumo({
     required this.id,
@@ -140,6 +149,11 @@ class PropostaResumo {
     this.mensagemLoja,
     this.motivoRecusa,
     this.pedido,
+    this.ofertaValor,
+    this.ofertaStatus,
+    this.ofertaMensagem,
+    this.ofertaMotivo,
+    this.ofertaEm,
   });
   final String id;
   final String orcamentoId;
@@ -164,6 +178,24 @@ class PropostaResumo {
   final DateTime criadaEm;
   final List<ItemProposta> itens;
   final PedidoResumo? pedido;
+
+  /// Total que o construtor ofereceu; o dono ou o gerente responde na Mesa do Gerente.
+  final double? ofertaValor;
+  final StatusOferta? ofertaStatus;
+  final String? ofertaMensagem;
+
+  /// Por que a loja recusou a oferta.
+  final String? ofertaMotivo;
+  final DateTime? ofertaEm;
+
+  /// Proposta fechada não tem mais oferta esperando resposta.
+  bool get ofertaPendente => ofertaStatus == StatusOferta.pendente && status.aberta;
+
+  /// Só proposta aberta em negociação, sem oferta esperando, recebe oferta nova.
+  bool get aceitaOferta => status.aberta && modo == ModoProposta.negociacao && !ofertaPendente;
+
+  /// Quanto a oferta tira do total.
+  double get descontoDaOferta => ofertaValor == null ? 0 : total - ofertaValor!;
 
   /// Soma dos itens com o preço que vale agora (ofertado na contraproposta, senão o anunciado).
   double get subtotalFinal =>
@@ -203,6 +235,11 @@ class PropostaResumo {
           ItemProposta.fromJson(i as Map<String, dynamic>),
       ],
       pedido: pedidoJson == null ? null : PedidoResumo.fromJson(pedidoJson),
+      ofertaValor: j['oferta_valor'] == null ? null : lerValor(j['oferta_valor']),
+      ofertaStatus: StatusOferta.fromCodigo(j['oferta_status'] as String?),
+      ofertaMensagem: j['oferta_mensagem'] as String?,
+      ofertaMotivo: j['oferta_motivo'] as String?,
+      ofertaEm: j['oferta_em'] == null ? null : DateTime.parse(j['oferta_em'] as String).toLocal(),
     );
   }
 }

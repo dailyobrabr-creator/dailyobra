@@ -104,12 +104,12 @@ begin
   insert into public.orcamentos (construtor_id, obra_id, modo) values (dono, '00000000-0000-0000-0000-0000000b0001', 'pedido') returning id into orc;
   insert into public.orcamentos (construtor_id, obra_id, modo) values (dono, '00000000-0000-0000-0000-0000000b0001', 'pedido') returning id into orc2;
   insert into public.orcamentos (construtor_id, obra_id, modo) values (dono, null, 'pedido') returning id into orc3;
-  insert into public.propostas (orcamento_id, loja_id, construtor_id, modo, subtotal_anunciado, total) values (orc, loja, dono, 'pedido', 1000, 1000) returning id into prop;
+  insert into public.propostas (orcamento_id, loja_id, construtor_id, modo, subtotal_anunciado, total, valida_ate) values (orc, loja, dono, 'pedido', 1000, 1000, now() + interval '1 day') returning id into prop;
   insert into public.pedidos (proposta_id, loja_id, construtor_id, total) values (prop, loja, dono, 1000) returning id into ped;
   perform pg_temp.guardar('pedido', ped::text);
-  insert into public.propostas (orcamento_id, loja_id, construtor_id, modo, subtotal_anunciado, total) values (orc2, loja, dono, 'pedido', 500, 500) returning id into prop;
+  insert into public.propostas (orcamento_id, loja_id, construtor_id, modo, subtotal_anunciado, total, valida_ate) values (orc2, loja, dono, 'pedido', 500, 500, now() + interval '1 day') returning id into prop;
   insert into public.pedidos (proposta_id, loja_id, construtor_id, total, status) values (prop, loja, dono, 500, 'cancelado');
-  insert into public.propostas (orcamento_id, loja_id, construtor_id, modo, subtotal_anunciado, total) values (orc3, loja, dono, 'pedido', 700, 700) returning id into prop;
+  insert into public.propostas (orcamento_id, loja_id, construtor_id, modo, subtotal_anunciado, total, valida_ate) values (orc3, loja, dono, 'pedido', 700, 700, now() + interval '1 day') returning id into prop;
   insert into public.pedidos (proposta_id, loja_id, construtor_id, total) values (prop, loja, dono, 700);
 end $$;
 

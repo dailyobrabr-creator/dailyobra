@@ -5,6 +5,7 @@ import 'package:dailyobra_comum/dailyobra_comum.dart';
 import '../services/carrinho_service.dart';
 import '../services/catalogo_service.dart';
 import '../services/obras_service.dart';
+import 'compras_screen.dart';
 import 'componentes.dart';
 import 'cronograma_screen.dart';
 import 'diario_screen.dart';
@@ -188,6 +189,10 @@ class _ObraScreenState extends State<ObraScreen> {
             const SizedBox(height: Espaco.s2),
             if (funcao.registra) ...[
               EntradaDasPendencias(obra: obra),
+              const SizedBox(height: Espaco.s2),
+            ],
+            if (funcao.cuidaDasCompras) ...[
+              EntradaDasCompras(obra: obra),
               const SizedBox(height: Espaco.s2),
             ],
             if (funcao.lidera) ...[

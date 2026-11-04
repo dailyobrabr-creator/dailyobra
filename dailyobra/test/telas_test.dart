@@ -158,7 +158,9 @@ void main() {
         );
         await abrir(tester, const ObraScreen(id: 'a1'));
         // 153 m² alto padrão = R$ 472.379,30 nas etapas + muro texturado R$ 39.918,15
+        await rolarAte(tester, find.textContaining('512.297,45'));
         expect(find.textContaining('512.297,45'), findsOneWidget);
+        await rolarAte(tester, find.text('Andamento da obra'));
         expect(find.text('Andamento da obra'), findsOneWidget);
         expect(find.text('2%'), findsOneWidget);
         expect(find.byTooltip('Mais opções'), findsOneWidget);

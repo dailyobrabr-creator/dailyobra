@@ -4,6 +4,10 @@ import 'modelos.dart';
 /// Unidades do catálogo vendidas só inteiras.
 const _inteiras = {'saco', 'unidade', 'barra', 'rolo', 'lata', 'galão', 'balde', 'caixa', 'peça', 'kit', 'pacote', 'folha', 'painel'};
 
+/// Quantidade que dá para comprar: unidades vendidas só inteiras sobem para o próximo número;
+/// as outras, para o centésimo seguinte.
+double quantidadeDeCompra(double q, String? unidade) => _inteiras.contains(unidade) ? (q - 1e-9).ceilToDouble() : ((q * 100 - 1e-9).ceilToDouble() / 100);
+
 /// Lista de materiais da obra (planilha) convertida em quantidades de produtos do catálogo.
 ///
 /// [planilha] liga "nome|unidade" da planilha ao produto e ao fator de conversão (ex.: coluna
@@ -24,6 +28,6 @@ Map<String, double> materiaisDaObraNoCatalogo(
   }
   return {
     for (final MapEntry(key: id, value: q) in soma.entries)
-      if (q > 0) id: _inteiras.contains(catalogo[id]?.unidade) ? (q - 1e-9).ceilToDouble() : ((q * 100 - 1e-9).ceilToDouble() / 100),
+      if (q > 0) id: quantidadeDeCompra(q, catalogo[id]?.unidade),
   };
 }

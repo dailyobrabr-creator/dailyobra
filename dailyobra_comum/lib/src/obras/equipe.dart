@@ -23,6 +23,9 @@ enum FuncaoObra {
   /// Preenche o diário.
   bool get registra => this != cliente;
 
+  /// Vê a lista de materiais e registra o que chegou na obra.
+  bool get cuidaDasCompras => this == responsavel || this == mestre || this == estagiario;
+
   /// Empreiteiro é de fora e não vê o orçamento.
   bool get veValores => this != empreiteiro;
 

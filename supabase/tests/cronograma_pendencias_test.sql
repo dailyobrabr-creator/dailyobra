@@ -29,8 +29,8 @@ create function pg_temp.etapa(c text) returns public.obra_etapas language sql as
 create function pg_temp.marcar(status text) returns void language sql as $$
   insert into public.obra_etapas (obra_id, etapa, status) values (pg_temp.pegar('O')::uuid, 'alvenaria', status)
   on conflict (obra_id, etapa) do update set status = excluded.status $$;
-create function pg_temp.salvar_cron(k text, json text) returns void language sql as $$
-  select pg_temp.tentar(k, format('select public.salvar_cronograma(%L, %L)', pg_temp.pegar('O'), json)) $$;
+create function pg_temp.salvar_cron(k text, dados text) returns void language sql as $$
+  select pg_temp.tentar(k, format('select public.salvar_cronograma(%L, %L)', pg_temp.pegar('O'), dados)) $$;
 
 select pg_temp.guardar('O', '00000000-0000-0000-0000-0000000b0001');
 select pg_temp.guardar('dono', '00000000-0000-0000-0000-00000000a001');
@@ -131,6 +131,8 @@ select pg_temp.guardar('lista empreiteiro', (select string_agg(posso_mexer::text
 select pg_temp.tentar('outro altera', format('select public.salvar_pendencia(%L, %L, %L)', pg_temp.pegar('O'), pg_temp.pegar('p1'), '{"descricao": "Mudei"}'));
 select pg_temp.tentar('outro resolve', format('select public.resolver_pendencia(%L, true)', pg_temp.pegar('p1')));
 select pg_temp.tentar('outro exclui', format('select public.excluir_pendencia(%L)', pg_temp.pegar('p1')));
+select pg_temp.tentar('outro resolve sem responsavel', format('select public.resolver_pendencia(%L, true)', pg_temp.pegar('p2')));
+select pg_temp.tentar('outro altera sem responsavel', format('select public.salvar_pendencia(%L, %L, %L)', pg_temp.pegar('O'), pg_temp.pegar('p2'), '{"descricao": "Mudei"}'));
 select pg_temp.como('cliente');
 select pg_temp.guardar('cliente le', (select count(*)::text from public.obra_pendencias));
 select pg_temp.tentar('cliente lista', format('select public.pendencias_da_obra(%L)', pg_temp.pegar('O')));
@@ -159,6 +161,9 @@ select pg_temp.conferir('quem é de fora não é responsável', pg_temp.pegar('r
 select pg_temp.conferir('foto de outra obra', pg_temp.pegar('foto alheia') = 'Foto de outra obra.', pg_temp.pegar('foto alheia'));
 select pg_temp.conferir('outro não altera', pg_temp.pegar('outro altera') = 'Só quem criou, quem vai resolver ou quem lidera a obra altera esta pendência.', pg_temp.pegar('outro altera'));
 select pg_temp.conferir('outro não resolve', pg_temp.pegar('outro resolve') = 'Só quem criou, quem vai resolver ou quem lidera a obra altera esta pendência.', pg_temp.pegar('outro resolve'));
+select pg_temp.conferir('pendência sem responsável também é protegida',
+  pg_temp.pegar('outro resolve sem responsavel') = 'Só quem criou, quem vai resolver ou quem lidera a obra altera esta pendência.'
+  and pg_temp.pegar('outro altera sem responsavel') = 'Só quem criou, quem vai resolver ou quem lidera a obra altera esta pendência.', pg_temp.pegar('outro resolve sem responsavel'));
 select pg_temp.conferir('outro não exclui', pg_temp.pegar('outro exclui') = 'Só quem criou ou quem lidera a obra exclui uma pendência.', pg_temp.pegar('outro exclui'));
 select pg_temp.conferir('cliente não vê pendências', pg_temp.pegar('cliente le') = '0' and pg_temp.pegar('cliente lista') = 'Obra não encontrada.', pg_temp.pegar('cliente lista'));
 select pg_temp.conferir('cliente não cria nem resolve', pg_temp.pegar('cliente cria') = 'Só quem toca a obra registra pendências.' and pg_temp.pegar('cliente resolve') = 'Pendência não encontrada.', pg_temp.pegar('cliente resolve'));

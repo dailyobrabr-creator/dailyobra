@@ -185,6 +185,18 @@ class LojaService extends ChangeNotifier {
     return id as String;
   }
 
+  /// Entra como dona de uma loja que já está no DailyObra (função assumir_loja: confere o CNPJ e o código de acesso).
+  Future<void> assumir(String cnpj, String codigo) async {
+    final id = await comMensagem(
+      () =>
+          _db.rpc('assumir_loja', params: {'p_cnpj': cnpj, 'p_codigo': codigo}),
+    );
+    if (id == null) {
+      throw const FalhaComMensagem('CNPJ ou código não conferem.');
+    }
+    await carregar();
+  }
+
   /// Altera campos da própria loja (nome, descrição, frete...). CNPJ e situação só o suporte muda.
   Future<void> atualizar(Map<String, dynamic> campos) async {
     final loja = _loja;

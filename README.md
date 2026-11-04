@@ -156,6 +156,8 @@ Em **Início > Resultados do mês**, dono e gerente veem também **Vendas por di
 
 Na proposta aberta em negociação o construtor pode tocar em **Fazer uma oferta** e dizer quanto quer pagar no total, com frete. A oferta vai para a **Mesa do Gerente** do Parceiros, a fila do que só dono e gerente decidem, junto com os prazos do crediário. **Aprovar negociação** transforma a diferença em desconto no total e cria o pedido na hora; **Recusar oferta** pede o motivo, que o construtor lê, e a proposta segue no valor de antes. Com oferta pendente a resposta normal da proposta fica bloqueada, para a loja não fechar pelo preço cheio quem pediu menos. A margem do modelo original não aparece porque o custo da loja não é importado.
 
+Loja nova se cadastra sozinha no Parceiros pelo CNPJ. Loja que o DailyObra deixou pré-cadastrada não tem equipe e o CNPJ dela já existe, então o cadastro recusa quem é da empresa: nesse caso o dono toca em **Minha loja já está no DailyObra** e informa o CNPJ e um código de acesso. O código é gerado no SQL Editor com `select private.gerar_codigo_loja('<id da loja>');`, aparece uma vez só, vale 30 dias e bloqueia depois de cinco erros. Só o hash fica guardado.
+
 ## Pendências no painel do Supabase
 
 - **Authentication > URL Configuration > Redirect URLs**: adicione `dailyobra://login`, `dailyobraparceiros://login` e o endereço do site no GitHub Pages; em **Site URL**, o endereço do site (links de confirmação de conta e de nova senha voltam para o app ou para o site certo).

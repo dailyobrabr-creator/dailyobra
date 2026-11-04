@@ -1,3 +1,5 @@
+import 'package:dailyobra_comum/dailyobra_comum.dart';
+import 'package:dailyobra_parceiro/screens/assumir_loja_screen.dart';
 import 'package:dailyobra_parceiro/screens/cadastro_loja_screen.dart';
 import 'package:dailyobra_parceiro/services/cep_service.dart';
 import 'package:flutter/material.dart';
@@ -111,6 +113,32 @@ void main() {
         expect(enviado!['whatsapp'], '44999990000');
         expect(enviado!['frete_fixo'], 50.0);
         expect(enviado!['pedido_minimo'], 100.0);
+      });
+
+      testWidgets('CNPJ que já existe oferece a entrada com código', (
+        tester,
+      ) async {
+        await abrir(
+          tester,
+          CadastroLojaScreen(
+            criar: (_) async => throw const FalhaComMensagem(
+              'Já existe uma loja cadastrada com este CNPJ.',
+            ),
+            buscarCep: buscarFalso,
+          ),
+          escuro: escuro,
+        );
+        await preencher(tester, cnpj: '11.222.333/0001-81');
+        await rolarAte(tester, botaoCadastrar);
+        await tester.tap(botaoCadastrar);
+        await tester.pumpAndSettle();
+        await rolarAte(
+          tester,
+          find.text('A loja é minha: entrar com o código'),
+        );
+        await tester.tap(find.text('A loja é minha: entrar com o código'));
+        await tester.pumpAndSettle();
+        expect(find.byType(AssumirLojaScreen), findsOneWidget);
       });
 
       testWidgets('cadastro vazio mostra o que falta', (tester) async {

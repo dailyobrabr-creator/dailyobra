@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../services/cep_service.dart';
 import '../services/loja_service.dart';
+import 'assumir_loja_screen.dart';
 import 'campos_endereco.dart';
 import 'componentes.dart';
 import 'editor_horario.dart';
@@ -85,6 +86,11 @@ class _CadastroLojaScreenState extends State<CadastroLojaScreen> {
     return erros;
   }
 
+  void _abrirAssumir() => Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => const AssumirLojaScreen()),
+  );
+
   Future<void> _cadastrar() async {
     FocusScope.of(context).unfocus();
     final erros = _validar();
@@ -142,7 +148,14 @@ class _CadastroLojaScreenState extends State<CadastroLojaScreen> {
               'Construtores da sua região vão ver seus preços e ofertas e mandar orçamentos para você.',
               style: t.bodyMedium?.copyWith(color: c.textoSuave),
             ),
-            const SizedBox(height: Espaco.s5),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: _abrirAssumir,
+                child: const Text('Minha loja já está no DailyObra'),
+              ),
+            ),
+            const SizedBox(height: Espaco.s3),
             CampoTexto(
               rotulo: 'Nome da loja',
               controller: _nome,
@@ -232,6 +245,12 @@ class _CadastroLojaScreenState extends State<CadastroLojaScreen> {
             const SizedBox(height: Espaco.s5),
             if (_erroServidor != null) ...[
               Aviso(_erroServidor!),
+              // CNPJ de loja pré-cadastrada: quem é da empresa entra pelo código de acesso
+              if (_erroServidor!.startsWith('Já existe uma loja'))
+                TextButton(
+                  onPressed: _abrirAssumir,
+                  child: const Text('A loja é minha: entrar com o código'),
+                ),
               const SizedBox(height: Espaco.s3),
             ],
             if (_erros.isNotEmpty) ...[

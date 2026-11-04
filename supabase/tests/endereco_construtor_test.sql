@@ -56,12 +56,13 @@ select pg_temp.guardar('loja lê endereço', (select count(*)::text from public.
 select pg_temp.admin();
 set local role anon;
 select pg_temp.tentar('anônimo', 'select * from public.construtor_enderecos');
-select pg_temp.admin();
+reset role;
 
 -- A obra guarda as partes
 select pg_temp.como('00000000-0000-0000-0000-00000000c001');
 select pg_temp.tentar('obra', $q$insert into public.obras (nome, cidade, uf, created_by, cep, logradouro, numero, bairro, endereco)
   values ('Casa', 'Rondonópolis', 'MT', '00000000-0000-0000-0000-00000000c001', '78720586', 'Av. João Ponce de Arruda', '4885', 'Vila Operária', 'Av. João Ponce de Arruda, 4885 – Vila Operária, CEP 78720-586')$q$);
+select pg_temp.tentar('excluir', 'select public.excluir_conta(''EXCLUIR'')');
 select pg_temp.admin();
 
 select pg_temp.conferir('construtor grava o próprio endereço', pg_temp.pegar('grava') = 'passou', pg_temp.pegar('grava'));
@@ -72,6 +73,8 @@ select pg_temp.conferir('outro construtor não lê', pg_temp.pegar('outro lê') 
 select pg_temp.conferir('loja lê o perfil e não lê o endereço', pg_temp.pegar('loja lê perfil') = '1' and pg_temp.pegar('loja lê endereço') = '0', pg_temp.pegar('loja lê endereço'));
 select pg_temp.conferir('anônimo não lê', pg_temp.pegar('anônimo') like 'permission denied%', pg_temp.pegar('anônimo'));
 select pg_temp.conferir('obra aceita as partes do endereço', pg_temp.pegar('obra') = 'passou', pg_temp.pegar('obra'));
+select pg_temp.conferir('excluir a conta apaga o endereço',
+  pg_temp.pegar('excluir') = 'passou' and not exists (select 1 from public.construtor_enderecos where user_id = '00000000-0000-0000-0000-00000000c001'), pg_temp.pegar('excluir'));
 
 select pg_temp.admin();
 do $$ declare total int; ok int; falhas text; begin

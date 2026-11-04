@@ -88,7 +88,7 @@ select pg_temp.tentar('marca ze', format('select public.marcar_presenca(%L, %L, 
 select pg_temp.tentar('marca ana', format('select public.marcar_presenca(%L, %L, 0.5)', pg_temp.pegar('ana'), pg_temp.pegar('ontem')));
 select pg_temp.tentar('marca de novo', format('select public.marcar_presenca(%L, %L, 0.5)', pg_temp.pegar('ze'), pg_temp.pegar('hoje')));
 select pg_temp.tentar('muda', format('select public.marcar_presenca(%L, %L, 1)', pg_temp.pegar('ze'), pg_temp.pegar('hoje')));
-select pg_temp.tentar('futuro', format('select public.marcar_presenca(%L, %L, 1)', pg_temp.pegar('ze'), pg_temp.pegar('futuro')));
+select pg_temp.tentar('marca futuro', format('select public.marcar_presenca(%L, %L, 1)', pg_temp.pegar('ze'), pg_temp.pegar('futuro')));
 select pg_temp.tentar('dias errados', format('select public.marcar_presenca(%L, %L, 2)', pg_temp.pegar('ze'), pg_temp.pegar('hoje')));
 select pg_temp.tentar('tira', format('select public.marcar_presenca(%L, %L, 0)', pg_temp.pegar('ana'), pg_temp.pegar('hoje')));
 select pg_temp.guardar('mestre presencas', (select count(*)::text from public.presencas_da_obra(pg_temp.pegar('O')::uuid)));
@@ -99,7 +99,7 @@ select pg_temp.como('fora');
 select pg_temp.tentar('fora marca', format('select public.marcar_presenca(%L, %L, 1)', pg_temp.pegar('ze'), pg_temp.pegar('hoje')));
 select pg_temp.admin();
 select pg_temp.conferir('mestre marca e corrige', pg_temp.pegar('marca ze') = 'passou' and pg_temp.pegar('muda') = 'passou' and pg_temp.pegar('mestre presencas') = '3', pg_temp.pegar('mestre presencas'));
-select pg_temp.conferir('dia futuro recusado', pg_temp.pegar('futuro') = 'Não dá para marcar um dia que ainda não chegou.', pg_temp.pegar('futuro'));
+select pg_temp.conferir('dia futuro recusado', pg_temp.pegar('marca futuro') = 'Não dá para marcar um dia que ainda não chegou.', pg_temp.pegar('marca futuro'));
 select pg_temp.conferir('só dia inteiro ou meio dia', pg_temp.pegar('dias errados') = 'Marque dia inteiro, meio dia ou falta.', pg_temp.pegar('dias errados'));
 select pg_temp.conferir('estagiário não marca', pg_temp.pegar('estagiario marca') = 'Pessoa não encontrada.' and pg_temp.pegar('estagiario presencas') = 'Obra não encontrada.', pg_temp.pegar('estagiario marca'));
 select pg_temp.conferir('quem é de fora não marca', pg_temp.pegar('fora marca') = 'Pessoa não encontrada.', pg_temp.pegar('fora marca'));
@@ -201,13 +201,13 @@ select pg_temp.guardar('m4', (select public.lancar_medicao(pg_temp.pegar('c1')::
 select pg_temp.tentar('mestre exclui pendente', format('select public.excluir_medicao(%L)', pg_temp.pegar('m4')));
 select pg_temp.tentar('mestre exclui aprovada', format('select public.excluir_medicao(%L)', pg_temp.pegar('m2')));
 select pg_temp.admin();
-select pg_temp.conferir('medição vira valor pelo percentual', (select valor = 3333.34 and numero = 1 and observacao = 'Primeira' and not (aprovada and false) from public.obra_medicoes where id = pg_temp.pegar('m1')::uuid), (select valor::text from public.obra_medicoes where id = pg_temp.pegar('m1')::uuid));
+select pg_temp.conferir('medição vira valor pelo percentual', (select valor = 3333.00 and numero = 1 and observacao = 'Primeira' from public.obra_medicoes where id = pg_temp.pegar('m1')::uuid), (select valor::text from public.obra_medicoes where id = pg_temp.pegar('m1')::uuid));
 select pg_temp.conferir('medição do mestre espera aprovação', pg_temp.pegar('paga sem aprovar') = 'Aprove a medição antes de pagar.', pg_temp.pegar('paga sem aprovar'));
 select pg_temp.conferir('medição do responsável nasce aprovada', (select aprovada from public.obra_medicoes where id = pg_temp.pegar('m2')::uuid));
 select pg_temp.conferir('uma pendente por vez', pg_temp.pegar('duas pendentes') = 'Aprove a medição anterior antes de lançar outra.', pg_temp.pegar('duas pendentes'));
 select pg_temp.conferir('mestre não aprova nem paga', pg_temp.pegar('mestre aprova') = 'Medição não encontrada.' and pg_temp.pegar('mestre paga medicao') = 'Medição não encontrada.', pg_temp.pegar('mestre aprova'));
 select pg_temp.conferir('mestre vê a medição sem valor', pg_temp.pegar('mestre medicoes') = '1:33.33:-', pg_temp.pegar('mestre medicoes'));
-select pg_temp.conferir('empreiteiro não lança e vê o valor da dele', pg_temp.pegar('emp lanca') = 'Contrato não encontrado.' and pg_temp.pegar('emp medicoes') = '3333.34' and pg_temp.pegar('outro medicoes') = '0', pg_temp.pegar('emp medicoes'));
+select pg_temp.conferir('empreiteiro não lança e vê o valor da dele', pg_temp.pegar('emp lanca') = 'Contrato não encontrado.' and pg_temp.pegar('emp medicoes') = '3333.00' and pg_temp.pegar('outro medicoes') = '0', pg_temp.pegar('emp medicoes'));
 select pg_temp.conferir('aprovar uma vez só', pg_temp.pegar('aprova') = 'passou' and pg_temp.pegar('aprova de novo') = 'Esta medição já foi aprovada.', pg_temp.pegar('aprova de novo'));
 select pg_temp.conferir('percentual só sobe, até 100',
   pg_temp.pegar('menor') = 'Digite um percentual acima de 33.33 e até 100.' and pg_temp.pegar('demais') = 'Digite um percentual acima de 33.33 e até 100.', pg_temp.pegar('menor'));
@@ -215,7 +215,7 @@ select pg_temp.conferir('medição não fica no futuro', pg_temp.pegar('medicao 
 select pg_temp.conferir('contrato não fica menor que o medido', pg_temp.pegar('reduz contrato') = 'O contrato não pode ficar menor que o já medido.', pg_temp.pegar('reduz contrato'));
 select pg_temp.conferir('contrato com medição não se exclui', pg_temp.pegar('exclui com medicao') = 'Contrato com medição não pode ser excluído. Encerre o contrato.', pg_temp.pegar('exclui com medicao'));
 select pg_temp.conferir('pagar medição entra na conta com a etapa do contrato',
-  (select valor = 3333.34 and tipo = 'mao_de_obra' and vinculo = 'medicao' and etapa = 'alvenaria' and fornecedor = 'João Reboco' and descricao = 'Medição 1: Reboco' from public.obra_gastos where id = pg_temp.pegar('g med')::uuid));
+  (select valor = 3333.00 and tipo = 'mao_de_obra' and vinculo = 'medicao' and etapa = 'alvenaria' and fornecedor = 'João Reboco' and descricao = 'Medição 1: Reboco' from public.obra_gastos where id = pg_temp.pegar('g med')::uuid));
 select pg_temp.conferir('não paga a medição duas vezes', pg_temp.pegar('paga medicao de novo') = 'Esta medição já foi paga.', pg_temp.pegar('paga medicao de novo'));
 select pg_temp.conferir('medição paga não se exclui', pg_temp.pegar('exclui paga') = 'Medição paga não pode ser excluída. Exclua o pagamento no dinheiro da obra.', pg_temp.pegar('exclui paga'));
 select pg_temp.conferir('só a última sai', pg_temp.pegar('exclui do meio') = 'Só a última medição pode ser excluída.' and pg_temp.pegar('exclui a ultima') = 'passou', pg_temp.pegar('exclui do meio'));

@@ -6,6 +6,7 @@ import '../services/carrinho_service.dart';
 import '../services/catalogo_service.dart';
 import '../services/obras_service.dart';
 import 'componentes.dart';
+import 'diario_screen.dart';
 import 'obra_form_screen.dart';
 
 class ObraScreen extends StatefulWidget {
@@ -155,6 +156,8 @@ class _ObraScreenState extends State<ObraScreen> {
               ),
               const SizedBox(height: Espaco.s4),
             ],
+            EntradaDoDiario(obra: obra),
+            const SizedBox(height: Espaco.s4),
             if (calculo.resultado == null)
               Painel(
                 child: Padding(

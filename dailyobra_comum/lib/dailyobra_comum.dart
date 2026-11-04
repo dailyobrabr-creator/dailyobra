@@ -18,6 +18,7 @@ export 'src/marketplace/propostas.dart';
 export 'src/marketplace/smart_list.dart';
 export 'src/marketplace/texto.dart';
 export 'src/marketplace/vitrine_dados.dart';
+export 'src/obras/diario.dart';
 export 'src/obras/obra.dart';
 export 'src/orcamento/materiais.dart';
 export 'src/orcamento/orcamento.dart';

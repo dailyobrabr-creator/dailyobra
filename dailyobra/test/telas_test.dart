@@ -5,6 +5,7 @@ import 'package:dailyobra/screens/obra_form_screen.dart';
 import 'package:dailyobra/screens/obra_screen.dart';
 import 'package:dailyobra/screens/obras_screen.dart';
 import 'package:dailyobra/screens/simulador_screen.dart';
+import 'package:dailyobra/services/diario_service.dart';
 import 'package:dailyobra/services/obras_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -169,6 +170,7 @@ void main() {
       testWidgets('obra: cliente só acompanha, sem editar nem excluir', (
         tester,
       ) async {
+        DiarioService.instance.definirParaTeste();
         ObrasService.instance.definirParaTeste(
           obras: [obraExemplo(papel: Papel.cliente)],
         );

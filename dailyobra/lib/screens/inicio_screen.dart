@@ -24,6 +24,7 @@ import 'vitrine_do_inicio.dart';
 const _produtosPorPrateleira = 12;
 const _produtosParaTerPrateleira = 2;
 const _prateleirasDeCategoria = 6;
+const _alturaDoCotar = 44.0;
 
 /// Início: a loja, em fundo branco e uma coluna só em todas as telas. Depois do topo vêm a lista para cotar, a faixa da
 /// obra, os avisos de propostas e pedidos, os banners, as categorias, as lojas e as prateleiras de produtos.
@@ -614,67 +615,90 @@ class _ListaInteligenteState extends State<_ListaInteligente> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.cores;
     final campo = TextField(
       controller: _texto,
       enabled: !_lendo,
       minLines: 1,
       maxLines: 5,
       keyboardType: TextInputType.multiline,
+      textAlignVertical: TextAlignVertical.center,
       decoration: InputDecoration(
+        constraints: const BoxConstraints(minHeight: _alturaDoCotar),
         hintText: _lendo
             ? 'Lendo o arquivo…'
-            : 'Cole a lista ou anexe PDF ou foto',
+            : widget.compacta
+            ? 'Cole a lista ou anexe'
+            : 'Cole a lista ou anexe um PDF ou foto',
         hintMaxLines: 1,
-        suffixIcon: _lendo
-            ? const Padding(
-                padding: EdgeInsets.all(14),
-                child: SizedBox.square(
-                  dimension: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              )
-            : IconButton(
-                tooltip: 'Adicionar arquivo (PDF ou foto)',
-                onPressed: _anexar,
-                icon: const Icon(Icons.attach_file_rounded),
-              ),
+        filled: false,
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
+        contentPadding: const EdgeInsets.fromLTRB(Espaco.s4, 10, Espaco.s1, 10),
       ),
     );
+    final anexo = _lendo
+        ? const Padding(
+            padding: EdgeInsets.all(12),
+            child: SizedBox.square(
+              dimension: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          )
+        : IconButton(
+            tooltip: 'Adicionar arquivo (PDF ou foto)',
+            onPressed: _anexar,
+            constraints: const BoxConstraints.tightFor(
+              width: _alturaDoCotar,
+              height: _alturaDoCotar,
+            ),
+            style: IconButton.styleFrom(
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            icon: const Icon(Icons.attach_file_rounded),
+          );
     final botao = SizedBox(
-      height: 48,
+      height: _alturaDoCotar,
       child: FilledButton(
         key: const Key('cotar-agora'),
         onPressed: _cotar,
         style: FilledButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: Espaco.s5),
+          backgroundColor: c.topo,
+          foregroundColor: c.textoSobreTopo,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(Raio.md),
+          ),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            RaioReto(),
-            SizedBox(width: Espaco.s2),
-            Text('Cotar agora'),
+            const RaioReto(tamanho: 16),
+            const SizedBox(width: Espaco.s1),
+            Text(widget.compacta ? 'Cotar' : 'Cotar agora'),
           ],
         ),
       ),
     );
-    if (widget.compacta) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+    // Uma barra só, como a de busca: o botão fica embaixo quando a lista colada cresce
+    return Container(
+      padding: const EdgeInsets.only(right: 5, top: 5, bottom: 5),
+      decoration: BoxDecoration(
+        color: c.superficieSutil,
+        borderRadius: BorderRadius.circular(Raio.lg),
+        border: Border.all(color: c.borda),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          campo,
-          const SizedBox(height: Espaco.s2),
+          Expanded(child: campo),
+          anexo,
           botao,
         ],
-      );
-    }
-    return Row(
-      children: [
-        Expanded(child: campo),
-        const SizedBox(width: Espaco.s3),
-        botao,
-      ],
+      ),
     );
   }
 }

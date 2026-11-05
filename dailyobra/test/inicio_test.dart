@@ -63,10 +63,10 @@ void main() {
         expect(find.text('Olá, Ana'), findsOneWidget);
         expect(find.text('Clube DailyObra'), findsNothing);
         expect(find.textContaining(brl.format(125.5)), findsNothing);
-        expect(find.text('Cotar agora'), findsOneWidget);
+        expect(find.text('Cotar'), findsOneWidget);
         expect(find.textContaining('Buscar cimento'), findsNothing);
         expect(
-          tester.getTopLeft(find.text('Cotar agora')).dy,
+          tester.getTopLeft(find.text('Cotar')).dy,
           greaterThan(tester.getBottomLeft(find.text('Olá, Ana')).dy),
         );
         await rolarAte(tester, find.text('Ofertas do dia'));

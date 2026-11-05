@@ -182,7 +182,7 @@ void main() {
           expect(raio, findsOneWidget);
           final texto = find.descendant(
             of: find.byKey(const Key('cotar-agora')),
-            matching: find.text('Cotar agora'),
+            matching: find.text(largura < 600 ? 'Cotar' : 'Cotar agora'),
           );
           expect(
             tester.getCenter(raio).dy,

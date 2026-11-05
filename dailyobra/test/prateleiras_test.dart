@@ -228,6 +228,36 @@ void main() {
       produto('$categoria-2', categoria),
     ];
 
+    testWidgets('cotar é uma barra só, com o botão ao lado do campo', (
+      tester,
+    ) async {
+      preparar();
+      await abrir(tester, const InicioScreen());
+      final botao = find.byKey(const Key('cotar-agora'));
+      final campo = find.byType(TextField);
+      expect(tester.getSize(botao).width, lessThan(130));
+      expect(
+        tester.getCenter(botao).dy,
+        closeTo(tester.getCenter(campo).dy, 2),
+      );
+      expect(
+        tester.getCenter(botao).dx,
+        greaterThan(tester.getCenter(campo).dx),
+      );
+      expect(find.byTooltip('Adicionar arquivo (PDF ou foto)'), findsOneWidget);
+    });
+
+    testWidgets('lista longa cresce e o botão acompanha', (tester) async {
+      preparar();
+      await abrir(tester, const InicioScreen());
+      final botao = find.byKey(const Key('cotar-agora'));
+      final antes = tester.getBottomLeft(botao).dy;
+      await tester.enterText(find.byType(TextField), 'a\nb\nc\nd');
+      await tester.pumpAndSettle();
+      expect(tester.getBottomLeft(botao).dy, greaterThan(antes));
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('as categorias ficam embaixo do banner', (tester) async {
       preparar();
       await abrir(tester, const InicioScreen());

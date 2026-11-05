@@ -228,6 +228,15 @@ void main() {
       produto('$categoria-2', categoria),
     ];
 
+    testWidgets('as categorias ficam embaixo do banner', (tester) async {
+      preparar();
+      await abrir(tester, const InicioScreen());
+      expect(
+        tester.getTopLeft(find.byType(GradeDeCategorias)).dy,
+        greaterThan(tester.getBottomLeft(find.byType(CarrosselDeBanners)).dy),
+      );
+    });
+
     testWidgets('cada categoria com produtos ganha uma prateleira', (
       tester,
     ) async {

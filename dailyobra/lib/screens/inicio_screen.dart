@@ -26,7 +26,7 @@ const _produtosParaTerPrateleira = 2;
 const _prateleirasDeCategoria = 6;
 
 /// Início: a loja, em fundo branco e uma coluna só em todas as telas. Depois do topo vêm a lista para cotar, a faixa da
-/// obra, os avisos de propostas e pedidos, as categorias, os banners, as lojas e as prateleiras de produtos.
+/// obra, os avisos de propostas e pedidos, os banners, as categorias, as lojas e as prateleiras de produtos.
 class InicioScreen extends StatelessWidget {
   const InicioScreen({super.key, this.tema, this.onSino});
   final PreferenciaTema? tema;
@@ -97,8 +97,8 @@ class InicioScreen extends StatelessWidget {
                   comMargem(v.obra()),
                   comMargem(v.contraproposta()),
                   comMargem(v.pedido()),
-                  comMargem(v.categorias()),
                   comMargem(v.banners()),
+                  comMargem(v.categorias()),
                   v.lojas(m),
                   ...v.prateleiras(m),
                   comMargem(v.economia()),

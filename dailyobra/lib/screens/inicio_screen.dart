@@ -624,6 +624,8 @@ class _ListaInteligenteState extends State<_ListaInteligente> {
       keyboardType: TextInputType.multiline,
       textAlignVertical: TextAlignVertical.center,
       decoration: InputDecoration(
+        // Sem isso o campo tem no mínimo 48 de altura e empurra o botão para baixo
+        isDense: true,
         constraints: const BoxConstraints(minHeight: _alturaDoCotar),
         hintText: _lendo
             ? 'Lendo o arquivo…'
@@ -685,6 +687,7 @@ class _ListaInteligenteState extends State<_ListaInteligente> {
     );
     // Uma barra só, como a de busca: o botão fica embaixo quando a lista colada cresce
     return Container(
+      key: const Key('barra-de-cotar'),
       padding: const EdgeInsets.only(right: 5, top: 5, bottom: 5),
       decoration: BoxDecoration(
         color: c.superficieSutil,

@@ -247,6 +247,19 @@ void main() {
       expect(find.byTooltip('Adicionar arquivo (PDF ou foto)'), findsOneWidget);
     });
 
+    testWidgets('o botão fica com a mesma folga em cima, embaixo e ao lado', (
+      tester,
+    ) async {
+      preparar();
+      await abrir(tester, const InicioScreen());
+      final barra = tester.getRect(find.byKey(const Key('barra-de-cotar')));
+      final botao = tester.getRect(find.byKey(const Key('cotar-agora')));
+      final clipe = tester.getRect(find.byType(IconButton).first);
+      expect(botao.top - barra.top, closeTo(barra.bottom - botao.bottom, 0.5));
+      expect(botao.top - barra.top, closeTo(barra.right - botao.right, 0.5));
+      expect(clipe.center.dy, closeTo(botao.center.dy, 0.5));
+    });
+
     testWidgets('lista longa cresce e o botão acompanha', (tester) async {
       preparar();
       await abrir(tester, const InicioScreen());

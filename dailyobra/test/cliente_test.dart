@@ -568,14 +568,14 @@ void main() {
           naObra(FuncaoObra.cliente);
           await abrir(tester, const ObraScreen(id: 'o1'), escuro: escuro);
           expect(find.text('1 mudança espera a sua aprovação'), findsOneWidget);
-          expect(find.text('Últimas fotos'), findsOneWidget);
-          expect(find.byType(MiniaturaFoto), findsOneWidget);
           await rolarAte(tester, find.text('Relatório da semana'));
           expect(
             find.text('O resumo da obra, semana a semana'),
             findsOneWidget,
           );
           expect(find.text('Pendências'), findsNothing);
+          await rolarAte(tester, find.text('Últimas fotos'));
+          expect(find.byType(MiniaturaFoto), findsOneWidget);
           expect(tester.takeException(), isNull);
         });
 

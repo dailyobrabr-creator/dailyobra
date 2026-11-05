@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 /// Abas da navegação principal. Qualquer tela pode trocar a aba com [irParaAba].
-enum Aba { inicio, orcamentos, carteira, perfil, obras }
+enum Aba { inicio, busca, obras, orcamentos, perfil }
 
 final abaAtual = ValueNotifier<Aba>(Aba.inicio);
 
@@ -103,27 +103,29 @@ class EntradaDaObra extends StatelessWidget {
                 style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 2),
-              Text.rich(
-                TextSpan(
-                  children: [
-                    if (alerta)
-                      WidgetSpan(
-                        alignment: PlaceholderAlignment.middle,
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: Espaco.s1),
-                          child: Icon(
-                            Icons.warning_amber,
-                            size: 14,
-                            color: corDoDetalhe,
-                          ),
-                        ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (alerta) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(top: 1),
+                      child: Icon(
+                        Icons.warning_amber,
+                        size: 14,
+                        color: corDoDetalhe,
                       ),
-                    TextSpan(text: detalhe),
+                    ),
+                    const SizedBox(width: Espaco.s1),
                   ],
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: t.bodySmall?.copyWith(color: corDoDetalhe),
+                  Expanded(
+                    child: Text(
+                      detalhe,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: t.bodySmall?.copyWith(color: corDoDetalhe),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

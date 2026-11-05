@@ -2,7 +2,6 @@ import 'package:dailyobra/screens/componentes.dart';
 import 'package:dailyobra/screens/dia_obra_screen.dart';
 import 'package:dailyobra/screens/ditar_dia.dart';
 import 'package:dailyobra/screens/hoje_na_obra.dart';
-import 'package:dailyobra/screens/obra_screen.dart';
 import 'package:dailyobra/services/diario_service.dart';
 import 'package:dailyobra/services/ia_service.dart';
 import 'package:dailyobra/services/obras_service.dart';
@@ -78,10 +77,7 @@ void main() {
   testWidgets('mostra a obra, o dia e o andamento', (tester) async {
     await abrirPainel(tester);
     expect(find.text('Hoje na obra'), findsOneWidget);
-    expect(
-      find.text('Residência Silva\n${diaPorExtenso(agora)}'),
-      findsOneWidget,
-    );
+    expect(find.text(diaPorExtenso(agora)), findsOneWidget);
     final etapas = Calculo.de(const ParametrosObra(area: '120'))
         .resultado!
         .etapas;
@@ -256,12 +252,6 @@ void main() {
       final presenca = tester.getTopLeft(find.text('Marcar presença'));
       expect(gasto.dy, ditar.dy);
       expect(presenca.dy, greaterThan(ditar.dy));
-    });
-
-    testWidgets('abrir a obra leva à tela dela', (tester) async {
-      await abrirPainel(tester);
-      await tocar(tester, find.text('Abrir a obra'));
-      expect(find.byType(ObraScreen), findsOneWidget);
     });
 
     testWidgets('funciona no tema escuro', (tester) async {

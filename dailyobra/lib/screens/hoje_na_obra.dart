@@ -9,7 +9,6 @@ import 'dinheiro_screen.dart';
 import 'entradas_da_obra.dart';
 import 'mao_de_obra_screen.dart';
 import 'mudancas_screen.dart';
-import 'obra_screen.dart';
 import 'pendencias_screen.dart';
 import 'propostas_comerciais_screen.dart';
 
@@ -38,12 +37,12 @@ DateTime _diaDeHoje() {
   return DateTime(agora.year, agora.month, agora.day);
 }
 
-/// O miolo da aba Obras: como a obra está hoje, o que dá para fazer em um toque e o caminho para cada parte dela.
+/// O alto da tela de cada obra: como ela está hoje, o que dá para fazer em um toque e o caminho para cada parte dela.
 class HojeNaObra extends StatefulWidget {
   const HojeNaObra({super.key, required this.obra, this.compacto = false});
   final Obra obra;
 
-  /// No celular o nome e a data ficam em linhas separadas e os atalhos, em duas colunas.
+  /// No celular os atalhos ficam em duas colunas.
   final bool compacto;
 
   @override
@@ -58,8 +57,6 @@ class _HojeNaObraState extends State<HojeNaObra> {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => tela));
     _recarregar();
   }
-
-  void _abrirObra() => _abrir(ObraScreen(id: widget.obra.id));
 
   List<Widget> _atalhos() {
     final obra = widget.obra;
@@ -182,35 +179,14 @@ class _HojeNaObraState extends State<HojeNaObra> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Hoje na obra',
-                            style: t.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            widget.compacto
-                                ? '${obra.nome}\n${diaPorExtenso(agora)}'
-                                : '${obra.nome} · ${diaPorExtenso(agora)}',
-                            style: t.bodyMedium?.copyWith(color: c.textoSuave),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: Espaco.s2),
-                    TextButton(
-                      onPressed: _abrirObra,
-                      child: const Text('Abrir a obra'),
-                    ),
-                  ],
+                Text(
+                  'Hoje na obra',
+                  style: t.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  diaPorExtenso(agora),
+                  style: t.bodyMedium?.copyWith(color: c.textoSuave),
                 ),
                 const SizedBox(height: Espaco.s3),
                 ClipRRect(

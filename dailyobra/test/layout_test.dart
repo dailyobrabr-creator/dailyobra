@@ -82,13 +82,7 @@ void main() {
             )
             .map((d) => d.label)
             .toList();
-        expect(rotulos, [
-          'Início',
-          'Orçamentos',
-          'Obras',
-          'Carteira',
-          'Perfil',
-        ]);
+        expect(rotulos, ['Início', 'Busca', 'Obras', 'Orçamentos', 'Perfil']);
         await tester.tap(find.text('Obras'));
         expect(escolhida, Aba.obras);
       });
@@ -106,19 +100,33 @@ void main() {
         }
       });
 
-      testWidgets('computador: menu lateral, clube e barra laranja', (
+      testWidgets('celular: a Carteira não é aba e a ativa não tem pílula', (
         tester,
       ) async {
+        await abrirLargura(tester, 390, escuro: escuro);
+        expect(find.text('Carteira'), findsNothing);
+        final barra = tester.widget<NavigationBarTheme>(
+          find
+              .ancestor(
+                of: find.byType(NavigationBar),
+                matching: find.byType(NavigationBarTheme),
+              )
+              .first,
+        );
+        expect(barra.data.indicatorColor, Colors.transparent);
+      });
+
+      testWidgets('computador: menu lateral e barra laranja', (tester) async {
         await abrirLargura(tester, 1024, escuro: escuro);
         expect(find.text('Obras'), findsOneWidget);
-        expect(find.text('Clube DailyObra'), findsOneWidget);
-        expect(find.text('Usar no orçamento'), findsOneWidget);
+        expect(find.text('Clube DailyObra'), findsNothing);
+        expect(find.text('Carteira'), findsNothing);
         expect(find.text('Olá, Ana'), findsOneWidget);
         expect(find.textContaining('Buscar cimento'), findsOneWidget);
         expect(find.byType(NavigationBar), findsNothing);
         expect(tester.takeException(), isNull);
-        await tester.tap(find.text('Carteira'));
-        expect(escolhida, Aba.carteira);
+        await tester.tap(find.text('Busca'));
+        expect(escolhida, Aba.busca);
       });
 
       testWidgets('tela muito larga: conteúdo até 1320 px', (tester) async {

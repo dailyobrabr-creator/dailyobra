@@ -8,15 +8,15 @@ import '../services/economia_service.dart';
 import '../services/negociacao_service.dart';
 import '../services/novidades_service.dart';
 import '../services/perfil_service.dart';
-import 'aba_obras_screen.dart';
-import 'carteira_screen.dart';
+import 'busca_screen.dart';
 import 'componentes.dart';
 import 'inicio_screen.dart';
 import 'layout_adaptativo.dart';
+import 'obras_screen.dart';
 import 'orcamentos_screen.dart';
 import 'perfil_screen.dart';
 
-/// Navegação principal depois do login: Início · Orçamentos · Obras · Carteira · Perfil.
+/// Navegação principal depois do login: Início, Busca, Obras, Orçamentos e Perfil. A Carteira fica dentro do Perfil.
 class NavegacaoScreen extends StatefulWidget {
   const NavegacaoScreen({super.key, required this.tema});
   final PreferenciaTema tema;
@@ -77,10 +77,10 @@ class _NavegacaoScreenState extends State<NavegacaoScreen> {
               index: aba.index,
               children: [
                 InicioScreen(tema: widget.tema),
+                const BuscaScreen(naAba: true),
+                const ObrasScreen(),
                 const OrcamentosScreen(),
-                const CarteiraScreen(),
                 PerfilScreen(tema: widget.tema),
-                const AbaObrasScreen(),
               ],
             ),
           ),

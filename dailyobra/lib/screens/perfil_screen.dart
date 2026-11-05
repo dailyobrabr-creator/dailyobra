@@ -1,6 +1,7 @@
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
 
+import '../services/carteira_service.dart';
 import '../services/obras_service.dart';
 import '../services/perfil_service.dart';
 import 'componentes.dart';
@@ -12,8 +13,8 @@ import 'simulador_screen.dart';
 const _larguraDeDuasColunas = 960.0;
 const _larguraDaLateral = 320.0;
 
-/// Dados do construtor, cidade (ordena as lojas), tema, obras e saída da conta. Nas telas largas, a pessoa e os caminhos
-/// ficam à esquerda e o que se edita fica à direita.
+/// Dados do construtor, carteira, cidade (ordena as lojas), tema, obras e saída da conta. Nas telas largas, a pessoa e os
+/// caminhos ficam à esquerda e o que se edita fica à direita.
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({
     super.key,
@@ -177,6 +178,66 @@ class _PerfilScreenState extends State<PerfilScreen> {
                     _perfil.uf == null ? cidade : '$cidade, ${_perfil.uf}',
                   ),
               ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _carteira() {
+    final carteira = CarteiraService.instance;
+    return ListenableBuilder(
+      listenable: carteira,
+      builder: (context, _) {
+        final c = context.cores;
+        final t = Theme.of(context).textTheme;
+        return Material(
+          color: c.cartaoEscuro,
+          borderRadius: BorderRadius.circular(Raio.lg),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => abrirCarteira(context),
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Carteira',
+                          style: t.bodySmall?.copyWith(
+                            color: c.textoCartaoEscuroSuave,
+                          ),
+                        ),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '${brl.format(carteira.disponivel)} disponível',
+                            style: t.titleLarge?.copyWith(
+                              color: c.textoCartaoEscuro,
+                              fontWeight: FontWeight.w700,
+                              fontFeatures: numerosTabulares,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          carteira.pendente > 0
+                              ? '+ ${brl.format(carteira.pendente)} a liberar depois da entrega'
+                              : 'Ganhe cashback em cada pedido fechado pelo app',
+                          style: t.bodySmall?.copyWith(
+                            color: const Color(0xFFFFB98F),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, color: c.textoCartaoEscuro),
+                ],
+              ),
             ),
           ),
         );
@@ -387,6 +448,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                       width: _larguraDaLateral,
                       child: _coluna([
                         _identidade(),
+                        _carteira(),
                         _caminhos(),
                         _botaoSair(),
                       ]),
@@ -405,11 +467,12 @@ class _PerfilScreenState extends State<PerfilScreen> {
               else
                 _coluna([
                   _identidade(),
+                  _carteira(),
+                  _caminhos(),
                   _seusDados(false),
                   _enderecoEBotao(false),
                   const _ObraAtiva(),
                   _aparencia(),
-                  _caminhos(),
                   _botaoSair(),
                 ]),
             ],
@@ -420,7 +483,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
   }
 }
 
-/// Obra do cartão do Início. Some quando não há obra cadastrada.
+/// Obra da faixa do Início. Some quando não há obra cadastrada.
 class _ObraAtiva extends StatelessWidget {
   const _ObraAtiva();
 
@@ -448,7 +511,7 @@ class _ObraAtiva extends StatelessWidget {
                   Espaco.s1,
                 ),
                 child: Text(
-                  'A obra que abre na aba Obras, com o andamento e as funções dela.',
+                  'A obra que aparece na faixa do Início.',
                   style: t.bodySmall?.copyWith(color: c.textoSuave),
                 ),
               ),

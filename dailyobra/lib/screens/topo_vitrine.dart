@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 
 import '../services/novidades_service.dart';
 import '../services/perfil_service.dart';
-import 'busca_screen.dart';
+import 'componentes.dart';
 import 'menu_da_conta.dart';
 import 'novidades_screen.dart';
 
-/// Barra laranja da vitrine: saudação, cidade, busca, tema, sino e iniciais.
-/// [compacto] é a versão do celular (cantos arredondados embaixo, busca em largura total).
+/// Barra laranja da vitrine: saudação, endereço, tema, sino e iniciais.
+/// [compacto] é a versão do celular: só isso, com os cantos arredondados embaixo, porque a busca é a aba Busca.
+/// Nas telas maiores o campo de busca fica no meio da barra e leva à mesma aba.
 class TopoVitrine extends StatelessWidget {
   const TopoVitrine({
     super.key,
@@ -48,25 +49,36 @@ class TopoVitrine extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.place_outlined, size: 16, color: c.textoSobreTopo),
-                const SizedBox(width: 2),
-                Flexible(
-                  child: Text(
-                    perfil.cidade == null
-                        ? 'Informe sua cidade no perfil'
-                        : '${perfil.cidade}${perfil.uf == null ? '' : ' · ${perfil.uf}'}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: t.bodyMedium?.copyWith(
-                      color: c.textoSobreTopo,
-                      fontWeight: FontWeight.w500,
+            Semantics(
+              button: true,
+              label: 'Mudar endereço no perfil',
+              child: InkWell(
+                borderRadius: BorderRadius.circular(Raio.sm),
+                onTap: () => irParaAba(context, Aba.perfil),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        perfil.cidade == null
+                            ? 'Informe sua cidade no perfil'
+                            : '${perfil.cidade}${perfil.uf == null ? '' : ' · ${perfil.uf}'}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: t.bodyMedium?.copyWith(
+                          color: c.textoSobreTopo,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
-                  ),
+                    Icon(
+                      Icons.keyboard_arrow_down,
+                      size: 20,
+                      color: c.textoSobreTopo,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ],
         );
@@ -93,28 +105,19 @@ class TopoVitrine extends StatelessWidget {
             bottom: false,
             child: Padding(
               padding: compacto
-                  ? const EdgeInsets.fromLTRB(
-                      Espaco.s4,
-                      Espaco.s4,
-                      Espaco.s4,
-                      Espaco.s5,
+                  ? const EdgeInsets.symmetric(
+                      horizontal: Espaco.s4,
+                      vertical: Espaco.s3,
                     )
                   : const EdgeInsets.symmetric(
                       horizontal: Espaco.s8,
                       vertical: 18,
                     ),
               child: compacto
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                  ? Row(
                       children: [
-                        Row(
-                          children: [
-                            Expanded(child: saudacao),
-                            ...acoes,
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        const _CampoBusca(),
+                        Expanded(child: saudacao),
+                        ...acoes,
                       ],
                     )
                   : Row(
@@ -160,10 +163,7 @@ class _CampoBusca extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const BuscaScreen()),
-          ),
+          onTap: () => irParaAba(context, Aba.busca),
           child: SizedBox(
             height: 46,
             child: Padding(

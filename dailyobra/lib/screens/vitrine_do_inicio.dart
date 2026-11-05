@@ -1,13 +1,15 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
-import 'busca_screen.dart';
 import 'categoria_screen.dart';
 import 'componentes.dart';
 import 'loja_screen.dart';
+import 'menu_da_conta.dart';
+import 'produto_screen.dart';
 
 const _casasNaGrade = 10;
 const _casasPorLinhaNoCelular = 5;
@@ -15,26 +17,36 @@ const _larguraDaLinhaUnica = 720.0;
 const _bannersDeLojas = 5;
 const _bannersDaMarca = 3;
 const _tempoDoBanner = Duration(seconds: 6);
+const _larguraDoProduto = 148.0;
+const _larguraDoProdutoGrande = 176.0;
+const _alturaDaFoto = 128.0;
+const _raioDoProduto = 14.0;
+const _larguraDaLoja = 132.0;
 
 void _abrir(BuildContext context, Widget tela) =>
     Navigator.push(context, MaterialPageRoute(builder: (_) => tela));
 
-/// A porta do catálogo: cada categoria a um toque. Com mais do que cabe nas duas linhas, a última casa leva a todas.
+/// A porta do catálogo: cada categoria a um toque. Com mais do que cabe nas duas linhas, a última casa leva à aba Busca,
+/// que mostra [todas].
 class GradeDeCategorias extends StatelessWidget {
-  const GradeDeCategorias({super.key, required this.categorias});
+  const GradeDeCategorias({
+    super.key,
+    required this.categorias,
+    this.todas = false,
+  });
   final List<Categoria> categorias;
+  final bool todas;
 
   @override
   Widget build(BuildContext context) {
     final c = context.cores;
     final brilho = Theme.of(context).brightness;
-    final sobra = categorias.length > _casasNaGrade;
+    final sobra = !todas && categorias.length > _casasNaGrade;
     final casas = <Widget>[
-      for (final categoria in categorias.take(
-        sobra ? _casasNaGrade - 1 : _casasNaGrade,
-      ))
+      for (final categoria
+          in sobra ? categorias.take(_casasNaGrade - 1) : categorias)
         _Casa(
-          icone: iconeDaCategoria(categoria.id),
+          icone: _iconeCheio(categoria.id),
           rotulo: categoria.nome,
           cor: coresDaCategoria(categoria.id, brilho),
           aoTocar: () => _abrir(
@@ -47,7 +59,7 @@ class GradeDeCategorias extends StatelessWidget {
           icone: Icons.grid_view_rounded,
           rotulo: 'Ver mais',
           cor: CorCategoria(c.superficieSutil, c.textoSuave),
-          aoTocar: () => _abrir(context, const BuscaScreen()),
+          aoTocar: () => irParaAba(context, Aba.busca),
         ),
     ];
     return LayoutBuilder(
@@ -75,6 +87,7 @@ class GradeDeCategorias extends StatelessWidget {
   }
 }
 
+/// Quadro cinza claro com o ícone da categoria em destaque e o nome embaixo.
 class _Casa extends StatelessWidget {
   const _Casa({
     required this.icone,
@@ -89,6 +102,7 @@ class _Casa extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.cores;
     final t = Theme.of(context).textTheme;
     final texto = Text(
       rotulo,
@@ -115,10 +129,32 @@ class _Casa extends StatelessWidget {
                   aspectRatio: 1,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: cor.fundo,
+                      color: c.superficieSutil,
                       borderRadius: BorderRadius.circular(18),
                     ),
-                    child: Icon(icone, color: cor.icone, size: 30),
+                    child: ShaderMask(
+                      blendMode: BlendMode.srcIn,
+                      shaderCallback: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color.lerp(cor.icone, Colors.white, 0.3)!,
+                          cor.icone,
+                        ],
+                      ).createShader,
+                      child: Icon(
+                        icone,
+                        color: Colors.white,
+                        size: 34,
+                        shadows: const [
+                          Shadow(
+                            color: Color(0x40000000),
+                            offset: Offset(0, 2),
+                            blurRadius: 3,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -136,7 +172,7 @@ class _Casa extends StatelessWidget {
   }
 }
 
-/// Faixa fina no alto do Início: como a obra está e o caminho até a aba Obras.
+/// Faixa fina no alto do Início: como a obra está e o caminho até ela.
 class FaixaDaObra extends StatelessWidget {
   const FaixaDaObra({
     super.key,
@@ -268,7 +304,7 @@ class _CarrosselDeBannersState extends State<CarrosselDeBanners> {
         icone: Icons.search,
         fundo: c.destaqueSuave,
         corDoTexto: c.texto,
-        aoTocar: () => _abrir(context, const BuscaScreen()),
+        aoTocar: () => irParaAba(context, Aba.busca),
       ),
       _SlideDaMarca(
         titulo: 'Cashback em cada pedido',
@@ -277,7 +313,7 @@ class _CarrosselDeBannersState extends State<CarrosselDeBanners> {
         icone: Icons.account_balance_wallet_outlined,
         fundo: c.acao,
         corDoTexto: c.textoSobreAcao,
-        aoTocar: () => irParaAba(context, Aba.carteira),
+        aoTocar: () => abrirCarteira(context),
       ),
     ];
   }
@@ -507,6 +543,606 @@ class _SlideDaMarca extends StatelessWidget {
                       ),
                     ],
                   ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Ícone cheio da categoria: na vitrine ele pesa mais que o de traço do resto do app.
+IconData _iconeCheio(String categoriaId) => switch (categoriaId) {
+  'basico' => Icons.foundation,
+  'estrutura' => Icons.view_column,
+  'alvenaria' => Icons.view_quilt,
+  'cobertura' => Icons.roofing,
+  'hidraulica' => Icons.water_drop,
+  'eletrica' => Icons.bolt,
+  'acabamento' => Icons.grid_on,
+  'pintura' => Icons.format_paint,
+  'loucas-metais' => Icons.bathtub,
+  'ferramentas' => Icons.handyman,
+  _ => Icons.construction,
+};
+
+/// Um produto na prateleira do Início.
+class ProdutoDaPrateleira {
+  const ProdutoDaPrateleira({
+    required this.item,
+    required this.preco,
+    this.precoCheio,
+    this.rodape = '',
+  });
+  final ItemCatalogo item;
+  final double preco;
+
+  /// Preço sem a promoção, riscado ao lado do que vale hoje.
+  final double? precoCheio;
+
+  /// Linha pequena embaixo do preço: a loja, em quantas lojas ou a faixa de preços.
+  final String rodape;
+}
+
+/// Título de prateleira no tamanho da vitrine, com "Ver mais" à direita.
+class _TituloDaPrateleira extends StatelessWidget {
+  const _TituloDaPrateleira({
+    required this.titulo,
+    required this.cor,
+    this.corDaAcao,
+    this.aoVerMais,
+  });
+  final String titulo;
+  final Color cor;
+  final Color? corDaAcao;
+  final VoidCallback? aoVerMais;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Row(
+      children: [
+        Expanded(
+          child: Semantics(
+            header: true,
+            child: Text(
+              titulo,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: t.titleLarge?.copyWith(
+                color: cor,
+                fontSize: 19,
+                fontWeight: FontWeight.w700,
+                height: 1.2,
+              ),
+            ),
+          ),
+        ),
+        if (aoVerMais != null)
+          TextButton(
+            onPressed: aoVerMais,
+            style: TextButton.styleFrom(
+              minimumSize: const Size(44, 36),
+              padding: const EdgeInsets.symmetric(horizontal: Espaco.s2),
+            ),
+            child: Text(
+              'Ver mais',
+              style: t.labelLarge?.copyWith(
+                color: corDaAcao,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Fileira de produtos que corre de lado. [emFaixa] pinta a faixa laranja de ponta a ponta, com os produtos em cartões
+/// brancos; sem ela, os produtos ficam soltos no fundo da página. Nas telas maiores uma seta passa para os próximos.
+class Prateleira extends StatefulWidget {
+  const Prateleira({
+    super.key,
+    required this.titulo,
+    required this.produtos,
+    required this.margem,
+    this.emFaixa = false,
+    this.aoVerMais,
+  });
+  final String titulo;
+  final List<ProdutoDaPrateleira> produtos;
+
+  /// Distância até a borda da tela, a mesma dos outros blocos.
+  final double margem;
+  final bool emFaixa;
+  final VoidCallback? aoVerMais;
+
+  @override
+  State<Prateleira> createState() => _PrateleiraState();
+}
+
+class _PrateleiraState extends State<Prateleira> {
+  final _rolagem = ScrollController();
+
+  @override
+  void dispose() {
+    _rolagem.dispose();
+    super.dispose();
+  }
+
+  void _avancar(double largura) {
+    final fim = _rolagem.position.maxScrollExtent;
+    final destino = _rolagem.offset >= fim - 1
+        ? 0.0
+        : math.min(_rolagem.offset + largura * 0.8, fim);
+    _rolagem.animateTo(
+      destino,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOutCubic,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.cores;
+    final emFaixa = widget.emFaixa;
+    final celular = formatoDoContexto(context) == Formato.celular;
+    final largura = celular ? _larguraDoProduto : _larguraDoProdutoGrande;
+    final escala = MediaQuery.textScalerOf(context).scale(1);
+    final comDesconto = widget.produtos.any((p) => p.precoCheio != null);
+    final altura = _alturaDaFoto + 24 + (comDesconto ? 118.0 : 92.0) * escala;
+    final corDoTitulo = emFaixa ? c.textoSobreTopo : c.texto;
+    final total = widget.produtos.length * (largura + Espaco.s3);
+    final conteudo = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: widget.margem),
+          child: _TituloDaPrateleira(
+            titulo: widget.titulo,
+            cor: corDoTitulo,
+            corDaAcao: emFaixa ? c.textoSobreTopo : c.acao,
+            aoVerMais: widget.aoVerMais,
+          ),
+        ),
+        const SizedBox(height: Espaco.s3),
+        SizedBox(
+          height: altura,
+          child: LayoutBuilder(
+            builder: (context, espaco) => Stack(
+              children: [
+                ScrollConfiguration(
+                  // No site a prateleira também corre arrastando com o mouse
+                  behavior: ScrollConfiguration.of(context)
+                      .copyWith(dragDevices: PointerDeviceKind.values.toSet()),
+                  child: ListView.separated(
+                    controller: _rolagem,
+                    scrollDirection: Axis.horizontal,
+                    padding: EdgeInsets.symmetric(horizontal: widget.margem),
+                    itemCount: widget.produtos.length,
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(width: Espaco.s3),
+                    itemBuilder: (context, i) => _CartaoDaPrateleira(
+                      produto: widget.produtos[i],
+                      largura: largura,
+                      emFaixa: emFaixa,
+                    ),
+                  ),
+                ),
+                if (!celular && total + widget.margem * 2 > espaco.maxWidth)
+                  Positioned(
+                    right: Espaco.s2,
+                    top: _alturaDaFoto / 2 - 22,
+                    child: _Seta(aoTocar: () => _avancar(espaco.maxWidth)),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+    if (!emFaixa) return conteudo;
+    return ColoredBox(
+      color: c.topo,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: Espaco.s4),
+        child: conteudo,
+      ),
+    );
+  }
+}
+
+class _Seta extends StatelessWidget {
+  const _Seta({required this.aoTocar});
+  final VoidCallback aoTocar;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.cores;
+    return Material(
+      color: c.superficie,
+      elevation: 2,
+      shape: CircleBorder(side: BorderSide(color: c.borda)),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: aoTocar,
+        child: Tooltip(
+          message: 'Ver mais produtos',
+          child: SizedBox.square(
+            dimension: 44,
+            child: Icon(Icons.chevron_right, color: c.texto),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Foto inteira do produto, sem corte. Sem foto, o ícone da categoria (o app não inventa foto de produto).
+class _FotoDaPrateleira extends StatelessWidget {
+  const _FotoDaPrateleira({required this.item, required this.emFaixa});
+  final ItemCatalogo item;
+  final bool emFaixa;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.cores;
+    final brilho = Theme.of(context).brightness;
+    final cor = coresDaCategoria(item.categoriaId, brilho);
+    final icone = ColoredBox(
+      color: c.superficieSutil,
+      child: Center(
+        child: Icon(_iconeCheio(item.categoriaId), size: 44, color: cor.icone),
+      ),
+    );
+    if (item.imagemUrl == null) return icone;
+    // No claro o branco da foto some no cinza do quadro; no escuro a foto fica num quadro branco
+    final naFaixaOuEscuro = emFaixa || brilho == Brightness.dark;
+    return ColoredBox(
+      color: naFaixaOuEscuro ? Colors.white : c.superficieSutil,
+      child: Padding(
+        padding: const EdgeInsets.all(Espaco.s2),
+        child: Image.network(
+          item.imagemUrl!,
+          fit: BoxFit.contain,
+          width: double.infinity,
+          height: double.infinity,
+          color: naFaixaOuEscuro ? null : c.superficieSutil,
+          colorBlendMode: naFaixaOuEscuro ? null : BlendMode.multiply,
+          semanticLabel: item.nome,
+          errorBuilder: (_, _, _) => icone,
+        ),
+      ),
+    );
+  }
+}
+
+/// R$ pequeno, reais grandes e centavos pequenos no alto, como nas lojas online.
+class _Preco extends StatelessWidget {
+  const _Preco(this.valor);
+  final double valor;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.cores;
+    final t = Theme.of(context).textTheme;
+    final partes = brl
+        .format(valor)
+        .replaceAll(RegExp(r'[^\d.,]'), '')
+        .split(',');
+    final pequeno = t.labelSmall?.copyWith(
+      color: c.texto,
+      fontSize: 11,
+      fontWeight: FontWeight.w700,
+      height: 1.2,
+      fontFeatures: numerosTabulares,
+    );
+    return Semantics(
+      label: brl.format(valor),
+      excludeSemantics: true,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('R\$', style: pequeno),
+          const SizedBox(width: 2),
+          Text(
+            partes.first,
+            style: t.titleLarge?.copyWith(
+              color: c.texto,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              height: 1.1,
+              fontFeatures: numerosTabulares,
+            ),
+          ),
+          const SizedBox(width: 1),
+          if (partes.length > 1) Text(partes.last, style: pequeno),
+        ],
+      ),
+    );
+  }
+}
+
+class _CartaoDaPrateleira extends StatelessWidget {
+  const _CartaoDaPrateleira({
+    required this.produto,
+    required this.largura,
+    required this.emFaixa,
+  });
+  final ProdutoDaPrateleira produto;
+  final double largura;
+  final bool emFaixa;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.cores;
+    final t = Theme.of(context).textTheme;
+    final item = produto.item;
+    final cheio = produto.precoCheio;
+    final desconto = cheio == null || cheio <= 0
+        ? 0
+        : ((1 - produto.preco / cheio) * 100).round();
+    final escala = MediaQuery.textScalerOf(context).scale(1);
+    final foto = SizedBox(
+      height: _alturaDaFoto,
+      child: _FotoDaPrateleira(item: item, emFaixa: emFaixa),
+    );
+    final texto = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 34 * escala,
+          child: Text(
+            item.nome,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: t.bodyMedium?.copyWith(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w500,
+              height: 1.25,
+            ),
+          ),
+        ),
+        const SizedBox(height: Espaco.s1),
+        if (desconto > 0) ...[
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: c.acao,
+                  borderRadius: BorderRadius.circular(Raio.sm),
+                ),
+                child: Text(
+                  '$desconto% off',
+                  style: t.labelSmall?.copyWith(
+                    color: c.textoSobreAcao,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: Espaco.s1),
+              Flexible(
+                child: Text(
+                  'Oferta',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: t.labelSmall?.copyWith(
+                    color: c.acao,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Espaco.s1),
+        ],
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _Preco(produto.preco),
+              if (desconto > 0) ...[
+                const SizedBox(width: 6),
+                Text(
+                  brl.format(cheio),
+                  style: t.bodySmall?.copyWith(
+                    color: c.textoSuave,
+                    decoration: TextDecoration.lineThrough,
+                    fontFeatures: numerosTabulares,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (produto.rodape.isNotEmpty) ...[
+          const SizedBox(height: 2),
+          Text(
+            produto.rodape,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: t.bodySmall?.copyWith(
+              color: c.textoSuave,
+              fontFeatures: numerosTabulares,
+            ),
+          ),
+        ],
+      ],
+    );
+    void abrir() => _abrir(context, ProdutoScreen(itemId: item.id));
+    final Widget cartao;
+    if (emFaixa) {
+      cartao = Material(
+        color: c.superficie,
+        borderRadius: BorderRadius.circular(_raioDoProduto),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: abrir,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              foto,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
+                child: texto,
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      cartao = Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(_raioDoProduto),
+          onTap: abrir,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(_raioDoProduto),
+                child: foto,
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(2, 8, 2, 0),
+                child: texto,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return SizedBox(width: largura, child: cartao);
+  }
+}
+
+/// As lojas em cartões cinza que correm de lado, com a logo redonda no alto.
+class TrilhoDeLojas extends StatelessWidget {
+  const TrilhoDeLojas({
+    super.key,
+    required this.lojas,
+    required this.produtosDaLoja,
+    required this.margem,
+    this.aviso,
+  });
+  final List<Loja> lojas;
+  final int Function(Loja) produtosDaLoja;
+  final double margem;
+
+  /// Texto acima das lojas, como "Ainda não há lojas na sua cidade".
+  final String? aviso;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.cores;
+    final escala = MediaQuery.textScalerOf(context).scale(1);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: margem),
+          child: _TituloDaPrateleira(titulo: 'Lojas perto', cor: c.texto),
+        ),
+        if (aviso != null)
+          Padding(
+            padding: EdgeInsets.fromLTRB(margem, Espaco.s2, margem, 0),
+            child: Aviso(aviso!, tom: TomSelo.info),
+          ),
+        const SizedBox(height: Espaco.s3),
+        SizedBox(
+          height: 92 + 84 * escala,
+          child: ScrollConfiguration(
+            behavior: ScrollConfiguration.of(context)
+                .copyWith(dragDevices: PointerDeviceKind.values.toSet()),
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.symmetric(horizontal: margem),
+              itemCount: lojas.length,
+              separatorBuilder: (_, _) => const SizedBox(width: Espaco.s3),
+              itemBuilder: (context, i) => _CartaoDaLoja(
+                loja: lojas[i],
+                produtos: produtosDaLoja(lojas[i]),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CartaoDaLoja extends StatelessWidget {
+  const _CartaoDaLoja({required this.loja, required this.produtos});
+  final Loja loja;
+  final int produtos;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.cores;
+    final t = Theme.of(context).textTheme;
+    final detalhe = [
+      textoFrete(loja),
+      produtos == 0
+          ? 'ainda sem preços'
+          : produtos == 1
+          ? '1 produto'
+          : '$produtos produtos',
+    ].join(' · ');
+    return SizedBox(
+      width: _larguraDaLoja,
+      child: Material(
+        color: c.superficieSutil,
+        borderRadius: BorderRadius.circular(Raio.lg),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => _abrir(context, LojaScreen(lojaId: loja.id)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              Espaco.s2,
+              Espaco.s3,
+              Espaco.s2,
+              Espaco.s2,
+            ),
+            child: Column(
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.bottomCenter,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: Espaco.s2),
+                      child: LogoLoja(loja: loja, tamanho: 64),
+                    ),
+                    SeloSituacao(
+                      situacao: situacaoDaLoja(loja, DateTime.now()),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: Espaco.s1),
+                Text(
+                  loja.nome,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: t.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  detalhe,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: t.bodySmall?.copyWith(color: c.textoSuave),
                 ),
               ],
             ),

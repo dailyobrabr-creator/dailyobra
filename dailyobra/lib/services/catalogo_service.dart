@@ -253,6 +253,30 @@ class CatalogoService extends ChangeNotifier {
       )
       .length;
 
+  /// Produtos da categoria com preço em loja aberta para as prateleiras do Início: com foto primeiro, depois os que mais
+  /// lojas vendem. Cada um vem com a melhor oferta e em quantas lojas ele está.
+  List<({ItemCatalogo item, Oferta oferta, int lojas})> produtosDaPrateleira(
+    String categoriaId, {
+    required DateTime hoje,
+    int limite = 12,
+  }) {
+    final lista = [
+      for (final item in itensDaCategoria(categoriaId))
+        if (resumoDoItem(item.id, hoje: hoje) case (
+          oferta: final Oferta oferta,
+          lojas: final lojas,
+        ))
+          (item: item, oferta: oferta, lojas: lojas),
+    ];
+    lista.sort((a, b) {
+      final fa = a.item.imagemUrl != null, fb = b.item.imagemUrl != null;
+      if (fa != fb) return fa ? -1 : 1;
+      final l = b.lojas.compareTo(a.lojas);
+      return l != 0 ? l : a.item.nome.compareTo(b.item.nome);
+    });
+    return lista.take(limite).toList();
+  }
+
   List<ItemCatalogo> itensDaCategoria(String categoriaId) => [
     for (final i in _itens)
       if (i.categoriaId == categoriaId) i,

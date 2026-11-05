@@ -14,6 +14,64 @@ final _data = DateFormat("d 'de' MMM 'de' y", 'pt_BR');
 const _larguraDeDuasColunas = 900.0;
 const _larguraDaLateral = 320.0;
 
+/// Em que pé a obra está, do que pede atenção para o resto.
+enum _Situacao {
+  bloqueada('Com bloqueio', TomSelo.erro),
+  atrasada('Atrasada', TomSelo.erro),
+  concluida('Concluída', TomSelo.sucesso),
+  emObra('Em obra', TomSelo.info),
+  planejamento('Planejamento', TomSelo.neutro);
+
+  const _Situacao(this.rotulo, this.tom);
+  final String rotulo;
+  final TomSelo tom;
+}
+
+_Situacao _situacaoDa(Obra obra) {
+  final etapas = Calculo.de(obra.parametros).resultado?.etapas ?? const [];
+  final situacoes = obra.statusEtapas.values;
+  if (situacoes.contains(StatusEtapa.bloqueada)) return _Situacao.bloqueada;
+  final emDia = resumirCronograma(
+    etapas: [for (final e in etapas) e.etapa],
+    datas: obra.cronograma,
+    status: obra.statusEtapas,
+    hoje: DateTime.now(),
+  ).emDia;
+  if (!emDia) return _Situacao.atrasada;
+  if (etapas.isNotEmpty && etapaAtual(etapas, obra.statusEtapas) == null) {
+    return _Situacao.concluida;
+  }
+  final comecou = situacoes.any(
+    (s) => s == StatusEtapa.iniciada || s == StatusEtapa.concluida,
+  );
+  return comecou ? _Situacao.emObra : _Situacao.planejamento;
+}
+
+/// Filtros da lista de obras; bloqueada e atrasada são obra em andamento.
+enum _Filtro {
+  todas('Todas'),
+  emObra('Em obra'),
+  planejamento('Planejamento'),
+  concluidas('Concluídas');
+
+  const _Filtro(this.rotulo);
+  final String rotulo;
+
+  bool aceita(Obra obra) {
+    final situacao = _situacaoDa(obra);
+    return switch (this) {
+      _Filtro.todas => true,
+      _Filtro.emObra => const {
+        _Situacao.bloqueada,
+        _Situacao.atrasada,
+        _Situacao.emObra,
+      }.contains(situacao),
+      _Filtro.planejamento => situacao == _Situacao.planejamento,
+      _Filtro.concluidas => situacao == _Situacao.concluida,
+    };
+  }
+}
+
 /// Cadastra a obra, deixa ela ativa e abre a tela dela.
 Future<void> novaObra(BuildContext context) async {
   final id = await Navigator.push<String>(
@@ -30,9 +88,16 @@ Future<void> novaObra(BuildContext context) async {
   }
 }
 
-class ObrasScreen extends StatelessWidget {
-  const ObrasScreen({super.key, this.titulo = 'Minhas obras'});
-  final String titulo;
+/// A aba Obras: todas as obras organizadas por situação e o cadastro de uma nova. O que se faz em cada uma fica dentro dela.
+class ObrasScreen extends StatefulWidget {
+  const ObrasScreen({super.key});
+
+  @override
+  State<ObrasScreen> createState() => _ObrasScreenState();
+}
+
+class _ObrasScreenState extends State<ObrasScreen> {
+  var _filtro = _Filtro.todas;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +105,7 @@ class ObrasScreen extends StatelessWidget {
     final celular = formatoDoContexto(context) == Formato.celular;
     return Scaffold(
       appBar: AppBar(
-        title: Text(titulo),
+        title: const Text('Obras'),
         actions: [
           if (!celular)
             Padding(
@@ -48,7 +113,7 @@ class ObrasScreen extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: () => novaObra(context),
                 icon: const Icon(Icons.add, size: 18),
-                label: const Text('Nova obra'),
+                label: const Text('Cadastrar obra'),
               ),
             ),
         ],
@@ -63,13 +128,27 @@ class ObrasScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(Raio.md),
               ),
               icon: const Icon(Icons.add),
-              label: const Text('Nova obra'),
+              label: const Text('Cadastrar obra'),
             )
           : null,
       body: ListenableBuilder(
         listenable: servico,
         builder: (context, _) {
           final obras = servico.obras;
+          final contagem = {
+            for (final f in _Filtro.values)
+              f: obras?.where(f.aceita).length ?? 0,
+          };
+          // A obra pode mudar de situação e deixar o filtro vazio: aí vale "Todas"
+          final filtro = contagem[_filtro]! > 0 ? _filtro : _Filtro.todas;
+          final visiveis = obras?.where(filtro.aceita).toList();
+          final filtros = (obras?.length ?? 0) < 2
+              ? null
+              : _Filtros(
+                  atual: filtro,
+                  contagem: contagem,
+                  aoEscolher: (f) => setState(() => _filtro = f),
+                );
           return LayoutBuilder(
             builder: (context, limites) {
               final m = margemLateral(limites.maxWidth);
@@ -103,7 +182,7 @@ class ObrasScreen extends StatelessWidget {
                       // A proposta vem antes da obra existir
                       const SizedBox(height: Espaco.s3),
                       const EntradaDasPropostas(),
-                    ] else if (obras != null && largo)
+                    ] else if (visiveis != null && largo)
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -111,7 +190,11 @@ class ObrasScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                for (final (i, o) in obras.indexed) ...[
+                                if (filtros != null) ...[
+                                  filtros,
+                                  const SizedBox(height: Espaco.s3),
+                                ],
+                                for (final (i, o) in visiveis.indexed) ...[
                                   if (i > 0) const SizedBox(height: Espaco.s3),
                                   _CartaoObra(obra: o, largo: true),
                                 ],
@@ -124,7 +207,7 @@ class ObrasScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                _Resumo(obras: obras, emColuna: true),
+                                _Resumo(obras: obras!, emColuna: true),
                                 const SizedBox(height: Espaco.s3),
                                 ..._caminhos(context),
                               ],
@@ -132,10 +215,14 @@ class ObrasScreen extends StatelessWidget {
                           ),
                         ],
                       )
-                    else if (obras != null) ...[
-                      _Resumo(obras: obras),
-                      const SizedBox(height: Espaco.s4),
-                      for (final o in obras) ...[
+                    else if (visiveis != null) ...[
+                      _Resumo(obras: obras!),
+                      const SizedBox(height: Espaco.s3),
+                      if (filtros != null) ...[
+                        filtros,
+                        const SizedBox(height: Espaco.s3),
+                      ],
+                      for (final o in visiveis) ...[
                         _CartaoObra(obra: o),
                         const SizedBox(height: Espaco.s3),
                       ],
@@ -161,6 +248,53 @@ class ObrasScreen extends StatelessWidget {
       aoTocar: () => entrarComConvite(context),
     ),
   ];
+}
+
+/// Pílulas com a situação e quantas obras há em cada uma. As que não têm obra não aparecem.
+class _Filtros extends StatelessWidget {
+  const _Filtros({
+    required this.atual,
+    required this.contagem,
+    required this.aoEscolher,
+  });
+  final _Filtro atual;
+  final Map<_Filtro, int> contagem;
+  final ValueChanged<_Filtro> aoEscolher;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.cores;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final f in _Filtro.values)
+            if (contagem[f]! > 0)
+              Padding(
+                padding: const EdgeInsets.only(right: Espaco.s2),
+                child: ChoiceChip(
+                  label: Text('${f.rotulo} ${contagem[f]}'),
+                  selected: f == atual,
+                  showCheckmark: false,
+                  backgroundColor: c.superficie,
+                  selectedColor: c.superficie,
+                  labelStyle: TextStyle(
+                    color: f == atual ? c.texto : c.textoSuave,
+                    fontWeight: f == atual ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                  shape: StadiumBorder(
+                    side: BorderSide(
+                      color: f == atual ? c.texto : c.borda,
+                      width: f == atual ? 1.5 : 1,
+                    ),
+                  ),
+                  onSelected: (_) => aoEscolher(f),
+                ),
+              ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Resumo extends StatelessWidget {
@@ -283,24 +417,8 @@ class _CartaoObra extends StatelessWidget {
     final etapas = c.resultado?.etapas ?? const [];
     final pct = progresso(etapas, obra.statusEtapas);
     final atual = etapaAtual(etapas, obra.statusEtapas);
-    final situacoes = obra.statusEtapas.values;
-    final atrasada = !resumirCronograma(
-      etapas: [for (final e in etapas) e.etapa],
-      datas: obra.cronograma,
-      status: obra.statusEtapas,
-      hoje: DateTime.now(),
-    ).emDia;
-    final selo = situacoes.contains(StatusEtapa.bloqueada)
-        ? const Selo('Com bloqueio', tom: TomSelo.erro)
-        : atrasada
-        ? const Selo('Atrasada', tom: TomSelo.erro)
-        : etapas.isNotEmpty && atual == null
-        ? const Selo('Concluída', tom: TomSelo.sucesso)
-        : situacoes.any(
-            (s) => s == StatusEtapa.iniciada || s == StatusEtapa.concluida,
-          )
-        ? const Selo('Em obra', tom: TomSelo.info)
-        : const Selo('Planejamento');
+    final situacao = _situacaoDa(obra);
+    final selo = Selo(situacao.rotulo, tom: situacao.tom);
     final local = [
       obra.dados.cidade,
       obra.dados.uf,

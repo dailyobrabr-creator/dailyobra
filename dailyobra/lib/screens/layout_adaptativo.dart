@@ -1,30 +1,24 @@
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
 
-import '../services/carteira_service.dart';
 import 'componentes.dart';
 import 'topo_vitrine.dart';
 
 const _itens = [
-  (Aba.inicio, Icons.storefront_outlined, Icons.storefront, 'Início'),
+  (Aba.inicio, Icons.home_outlined, Icons.home, 'Início'),
+  (Aba.busca, Icons.search, Icons.search, 'Busca'),
+  (Aba.obras, Icons.home_work_outlined, Icons.home_work, 'Obras'),
   (
     Aba.orcamentos,
     Icons.request_quote_outlined,
     Icons.request_quote,
     'Orçamentos',
   ),
-  (Aba.obras, Icons.home_work_outlined, Icons.home_work, 'Obras'),
-  (
-    Aba.carteira,
-    Icons.account_balance_wallet_outlined,
-    Icons.account_balance_wallet,
-    'Carteira',
-  ),
   (Aba.perfil, Icons.person_outline, Icons.person, 'Perfil'),
 ];
 
 /// Moldura da navegação: abas embaixo no celular, trilho no tablet e, no computador, menu
-/// lateral com o Clube e a barra laranja no topo. O conteúdo fica com no máximo 1320 px.
+/// lateral e a barra laranja no topo. O conteúdo fica com no máximo 1320 px.
 class LayoutAdaptativo extends StatelessWidget {
   const LayoutAdaptativo({
     super.key,
@@ -75,17 +69,41 @@ class LayoutAdaptativo extends StatelessWidget {
             decoration: BoxDecoration(
               border: Border(top: BorderSide(color: c.borda)),
             ),
-            child: NavigationBar(
-              selectedIndex: _itens.indexWhere((e) => e.$1 == aba),
-              onDestinationSelected: (i) => onAba(_itens[i].$1),
-              destinations: [
-                for (final (a, icone, selecionado, rotulo) in _itens)
-                  NavigationDestination(
-                    icon: _icone(a, icone),
-                    selectedIcon: _icone(a, selecionado),
-                    label: rotulo,
+            // Como nas lojas de entrega: a aba ativa só fica mais forte, sem pílula em volta
+            child: NavigationBarTheme(
+              data: NavigationBarTheme.of(context).copyWith(
+                indicatorColor: Colors.transparent,
+                labelTextStyle: WidgetStateProperty.resolveWith(
+                  (estado) => Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: estado.contains(WidgetState.selected)
+                        ? c.texto
+                        : c.textoSuave,
+                    fontWeight: estado.contains(WidgetState.selected)
+                        ? FontWeight.w800
+                        : FontWeight.w500,
                   ),
-              ],
+                ),
+                iconTheme: WidgetStateProperty.resolveWith(
+                  (estado) => IconThemeData(
+                    color: estado.contains(WidgetState.selected)
+                        ? c.texto
+                        : c.textoSuave,
+                    size: 25,
+                  ),
+                ),
+              ),
+              child: NavigationBar(
+                selectedIndex: _itens.indexWhere((e) => e.$1 == aba),
+                onDestinationSelected: (i) => onAba(_itens[i].$1),
+                destinations: [
+                  for (final (a, icone, selecionado, rotulo) in _itens)
+                    NavigationDestination(
+                      icon: _icone(a, icone),
+                      selectedIcon: _icone(a, selecionado),
+                      label: rotulo,
+                    ),
+                ],
+              ),
             ),
           ),
         );
@@ -237,71 +255,10 @@ class _MenuLateral extends StatelessWidget {
                     ),
                   ),
                 ),
-              const Spacer(),
-              _CartaoClube(onUsar: () => onAba(Aba.orcamentos)),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-class _CartaoClube extends StatelessWidget {
-  const _CartaoClube({required this.onUsar});
-  final VoidCallback onUsar;
-
-  @override
-  Widget build(BuildContext context) {
-    final carteira = CarteiraService.instance;
-    return ListenableBuilder(
-      listenable: carteira,
-      builder: (context, _) {
-        final c = context.cores;
-        final t = Theme.of(context).textTheme;
-        return Container(
-          padding: const EdgeInsets.all(Espaco.s4),
-          decoration: BoxDecoration(
-            color: c.cartaoEscuro,
-            borderRadius: BorderRadius.circular(Raio.lg),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Clube DailyObra',
-                style: t.bodySmall?.copyWith(color: c.textoCartaoEscuroSuave),
-              ),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  brl.format(carteira.disponivel),
-                  style: t.headlineSmall?.copyWith(
-                    color: c.textoCartaoEscuro,
-                    fontWeight: FontWeight.w700,
-                    fontFeatures: numerosTabulares,
-                  ),
-                ),
-              ),
-              if (carteira.pendente > 0)
-                Text(
-                  '+ ${brl.format(carteira.pendente)} a liberar',
-                  style: t.bodySmall?.copyWith(color: const Color(0xFFFFB98F)),
-                ),
-              const SizedBox(height: Espaco.s3),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: c.topo,
-                  foregroundColor: const Color(0xFF1A0F07),
-                ),
-                onPressed: onUsar,
-                child: const Text('Usar no orçamento'),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

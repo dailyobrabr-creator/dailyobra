@@ -1,4 +1,3 @@
-import 'package:dailyobra/screens/aba_obras_screen.dart';
 import 'package:dailyobra/screens/busca_screen.dart';
 import 'package:dailyobra/screens/categoria_screen.dart';
 import 'package:dailyobra/screens/componentes.dart';
@@ -6,6 +5,7 @@ import 'package:dailyobra/screens/hoje_na_obra.dart';
 import 'package:dailyobra/screens/inicio_screen.dart';
 import 'package:dailyobra/screens/loja_screen.dart';
 import 'package:dailyobra/screens/obra_form_screen.dart';
+import 'package:dailyobra/screens/obra_screen.dart';
 import 'package:dailyobra/screens/obras_screen.dart';
 import 'package:dailyobra/screens/vitrine_do_inicio.dart';
 import 'package:dailyobra/services/carteira_service.dart';
@@ -120,7 +120,7 @@ void main() {
       expect(find.text('Categoria 10'), findsNothing);
       await tester.tap(find.text('Ver mais'));
       await tester.pumpAndSettle();
-      expect(find.byType(BuscaScreen), findsOneWidget);
+      expect(abaAtual.value, Aba.busca);
     });
 
     testWidgets('na tela larga fica em uma linha', (tester) async {
@@ -237,14 +237,14 @@ void main() {
       expect(find.byType(CarrosselDeBanners), findsOneWidget);
     });
 
-    testWidgets('a faixa mostra a obra e leva à aba', (tester) async {
+    testWidgets('a faixa mostra a obra e abre ela', (tester) async {
       preparar(obras: [obraDe('o1', 'Residência Silva')]);
       await abrir(tester, const InicioScreen());
       final faixa = find.textContaining('Residência Silva:');
       expect(tester.widget<Text>(faixa).data, contains('% concluída'));
       await tester.tap(faixa);
       await tester.pumpAndSettle();
-      expect(abaAtual.value, Aba.obras);
+      expect(find.byType(ObraScreen), findsOneWidget);
     });
 
     testWidgets('sem obra a faixa abre o cadastro', (tester) async {
@@ -259,57 +259,150 @@ void main() {
   group('aba Obras', () {
     testWidgets('sem obra convida a cadastrar', (tester) async {
       preparar();
-      await abrir(tester, const AbaObrasScreen());
+      await abrir(tester, const ObrasScreen());
       expect(find.text('Obras'), findsOneWidget);
       expect(find.text('Cadastrar primeira obra'), findsOneWidget);
+    });
+
+    testWidgets('com obra mostra a lista, não o painel', (tester) async {
+      preparar(obras: [obraDe('o1', 'Residência Silva')]);
+      await abrir(tester, const ObrasScreen());
+      expect(find.text('Residência Silva'), findsOneWidget);
+      expect(find.text('Cadastrar obra'), findsOneWidget);
       expect(find.byType(HojeNaObra), findsNothing);
     });
 
-    testWidgets('com obra mostra o painel inteiro', (tester) async {
+    testWidgets('a obra abre com tudo dentro dela', (tester) async {
       preparar(obras: [obraDe('o1', 'Residência Silva')]);
-      await abrir(tester, const AbaObrasScreen());
+      await abrir(tester, const ObrasScreen());
+      await tester.tap(find.text('Residência Silva'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ObraScreen), findsOneWidget);
       expect(find.text('Hoje na obra'), findsOneWidget);
       expect(find.text('Ditar o dia'), findsOneWidget);
       expect(find.text('Tudo da obra'), findsOneWidget);
-      expect(find.byType(EntradaDaObra), findsNWidgets(13));
+      expect(find.text('Cronograma'), findsOneWidget);
     });
 
-    testWidgets('troca a obra em um toque', (tester) async {
+    testWidgets('uma obra só dispensa os filtros', (tester) async {
+      preparar(obras: [obraDe('o1', 'Residência Silva')]);
+      await abrir(tester, const ObrasScreen());
+      expect(find.byType(ChoiceChip), findsNothing);
+    });
+
+    testWidgets('organiza pela situação', (tester) async {
+      final parada = Obra(
+        id: 'o3',
+        papel: Papel.admin,
+        funcao: FuncaoObra.responsavel,
+        dados: const DadosObra(
+          nome: 'Casa Parada',
+          cidade: 'Maringá',
+          uf: 'PR',
+        ),
+        parametros: const ParametrosObra(area: '120'),
+        statusEtapas: const {},
+        criadaEm: DateTime(2026, 11),
+        atualizadaEm: DateTime(2026, 11),
+      );
+      preparar(
+        obras: [
+          obraDe('o1', 'Residência Silva'),
+          obraDe('o2', 'Casa Nova'),
+          parada,
+        ],
+      );
+      await abrir(tester, const ObrasScreen());
+      expect(find.text('Todas 3'), findsOneWidget);
+      expect(find.text('Em obra 2'), findsOneWidget);
+      expect(find.text('Planejamento 1'), findsOneWidget);
+      expect(
+        find.textContaining('Concluídas'),
+        findsNothing,
+        reason: 'filtro sem obra não aparece',
+      );
+      await tester.ensureVisible(find.text('Planejamento 1'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Planejamento 1'));
+      await tester.pumpAndSettle();
+      expect(find.text('Casa Parada'), findsOneWidget);
+      expect(find.text('Casa Nova'), findsNothing);
+    });
+
+    testWidgets('filtro que ficou vazio volta para todas', (tester) async {
       preparar(
         obras: [obraDe('o1', 'Residência Silva'), obraDe('o2', 'Casa Nova')],
       );
-      await abrir(tester, const AbaObrasScreen());
-      final chip = find.widgetWithText(ChoiceChip, 'Casa Nova');
-      await tester.ensureVisible(chip);
+      await abrir(tester, const ObrasScreen());
+      await tester.tap(find.text('Em obra 2'));
       await tester.pumpAndSettle();
-      await tester.tap(chip);
+      ObrasService.instance.definirParaTeste(obras: const []);
       await tester.pumpAndSettle();
-      expect(tester.widget<HojeNaObra>(find.byType(HojeNaObra)).obra.id, 'o2');
-      expect(ObrasService.instance.obraAtiva?.id, 'o2');
+      expect(find.text('Cadastrar primeira obra'), findsOneWidget);
     });
 
-    testWidgets('abre a lista de obras', (tester) async {
+    testWidgets('cadastra outra obra pelo botão da aba', (tester) async {
       preparar(obras: [obraDe('o1', 'Residência Silva')]);
-      await abrir(tester, const AbaObrasScreen());
-      await tester.tap(find.text('Minhas obras'));
-      await tester.pumpAndSettle();
-      expect(find.byType(ObrasScreen), findsOneWidget);
-    });
-
-    testWidgets('cadastra outra obra sem sair da aba', (tester) async {
-      preparar(obras: [obraDe('o1', 'Residência Silva')]);
-      await abrir(tester, const AbaObrasScreen());
-      await tester.ensureVisible(find.text('Nova obra'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Nova obra'));
+      await abrir(tester, const ObrasScreen());
+      await tester.tap(find.text('Cadastrar obra'));
       await tester.pumpAndSettle();
       expect(find.byType(ObraFormScreen), findsOneWidget);
     });
 
     testWidgets('funciona no tema escuro', (tester) async {
-      preparar(obras: [obraDe('o1', 'Residência Silva')]);
-      await abrir(tester, const AbaObrasScreen(), escuro: true);
+      preparar(
+        obras: [obraDe('o1', 'Residência Silva'), obraDe('o2', 'Casa Nova')],
+      );
+      await abrir(tester, const ObrasScreen(), escuro: true);
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('aba Busca', () {
+    testWidgets('não abre o teclado sozinha e mostra as categorias', (
+      tester,
+    ) async {
+      preparar();
+      await abrir(tester, const BuscaScreen(naAba: true));
+      expect(
+        FocusManager.instance.primaryFocus?.context?.widget,
+        isNot(isA<EditableText>()),
+      );
+      expect(find.text('Categorias'), findsOneWidget);
+      for (final categoria in categoriasTeste) {
+        expect(find.text(categoria.nome), findsOneWidget);
+      }
+      expect(find.byType(BackButton), findsNothing);
+    });
+
+    testWidgets('com mais de dez categorias mostra todas', (tester) async {
+      preparar();
+      CatalogoService.instance.definirParaTeste(
+        categorias: categorias(12),
+        itens: itensTeste,
+      );
+      await abrir(tester, const BuscaScreen(naAba: true));
+      await rolarAte(tester, find.text('Categoria 12'));
+      expect(find.text('Ver mais'), findsNothing);
+    });
+
+    testWidgets('digitar troca as categorias pelos produtos', (tester) async {
+      preparar();
+      await abrir(tester, const BuscaScreen(naAba: true));
+      await tester.enterText(find.byType(TextField), 'cimen');
+      await tester.pumpAndSettle();
+      expect(find.text('Categorias'), findsNothing);
+      expect(find.text('Cimento CP II 50 kg'), findsOneWidget);
+    });
+
+    testWidgets('fora da aba o teclado abre sozinho', (tester) async {
+      preparar();
+      await abrir(tester, const BuscaScreen());
+      expect(
+        FocusManager.instance.primaryFocus?.context
+            ?.findAncestorWidgetOfExactType<TextField>(),
+        isNotNull,
+      );
     });
   });
 

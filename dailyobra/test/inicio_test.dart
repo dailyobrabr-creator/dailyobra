@@ -55,14 +55,20 @@ void main() {
 
   for (final escuro in [false, true]) {
     group(escuro ? 'escuro' : 'claro', () {
-      testWidgets('início mostra saudação, clube, ofertas e lojas', (
+      testWidgets('início mostra saudação, cotar, ofertas e lojas', (
         tester,
       ) async {
         preparar(lojas: const [lojaA, lojaB]);
         await abrir(tester, const InicioScreen(), escuro: escuro);
         expect(find.text('Olá, Ana'), findsOneWidget);
-        expect(find.textContaining(brl.format(125.5)), findsOneWidget);
+        expect(find.text('Clube DailyObra'), findsNothing);
+        expect(find.textContaining(brl.format(125.5)), findsNothing);
         expect(find.text('Cotar agora'), findsOneWidget);
+        expect(find.textContaining('Buscar cimento'), findsNothing);
+        expect(
+          tester.getTopLeft(find.text('Cotar agora')).dy,
+          greaterThan(tester.getBottomLeft(find.text('Olá, Ana')).dy),
+        );
         await rolarAte(tester, find.text('Ofertas do dia'));
         final lojasPerto = find.byKey(const Key('lojas-perto'));
         await rolarAte(tester, lojasPerto);

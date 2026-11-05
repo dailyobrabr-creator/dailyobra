@@ -7,11 +7,11 @@ import '../services/catalogo_service.dart';
 import '../services/obras_service.dart';
 import 'componentes.dart';
 import 'diario_screen.dart';
-import 'entradas_da_obra.dart';
-import 'mudancas_screen.dart';
+import 'hoje_na_obra.dart';
 import 'obra_form_screen.dart';
 import 'relatorio_screen.dart';
 
+/// Tudo de uma obra: como ela está hoje, o caminho para cada parte dela, o diário, o orçamento e os materiais.
 class ObraScreen extends StatefulWidget {
   const ObraScreen({super.key, required this.id});
   final String id;
@@ -96,17 +96,7 @@ class _ObraScreenState extends State<ObraScreen> {
     final funcao = obra.funcao;
     final admin = funcao.administra;
     final cliente = funcao == FuncaoObra.cliente;
-    final agora = DateTime.now();
-    final resumo = resumirCronograma(
-      etapas: [
-        for (final e in calculo.resultado?.etapas ?? const <LinhaResultado>[])
-          e.etapa,
-      ],
-      datas: obra.cronograma,
-      status: obra.statusEtapas,
-      hoje: agora,
-    );
-    final alerta = alertaDaObra(resumo, obra.pendenciasVencidas(agora));
+    final celular = formatoDoContexto(context) == Formato.celular;
     final endereco = [
       obra.dados.endereco,
       [obra.dados.cidade, obra.dados.uf].where((s) => s.isNotEmpty).join(' – '),
@@ -144,92 +134,83 @@ class _ObraScreenState extends State<ObraScreen> {
             ),
         ],
       ),
-      body: RefreshIndicator(
-        color: context.cores.acao,
-        onRefresh: ObrasService.instance.carregar,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            Espaco.s4,
-            Espaco.s5,
-            Espaco.s4,
-            Espaco.s10,
-          ),
-          children: [
-            Text(obra.nome, style: t.headlineMedium),
-            if (endereco.isNotEmpty) ...[
-              const SizedBox(height: Espaco.s1),
-              Text(
-                endereco,
-                style: t.bodyLarge?.copyWith(color: context.cores.textoSuave),
-              ),
-            ],
-            const SizedBox(height: Espaco.s4),
-            if (!funcao.veValores) ...[
-              const Aviso(
-                'Seu acesso mostra o andamento e o diário da obra, sem valores.',
-                tom: TomSelo.info,
-              ),
-              const SizedBox(height: Espaco.s4),
-            ],
-            if (!funcao.registra) ...[
-              const Aviso(
-                'Seu acesso a esta obra é de acompanhamento: você vê o orçamento e o andamento, sem alterar.',
-                tom: TomSelo.info,
-              ),
-              const SizedBox(height: Espaco.s4),
-            ],
-            if (alerta != null) ...[
-              Aviso(alerta, tom: TomSelo.aviso),
-              const SizedBox(height: Espaco.s4),
-            ],
-            if (cliente) ...[
-              EntradaDasMudancas(obra: obra),
-              const SizedBox(height: Espaco.s4),
-              UltimasFotos(obra: obra),
-            ],
-            EntradaDoDiario(obra: obra),
-            const SizedBox(height: Espaco.s4),
-            for (final entrada in entradasDaObra(obra, resumo)) ...[
-              entrada,
-              const SizedBox(height: Espaco.s2),
-            ],
-            const SizedBox(height: Espaco.s2),
-            if (calculo.resultado == null)
-              Painel(
-                child: Padding(
-                  padding: const EdgeInsets.all(Espaco.s4),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Aviso(calculo.erro!),
-                      if (admin) ...[
-                        const SizedBox(height: Espaco.s3),
-                        FilledButton(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ObraFormScreen(obra: obra),
-                            ),
-                          ),
-                          child: const Text('Corrigir parâmetros'),
-                        ),
-                      ],
-                    ],
+      body: LayoutBuilder(
+        builder: (context, limites) => RefreshIndicator(
+          color: context.cores.acao,
+          onRefresh: ObrasService.instance.carregar,
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(
+              margemLateral(limites.maxWidth),
+              Espaco.s4,
+              margemLateral(limites.maxWidth),
+              Espaco.s10,
+            ),
+            children: [
+              if (endereco.isNotEmpty) ...[
+                Text(
+                  endereco,
+                  style: t.bodyMedium?.copyWith(
+                    color: context.cores.textoSuave,
                   ),
                 ),
-              )
-            else if (funcao.veValores)
-              ..._resultado(obra, calculo.resultado!, funcao.lidera)
-            else
-              Painel(
-                child: _Andamento(
-                  obra: obra,
-                  etapas: calculo.resultado!.etapas,
-                  comValores: false,
-                  onEscolher: (_) {},
+                const SizedBox(height: Espaco.s3),
+              ],
+              if (!funcao.veValores) ...[
+                const Aviso(
+                  'Seu acesso mostra o andamento e o diário da obra, sem valores.',
+                  tom: TomSelo.info,
                 ),
-              ),
-          ],
+                const SizedBox(height: Espaco.s4),
+              ],
+              if (!funcao.registra) ...[
+                const Aviso(
+                  'Seu acesso a esta obra é de acompanhamento: você vê o orçamento e o andamento, sem alterar.',
+                  tom: TomSelo.info,
+                ),
+                const SizedBox(height: Espaco.s4),
+              ],
+              HojeNaObra(key: ValueKey(obra.id), obra: obra, compacto: celular),
+              const SizedBox(height: Espaco.s4),
+              if (cliente) UltimasFotos(obra: obra),
+              EntradaDoDiario(obra: obra),
+              const SizedBox(height: Espaco.s4),
+              if (calculo.resultado == null)
+                Painel(
+                  child: Padding(
+                    padding: const EdgeInsets.all(Espaco.s4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Aviso(calculo.erro!),
+                        if (admin) ...[
+                          const SizedBox(height: Espaco.s3),
+                          FilledButton(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ObraFormScreen(obra: obra),
+                              ),
+                            ),
+                            child: const Text('Corrigir parâmetros'),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                )
+              else if (funcao.veValores)
+                ..._resultado(obra, calculo.resultado!, funcao.lidera)
+              else
+                Painel(
+                  child: _Andamento(
+                    obra: obra,
+                    etapas: calculo.resultado!.etapas,
+                    comValores: false,
+                    onEscolher: (_) {},
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

@@ -10,19 +10,23 @@ import '../services/negociacao_service.dart';
 import '../services/novidades_service.dart';
 import '../services/obras_service.dart';
 import '../services/perfil_service.dart';
+import 'categoria_screen.dart';
 import 'componentes.dart';
-import 'loja_screen.dart';
+import 'menu_da_conta.dart';
 import 'obra_form_screen.dart';
+import 'obra_screen.dart';
 import 'pedido_screen.dart';
-import 'produto_screen.dart';
 import 'proposta_screen.dart';
 import 'smart_list_screen.dart';
 import 'topo_vitrine.dart';
 import 'vitrine_do_inicio.dart';
 
-/// Início: a loja. Faixa da obra, avisos de propostas e pedidos, grade de categorias, banners, lista inteligente,
-/// economia, ofertas, mais barato hoje e lojas perto. O trabalho do dia fica na aba Obras. Uma coluna no celular e no
-/// tablet; duas no computador (a lateral com avisos, economia e lojas).
+const _produtosPorPrateleira = 12;
+const _produtosParaTerPrateleira = 2;
+const _prateleirasDeCategoria = 6;
+
+/// Início: a loja, em fundo branco e uma coluna só em todas as telas. Depois do topo vêm a lista para cotar, a faixa da
+/// obra, os avisos de propostas e pedidos, as categorias, os banners, as lojas e as prateleiras de produtos.
 class InicioScreen extends StatelessWidget {
   const InicioScreen({super.key, this.tema, this.onSino});
   final PreferenciaTema? tema;
@@ -41,6 +45,7 @@ class InicioScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final formato = formatoDoContexto(context);
     return Scaffold(
+      backgroundColor: context.cores.superficie,
       body: ListenableBuilder(
         listenable: Listenable.merge([
           CatalogoService.instance,
@@ -55,116 +60,50 @@ class InicioScreen extends StatelessWidget {
         builder: (context, _) {
           final v = _Vitrine(context, formato);
           final erro = CatalogoService.instance.erro;
-          final topo = TopoVitrine(
-            compacto: formato == Formato.celular,
-            tema: tema,
-            onSino: onSino,
-          );
-          final List<Widget> filhos;
-          switch (formato) {
-            case Formato.celular:
-              filhos = [
-                topo,
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    Espaco.s4,
-                    Espaco.s4,
-                    Espaco.s4,
-                    Espaco.s8,
-                  ),
-                  child: _coluna([
-                    if (erro != null) Aviso(erro, tom: TomSelo.aviso),
-                    v.obra(),
-                    v.contraproposta(),
-                    v.pedido(),
-                    v.categorias(),
-                    v.banners(),
-                    const _ListaInteligente(compacta: true),
-                    v.clube(),
-                    v.economia(),
-                    v.ofertas(),
-                    v.maisBarato(),
-                    v.lojas(),
-                  ], Espaco.s4),
-                ),
-              ];
-            case Formato.tablet:
-              filhos = [
-                topo,
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    Espaco.s6,
-                    Espaco.s6,
-                    Espaco.s6,
-                    Espaco.s10,
-                  ),
-                  child: _coluna([
-                    if (erro != null) Aviso(erro, tom: TomSelo.aviso),
-                    v.obra(),
-                    v.contraproposta(),
-                    v.pedido(),
-                    v.categorias(),
-                    v.banners(),
-                    const _ListaInteligente(compacta: false),
-                    v.economia(),
-                    v.ofertas(),
-                    v.maisBarato(),
-                    v.lojas(),
-                  ], Espaco.s6),
-                ),
-              ];
-            case Formato.computador:
-              filhos = [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    Espaco.s8,
-                    Espaco.s6,
-                    Espaco.s8,
-                    Espaco.s10,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (erro != null) ...[
-                        Aviso(erro, tom: TomSelo.aviso),
-                        const SizedBox(height: Espaco.s4),
-                      ],
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: _coluna([
-                              v.obra(),
-                              v.categorias(),
-                              v.banners(),
-                              const _ListaInteligente(compacta: false),
-                              v.ofertas(),
-                              v.maisBarato(),
-                            ], Espaco.s6),
-                          ),
-                          const SizedBox(width: Espaco.s6),
-                          SizedBox(
-                            width: 340,
-                            child: _coluna([
-                              v.contraproposta(),
-                              v.pedido(),
-                              v.economia(),
-                              v.lojas(),
-                            ], Espaco.s6),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ];
-          }
+          final m = switch (formato) {
+            Formato.celular => Espaco.s4,
+            Formato.tablet => Espaco.s6,
+            Formato.computador => Espaco.s8,
+          };
+          Widget? comMargem(Widget? bloco, {Key? key}) => bloco == null
+              ? null
+              : Padding(
+                  key: key,
+                  padding: EdgeInsets.symmetric(horizontal: m),
+                  child: bloco,
+                );
           return RefreshIndicator(
             color: context.cores.acao,
             onRefresh: _atualizar,
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
-              children: filhos,
+              padding: const EdgeInsets.only(bottom: Espaco.s8),
+              children: [
+                // No computador a barra laranja é da moldura, acima de todas as abas
+                if (formato != Formato.computador)
+                  TopoVitrine(
+                    compacto: formato == Formato.celular,
+                    tema: tema,
+                    onSino: onSino,
+                  ),
+                const SizedBox(height: Espaco.s4),
+                _coluna([
+                  if (erro != null) comMargem(Aviso(erro, tom: TomSelo.aviso)),
+                  // Com chave, a lista digitada não se perde quando um aviso aparece acima
+                  comMargem(
+                    _ListaInteligente(compacta: formato == Formato.celular),
+                    key: const ValueKey('lista-inteligente'),
+                  ),
+                  comMargem(v.obra()),
+                  comMargem(v.contraproposta()),
+                  comMargem(v.pedido()),
+                  comMargem(v.categorias()),
+                  comMargem(v.banners()),
+                  v.lojas(m),
+                  ...v.prateleiras(m),
+                  comMargem(v.economia()),
+                ], Espaco.s4),
+              ],
             ),
           );
         },
@@ -188,13 +127,7 @@ Widget _coluna(List<Widget?> blocos, double espaco) {
 }
 
 class _Cartao extends StatelessWidget {
-  const _Cartao({
-    required this.child,
-    this.cor,
-    this.borda,
-    this.onTap,
-    super.key,
-  });
+  const _Cartao({required this.child, this.cor, this.borda, this.onTap});
   final Widget child;
   final Color? cor;
   final Color? borda;
@@ -244,49 +177,6 @@ class _Vitrine {
     fontWeight: FontWeight.w700,
     fontFeatures: numerosTabulares,
   );
-
-  Widget clube() {
-    final carteira = CarteiraService.instance;
-    return _Cartao(
-      cor: c.cartaoEscuro,
-      borda: c.cartaoEscuro,
-      onTap: () => irParaAba(context, Aba.carteira),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Clube DailyObra',
-                  style: t.bodySmall?.copyWith(color: c.textoCartaoEscuroSuave),
-                ),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    '${brl.format(carteira.disponivel)} disponível',
-                    style: t.titleLarge?.copyWith(
-                      color: c.textoCartaoEscuro,
-                      fontWeight: FontWeight.w700,
-                      fontFeatures: numerosTabulares,
-                    ),
-                  ),
-                ),
-                Text(
-                  carteira.pendente > 0
-                      ? '+ ${brl.format(carteira.pendente)} a liberar depois da entrega'
-                      : 'Ganhe cashback em cada pedido fechado pelo app',
-                  style: t.bodySmall?.copyWith(color: const Color(0xFFFFB98F)),
-                ),
-              ],
-            ),
-          ),
-          Icon(Icons.chevron_right, color: c.textoCartaoEscuro),
-        ],
-      ),
-    );
-  }
 
   Widget? contraproposta() {
     final lista =
@@ -474,7 +364,7 @@ class _Vitrine {
     return FaixaDaObra(
       texto: alerta ?? '${obra.nome}: $percentual% concluída',
       alerta: alerta != null,
-      aoTocar: () => irParaAba(context, Aba.obras),
+      aoTocar: () => _abrir(ObraScreen(id: obra.id)),
     );
   }
 
@@ -483,7 +373,7 @@ class _Vitrine {
     if (!eco.carregado) {
       if (eco.erro == null) return const EsqueletoBrilho(altura: 132);
       return _Cartao(
-        onTap: () => irParaAba(context, Aba.carteira),
+        onTap: () => abrirCarteira(context),
         child: Text(
           'Não deu para carregar a economia agora. ${eco.erro}',
           style: t.bodyMedium,
@@ -494,7 +384,7 @@ class _Vitrine {
     final mes = atual?.mes ?? hoje;
     final semNada = eco.meses.every((m) => m.total == 0);
     return _Cartao(
-      onTap: () => irParaAba(context, Aba.carteira),
+      onTap: () => abrirCarteira(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -549,63 +439,28 @@ class _Vitrine {
     return CarrosselDeBanners(key: ValueKey(lojas.length), lojas: lojas);
   }
 
-  Widget? ofertas() {
+  Widget? _ofertas(double m) {
     final promocoes = CatalogoService.instance.ofertasEmPromocao(hoje);
     if (promocoes.isEmpty) return null;
-    Widget cartao((Oferta, ItemCatalogo, Loja) p, {double? largura}) =>
-        CartaoOferta(
-          item: p.$2,
-          oferta: p.$1,
-          hoje: hoje,
-          nomeLoja: p.$3.nome,
-          largura: largura,
-          onTap: () => _abrir(ProdutoScreen(itemId: p.$2.id)),
-        );
-    final Widget lista;
-    if (formato == Formato.celular) {
-      final escala = MediaQuery.textScalerOf(context).scale(1);
-      lista = SizedBox(
-        height: 152 + 100 * escala,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          itemCount: promocoes.length,
-          separatorBuilder: (_, _) => const SizedBox(width: Espaco.s3),
-          itemBuilder: (_, i) => Align(
-            alignment: Alignment.topCenter,
-            child: cartao(promocoes[i], largura: 168),
+    return Prateleira(
+      titulo: 'Ofertas do dia',
+      margem: m,
+      emFaixa: true,
+      produtos: [
+        for (final (oferta, item, loja) in promocoes.take(
+          _produtosPorPrateleira,
+        ))
+          ProdutoDaPrateleira(
+            item: item,
+            preco: oferta.precoVigente(hoje)!,
+            precoCheio: oferta.preco,
+            rodape: loja.nome,
           ),
-        ),
-      );
-    } else {
-      final porLinha = formato == Formato.computador ? 4 : 3;
-      final primeiros = promocoes.take(porLinha).toList();
-      lista = Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (var i = 0; i < porLinha; i++) ...[
-            if (i > 0) const SizedBox(width: Espaco.s4),
-            Expanded(
-              child: i < primeiros.length
-                  ? cartao(primeiros[i])
-                  : const SizedBox.shrink(),
-            ),
-          ],
-        ],
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const TituloSecao(
-          'Ofertas do dia',
-          margem: EdgeInsets.only(bottom: Espaco.s3),
-        ),
-        lista,
       ],
     );
   }
 
-  Widget? maisBarato() {
+  Widget? _maisBarato(double m, {required bool emFaixa}) {
     final catalogo = CatalogoService.instance;
     final faixas = maisBaratoHoje(
       itens: catalogo.itens,
@@ -613,41 +468,77 @@ class _Vitrine {
       lojas: catalogo.lojaPorId,
       hoje: hoje,
       noOrcamento: {for (final i in CarrinhoService.instance.itens) i.itemId},
+      limite: _produtosPorPrateleira,
     );
     if (faixas.isEmpty) return null;
-    final estreito = formato == Formato.celular;
-    return _Cartao(
+    return Prateleira(
       key: const Key('mais-barato'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const TituloSecao(
-            'Mais barato hoje',
-            margem: EdgeInsets.only(bottom: Espaco.s1),
+      titulo: 'Mais barato hoje',
+      margem: m,
+      emFaixa: emFaixa,
+      produtos: [
+        for (final f in faixas)
+          ProdutoDaPrateleira(
+            item: f.item,
+            preco: f.menor,
+            rodape: 'de ${brl.format(f.menor)} a ${brl.format(f.maior)}',
           ),
-          for (var i = 0; i < faixas.length; i++) ...[
-            if (i > 0) Divider(height: 1, color: c.borda),
-            InkWell(
-              onTap: () => _abrir(ProdutoScreen(itemId: faixas[i].item.id)),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: Espaco.s3),
-                child: _LinhaFaixa(faixa: faixas[i], estreito: estreito),
-              ),
-            ),
-          ],
-        ],
-      ),
+      ],
     );
   }
 
-  Widget lojas() {
+  /// A faixa laranja e a página branca se alternam, começando pela laranja.
+  List<Widget> prateleiras(double m) {
+    final catalogo = CatalogoService.instance;
+    final blocos = <Widget>[];
+    final ofertas = _ofertas(m);
+    if (ofertas != null) blocos.add(ofertas);
+    final barato = _maisBarato(m, emFaixa: blocos.length.isEven);
+    if (barato != null) blocos.add(barato);
+    var deCategoria = 0;
+    for (final categoria in catalogo.categorias) {
+      if (deCategoria == _prateleirasDeCategoria) break;
+      final produtos = catalogo.produtosDaPrateleira(
+        categoria.id,
+        hoje: hoje,
+        limite: _produtosPorPrateleira,
+      );
+      if (produtos.length < _produtosParaTerPrateleira) continue;
+      deCategoria++;
+      blocos.add(
+        Prateleira(
+          titulo: 'Melhores preços em ${categoria.nome}',
+          margem: m,
+          emFaixa: blocos.length.isEven,
+          aoVerMais: () => _abrir(
+            CategoriaScreen(categoriaId: categoria.id, titulo: categoria.nome),
+          ),
+          produtos: [
+            for (final p in produtos)
+              ProdutoDaPrateleira(
+                item: p.item,
+                preco: p.oferta.precoVigente(hoje)!,
+                precoCheio: p.oferta.emPromocao(hoje) ? p.oferta.preco : null,
+                rodape: p.lojas > 1
+                    ? 'em ${p.lojas} lojas'
+                    : catalogo.loja(p.oferta.lojaId)?.nome ?? '',
+              ),
+          ],
+        ),
+      );
+    }
+    return blocos;
+  }
+
+  Widget lojas(double m) {
     final catalogo = CatalogoService.instance;
     final perfil = PerfilService.instance;
     final lojas = catalogo.lojas;
     if (lojas.isEmpty) {
-      return const KeyedSubtree(
-        key: Key('lojas-perto'),
-        child: EstadoVazio(
+      return Padding(
+        key: const Key('lojas-perto'),
+        padding: EdgeInsets.symmetric(horizontal: m),
+        child: const EstadoVazio(
           icone: Icons.storefront_outlined,
           titulo: 'Ainda não há lojas na sua cidade',
           texto:
@@ -657,150 +548,15 @@ class _Vitrine {
       );
     }
     final daCidade = lojas.where(catalogo.lojaDaMinhaCidade).length;
-    return _Cartao(
+    return TrilhoDeLojas(
       key: const Key('lojas-perto'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const TituloSecao(
-            'Lojas perto',
-            margem: EdgeInsets.only(bottom: Espaco.s2),
-          ),
-          if (perfil.cidade != null && daCidade == 0) ...[
-            Aviso(
-              'Ainda não há lojas em ${perfil.cidade}. Veja as de outras cidades.',
-              tom: TomSelo.info,
-            ),
-            const SizedBox(height: Espaco.s2),
-          ],
-          for (var i = 0; i < lojas.length && i < 5; i++) ...[
-            if (i > 0) Divider(height: 1, color: c.borda),
-            InkWell(
-              onTap: () => _abrir(LojaScreen(lojaId: lojas[i].id)),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: Espaco.s3),
-                child: _LinhaLoja(
-                  loja: lojas[i],
-                  produtos: catalogo
-                      .ofertasDaLoja(lojas[i].id, hoje: hoje)
-                      .length,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _LinhaFaixa extends StatelessWidget {
-  const _LinhaFaixa({required this.faixa, required this.estreito});
-  final FaixaPreco faixa;
-  final bool estreito;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.cores;
-    final t = Theme.of(context).textTheme;
-    final nome = Text.rich(
-      TextSpan(
-        text: faixa.item.nome,
-        style: t.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-        children: [
-          TextSpan(
-            text: ' · ${faixa.lojas} lojas',
-            style: t.bodyMedium?.copyWith(color: c.textoSuave),
-          ),
-        ],
-      ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    );
-    final intervalo = Text(
-      'de ${brl.format(faixa.menor)} a ${brl.format(faixa.maior)}',
-      style: t.bodySmall?.copyWith(
-        color: c.textoSuave,
-        fontFeatures: numerosTabulares,
-      ),
-    );
-    final melhor = Text(
-      brl.format(faixa.menor),
-      style: t.titleSmall?.copyWith(
-        color: c.acao,
-        fontWeight: FontWeight.w700,
-        fontFeatures: numerosTabulares,
-      ),
-    );
-    if (estreito) {
-      return Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [nome, intervalo],
-            ),
-          ),
-          const SizedBox(width: Espaco.s3),
-          melhor,
-        ],
-      );
-    }
-    return Row(
-      children: [
-        Expanded(child: nome),
-        const SizedBox(width: Espaco.s4),
-        intervalo,
-        const SizedBox(width: Espaco.s4),
-        melhor,
-      ],
-    );
-  }
-}
-
-class _LinhaLoja extends StatelessWidget {
-  const _LinhaLoja({required this.loja, required this.produtos});
-  final Loja loja;
-  final int produtos;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.cores;
-    final t = Theme.of(context).textTheme;
-    final detalhe = [
-      textoFrete(loja),
-      produtos == 0
-          ? 'ainda sem preços'
-          : produtos == 1
-          ? '1 produto'
-          : '$produtos produtos',
-    ].join(' · ');
-    return Row(
-      children: [
-        LogoLoja(loja: loja, tamanho: 40),
-        const SizedBox(width: Espaco.s3),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                loja.nome,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: t.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              Text(
-                detalhe,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: t.bodySmall?.copyWith(color: c.textoSuave),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: Espaco.s2),
-        SeloSituacao(situacao: situacaoDaLoja(loja, DateTime.now())),
-      ],
+      lojas: lojas,
+      margem: m,
+      aviso: perfil.cidade != null && daCidade == 0
+          ? 'Ainda não há lojas em ${perfil.cidade}. Veja as de outras cidades.'
+          : null,
+      produtosDaLoja: (loja) =>
+          catalogo.ofertasDaLoja(loja.id, hoje: hoje).length,
     );
   }
 }
@@ -858,16 +614,6 @@ class _ListaInteligenteState extends State<_ListaInteligente> {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.cores;
-    final icone = Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: c.destaqueSuave,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(Icons.auto_awesome_outlined, color: c.acao),
-    );
     final campo = TextField(
       controller: _texto,
       enabled: !_lendo,
@@ -877,7 +623,8 @@ class _ListaInteligenteState extends State<_ListaInteligente> {
       decoration: InputDecoration(
         hintText: _lendo
             ? 'Lendo o arquivo…'
-            : 'Cole a lista ou anexe um PDF ou foto',
+            : 'Cole a lista ou anexe PDF ou foto',
+        hintMaxLines: 1,
         suffixIcon: _lendo
             ? const Padding(
                 padding: EdgeInsets.all(14),
@@ -912,31 +659,22 @@ class _ListaInteligenteState extends State<_ListaInteligente> {
         ),
       ),
     );
-    return _Cartao(
-      child: widget.compacta
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    icone,
-                    const SizedBox(width: Espaco.s3),
-                    Expanded(child: campo),
-                  ],
-                ),
-                const SizedBox(height: Espaco.s3),
-                botao,
-              ],
-            )
-          : Row(
-              children: [
-                icone,
-                const SizedBox(width: Espaco.s3),
-                Expanded(child: campo),
-                const SizedBox(width: Espaco.s3),
-                botao,
-              ],
-            ),
+    if (widget.compacta) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          campo,
+          const SizedBox(height: Espaco.s2),
+          botao,
+        ],
+      );
+    }
+    return Row(
+      children: [
+        Expanded(child: campo),
+        const SizedBox(width: Espaco.s3),
+        botao,
+      ],
     );
   }
 }

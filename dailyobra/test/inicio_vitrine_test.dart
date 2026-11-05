@@ -220,12 +220,6 @@ void main() {
           );
           final lojas = find.byKey(const Key('lojas-perto'));
           await rolarAte(tester, lojas);
-          if (largura >= 1024) {
-            expect(
-              tester.getTopLeft(lojas).dx,
-              greaterThan(tester.getTopLeft(barato).dx + 100),
-            );
-          }
           await rolarAteOFim(tester);
           expect(tester.takeException(), isNull);
         });

@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 
 import '../services/carteira_service.dart';
 import '../services/perfil_service.dart';
+import 'carteira_screen.dart';
 import 'componentes.dart';
 import 'marca_screen.dart';
-import 'obras_screen.dart';
 import 'propostas_comerciais_screen.dart';
 
 /// As iniciais da pessoa, a mesma marca no topo, no menu e no perfil.
@@ -42,11 +42,14 @@ class AvatarDaConta extends StatelessWidget {
   }
 }
 
-/// A lista de todas as obras abre por cima das abas, com volta.
-void abrirMinhasObras(BuildContext context) {
+/// A lista de todas as obras é a aba Obras.
+void abrirMinhasObras(BuildContext context) => irParaAba(context, Aba.obras);
+
+/// A Carteira não é aba: abre por cima, com volta, a partir do Perfil e do menu da conta.
+void abrirCarteira(BuildContext context) {
   Navigator.push(
     context,
-    MaterialPageRoute(builder: (_) => const ObrasScreen()),
+    MaterialPageRoute(builder: (_) => const CarteiraScreen()),
   );
 }
 
@@ -92,7 +95,7 @@ class MenuDaConta extends StatelessWidget {
       case _Opcao.obras:
         abrirMinhasObras(context);
       case _Opcao.carteira:
-        irParaAba(context, Aba.carteira);
+        abrirCarteira(context);
       case _Opcao.propostas:
         abrir(const PropostasComerciaisScreen());
       case _Opcao.marca:

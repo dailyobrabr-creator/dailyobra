@@ -1,8 +1,10 @@
 import 'package:dailyobra/screens/componentes.dart';
+import 'package:dailyobra/screens/carteira_screen.dart';
 import 'package:dailyobra/screens/menu_da_conta.dart';
 import 'package:dailyobra/screens/obras_screen.dart';
 import 'package:dailyobra/screens/perfil_screen.dart';
 import 'package:dailyobra/services/carteira_service.dart';
+import 'package:dailyobra/services/economia_service.dart';
 import 'package:dailyobra/services/obras_service.dart';
 import 'package:dailyobra/services/perfil_service.dart';
 import 'package:dailyobra_comum/dailyobra_comum.dart';
@@ -31,6 +33,7 @@ void preparar({List<Obra>? obras}) {
     uf: 'PR',
   );
   CarteiraService.instance.definirParaTeste(disponivel: 125.5);
+  EconomiaService.instance.definirParaTeste(const []);
   ObrasService.instance.definirParaTeste(obras: obras ?? [obra()]);
   abaAtual.value = Aba.inicio;
 }
@@ -91,14 +94,13 @@ void main() {
     });
 
     for (final larga in [false, true]) {
-      testWidgets('abre a lista de obras (larga: $larga)', (tester) async {
+      testWidgets('leva à aba Obras (larga: $larga)', (tester) async {
         preparar();
         await tela(tester, comMenu(), larga: larga);
         await abrirMenu(tester);
         await tester.tap(find.text('Minhas obras'));
         await tester.pumpAndSettle();
-        expect(find.byType(ObrasScreen), findsOneWidget);
-        expect(find.text('Residência Silva'), findsOneWidget);
+        expect(abaAtual.value, Aba.obras);
       });
     }
 
@@ -108,7 +110,8 @@ void main() {
       await abrirMenu(tester);
       await tester.tap(find.text('Carteira'));
       await tester.pumpAndSettle();
-      expect(abaAtual.value, Aba.carteira);
+      expect(find.byType(CarteiraScreen), findsOneWidget);
+      expect(abaAtual.value, Aba.inicio);
     });
 
     testWidgets('sair pede confirmação', (tester) async {
@@ -138,14 +141,17 @@ void main() {
       await tela(tester, const ObrasScreen(), larga: true);
       expect(find.byType(MarcaDailyObra), findsNothing);
       expect(find.byTooltip('Conta'), findsNothing);
-      expect(find.text('Minhas obras'), findsOneWidget);
+      expect(find.widgetWithText(AppBar, 'Obras'), findsOneWidget);
     });
 
     testWidgets('na tela larga a obra fica ao lado do resumo', (tester) async {
       preparar();
       await tela(tester, const ObrasScreen(), larga: true);
       expect(find.byType(FloatingActionButton), findsNothing);
-      expect(find.widgetWithText(FilledButton, 'Nova obra'), findsOneWidget);
+      expect(
+        find.widgetWithText(FilledButton, 'Cadastrar obra'),
+        findsOneWidget,
+      );
       final nome = tester.getTopLeft(find.text('Residência Silva'));
       final resumo = tester.getTopLeft(find.text('Resumo'));
       expect(resumo.dy, lessThan(nome.dy + 40));

@@ -2,6 +2,7 @@ import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
 
 import '../services/novidades_service.dart';
+import 'carteira_screen.dart';
 import 'componentes.dart';
 import 'pedido_screen.dart';
 import 'proposta_screen.dart';
@@ -103,11 +104,9 @@ class _ListaNovidades extends StatelessWidget {
   const _ListaNovidades();
 
   void _abrir(BuildContext context, Novidade n) {
-    if (n.tipo == TipoNovidade.cashbackLiberado) {
-      irParaAba(context, Aba.carteira);
-      return;
-    }
-    final Widget? tela = n.propostaId != null
+    final Widget? tela = n.tipo == TipoNovidade.cashbackLiberado
+        ? const CarteiraScreen()
+        : n.propostaId != null
         ? PropostaScreen(id: n.propostaId!)
         : n.pedidoId != null
         ? PedidoScreen(pedidoId: n.pedidoId!)

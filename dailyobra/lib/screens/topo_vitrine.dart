@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/novidades_service.dart';
 import '../services/perfil_service.dart';
 import 'busca_screen.dart';
+import 'menu_da_conta.dart';
 import 'novidades_screen.dart';
 
 /// Barra laranja da vitrine: saudação, cidade, busca, tema, sino e iniciais.
@@ -76,20 +77,8 @@ class TopoVitrine extends StatelessWidget {
             novidades: novidades ?? NovidadesService.instance.naoVistas,
             onTap: onSino ?? () => abrirNovidades(context),
           ),
-          if (!compacto) ...[
-            const SizedBox(width: Espaco.s2),
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: c.textoSobreTopo,
-              child: Text(
-                LogoLoja.iniciais(perfil.nome.isEmpty ? '?' : perfil.nome),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
+          const SizedBox(width: Espaco.s2),
+          MenuDaConta(cor: c.textoSobreTopo, corDoTexto: Colors.white),
         ];
         return Material(
           color: c.topo,

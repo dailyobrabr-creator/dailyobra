@@ -388,7 +388,7 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
-      testWidgets('minhas obras em grade', (tester) async {
+      testWidgets('minhas obras em lista', (tester) async {
         ObrasService.instance.definirParaTeste(
           obras: [
             obra('o1', 'Residência Silva', DateTime(2026, 10, 30)),
@@ -397,8 +397,12 @@ void main() {
         );
         await abrirLargura(tester, const ObrasScreen(), 1366, escuro: escuro);
         expect(
+          tester.getTopLeft(find.text('Sobrado Lima')).dx,
+          tester.getTopLeft(find.text('Residência Silva')).dx,
+        );
+        expect(
           tester.getTopLeft(find.text('Sobrado Lima')).dy,
-          tester.getTopLeft(find.text('Residência Silva')).dy,
+          greaterThan(tester.getTopLeft(find.text('Residência Silva')).dy),
         );
         await rolarAteOFim(tester);
         expect(tester.takeException(), isNull);

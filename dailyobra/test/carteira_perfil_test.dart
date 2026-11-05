@@ -148,9 +148,9 @@ void main() {
       find.byKey(const ValueKey('perfil-documento')),
       '123',
     );
-    await tester.ensureVisible(find.text('Salvar'));
+    await tester.ensureVisible(find.text('Salvar alterações'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Salvar'));
+    await tester.tap(find.text('Salvar alterações'));
     await tester.pump();
     expect(
       find.text('CPF ou CNPJ inválido. Confira os números.'),
@@ -199,9 +199,9 @@ void main() {
       ),
       '4885',
     );
-    await tester.ensureVisible(find.text('Salvar'));
+    await tester.ensureVisible(find.text('Salvar alterações'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Salvar'));
+    await tester.tap(find.text('Salvar alterações'));
     await tester.pumpAndSettle();
     expect(PerfilService.instance.salvosDeTeste.single, {
       'cidade': 'Rondonópolis',

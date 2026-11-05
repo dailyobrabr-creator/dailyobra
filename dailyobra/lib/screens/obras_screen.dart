@@ -11,6 +11,9 @@ import 'propostas_comerciais_screen.dart';
 
 final _data = DateFormat("d 'de' MMM 'de' y", 'pt_BR');
 
+const _larguraDeDuasColunas = 900.0;
+const _larguraDaLateral = 320.0;
+
 class ObrasScreen extends StatelessWidget {
   const ObrasScreen({super.key});
 
@@ -30,50 +33,55 @@ class ObrasScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final servico = ObrasService.instance;
+    final celular = formatoDoContexto(context) == Formato.celular;
     return Scaffold(
       appBar: AppBar(
-        title: const MarcaDailyObra(soSimbolo: false, altura: 24),
-        actions: [_MenuConta()],
+        title: const Text('Minhas obras'),
+        actions: [
+          if (!celular)
+            Padding(
+              padding: const EdgeInsets.only(right: Espaco.s4),
+              child: FilledButton.icon(
+                onPressed: () => _nova(context),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Nova obra'),
+              ),
+            ),
+        ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _nova(context),
-        backgroundColor: context.cores.acao,
-        foregroundColor: context.cores.textoSobreAcao,
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Raio.md),
-        ),
-        icon: const Icon(Icons.add),
-        label: const Text('Nova obra'),
-      ),
+      floatingActionButton: celular
+          ? FloatingActionButton.extended(
+              onPressed: () => _nova(context),
+              backgroundColor: context.cores.acao,
+              foregroundColor: context.cores.textoSobreAcao,
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(Raio.md),
+              ),
+              icon: const Icon(Icons.add),
+              label: const Text('Nova obra'),
+            )
+          : null,
       body: ListenableBuilder(
         listenable: servico,
         builder: (context, _) {
           final obras = servico.obras;
-          final formato = formatoDoContexto(context);
           return LayoutBuilder(
             builder: (context, limites) {
               final m = margemLateral(limites.maxWidth);
+              final largo = limites.maxWidth >= _larguraDeDuasColunas;
               return RefreshIndicator(
                 color: context.cores.acao,
                 onRefresh: servico.carregar,
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.fromLTRB(m, Espaco.s5, m, 96),
+                  padding: EdgeInsets.fromLTRB(
+                    m,
+                    Espaco.s5,
+                    m,
+                    celular ? 96 : Espaco.s8,
+                  ),
                   children: [
-                    Text(
-                      'Minhas obras',
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    const SizedBox(height: Espaco.s1),
-                    Text(
-                      'Orçamento estimado, materiais e andamento de cada obra.',
-                      style: Theme.of(context).textTheme.bodyLarge
-                          ?.copyWith(color: context.cores.textoSuave),
-                    ),
-                    const SizedBox(height: Espaco.s4),
-                    const EntradaDasPropostas(),
-                    const SizedBox(height: Espaco.s4),
                     if (servico.erro != null) ...[
                       Aviso(servico.erro!),
                       const SizedBox(height: Espaco.s4),
@@ -83,31 +91,51 @@ class ObrasScreen extends StatelessWidget {
                         const Esqueleto(altura: 168),
                         const SizedBox(height: Espaco.s3),
                       ]
-                    else if (obras != null && obras.isEmpty)
+                    else if (obras != null && obras.isEmpty) ...[
                       _Vazio(
                         onNova: () => _nova(context),
                         onCodigo: () => entrarComConvite(context),
+                      ),
+                      // A proposta vem antes da obra existir
+                      const SizedBox(height: Espaco.s3),
+                      const EntradaDasPropostas(),
+                    ] else if (obras != null && largo)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                for (final (i, o) in obras.indexed) ...[
+                                  if (i > 0) const SizedBox(height: Espaco.s3),
+                                  _CartaoObra(obra: o, largo: true),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: Espaco.s5),
+                          SizedBox(
+                            width: _larguraDaLateral,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _Resumo(obras: obras, emColuna: true),
+                                const SizedBox(height: Espaco.s3),
+                                ..._caminhos(context),
+                              ],
+                            ),
+                          ),
+                        ],
                       )
                     else if (obras != null) ...[
                       _Resumo(obras: obras),
                       const SizedBox(height: Espaco.s4),
-                      if (formato == Formato.celular)
-                        for (final o in obras) ...[
-                          _CartaoObra(obra: o),
-                          const SizedBox(height: Espaco.s3),
-                        ]
-                      else
-                        GradeCartoes(
-                          colunas: formato == Formato.computador ? 3 : 2,
-                          filhos: [for (final o in obras) _CartaoObra(obra: o)],
-                        ),
-                      const SizedBox(height: Espaco.s2),
-                      Center(
-                        child: TextButton(
-                          onPressed: () => entrarComConvite(context),
-                          child: const Text('Tenho um código de convite'),
-                        ),
-                      ),
+                      for (final o in obras) ...[
+                        _CartaoObra(obra: o),
+                        const SizedBox(height: Espaco.s3),
+                      ],
+                      ..._caminhos(context),
                     ],
                   ],
                 ),
@@ -118,67 +146,25 @@ class ObrasScreen extends StatelessWidget {
       ),
     );
   }
-}
 
-class _MenuConta extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      tooltip: 'Conta',
-      icon: const Icon(Icons.account_circle_outlined),
-      onSelected: (v) async {
-        if (v != 'sair') return;
-        final ok = await showDialog<bool>(
-          context: context,
-          builder: (c) => AlertDialog(
-            title: const Text('Sair da conta?'),
-            content: const Text(
-              'Suas obras continuam salvas na conta. Para ver de novo, é só entrar.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(c, false),
-                child: const Text('Cancelar'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(c, true),
-                child: const Text('Sair'),
-              ),
-            ],
-          ),
-        );
-        if (ok == true) await AuthService.sair();
-      },
-      itemBuilder: (_) => [
-        PopupMenuItem(
-          enabled: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                AuthService.primeiroNome ?? 'Sua conta',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: context.cores.texto,
-                ),
-              ),
-              Text(
-                AuthService.usuario?.email ?? '',
-                style: TextStyle(fontSize: 12, color: context.cores.textoSuave),
-              ),
-            ],
-          ),
-        ),
-        const PopupMenuDivider(),
-        const PopupMenuItem(value: 'sair', child: Text('Sair')),
-      ],
-    );
-  }
+  List<Widget> _caminhos(BuildContext context) => [
+    const EntradaDasPropostas(),
+    const SizedBox(height: Espaco.s2),
+    EntradaDaObra(
+      icone: Icons.vpn_key_outlined,
+      titulo: 'Tenho um código de convite',
+      detalhe: 'Entre na obra de outra pessoa',
+      aoTocar: () => entrarComConvite(context),
+    ),
+  ];
 }
 
 class _Resumo extends StatelessWidget {
-  const _Resumo({required this.obras});
+  const _Resumo({required this.obras, this.emColuna = false});
   final List<Obra> obras;
+
+  /// Na lateral das telas largas, uma medida por linha.
+  final bool emColuna;
 
   @override
   Widget build(BuildContext context) {
@@ -194,6 +180,43 @@ class _Resumo extends StatelessWidget {
       )) {
         emAndamento++;
       }
+    }
+    final comValores = obras.any((o) => o.funcao.veValores);
+    if (emColuna) {
+      Widget linha(String rotulo, String valor) => Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: Espaco.s4,
+          vertical: Espaco.s3,
+        ),
+        child: Row(
+          children: [
+            Expanded(child: Text(rotulo, style: t.bodyMedium)),
+            const SizedBox(width: Espaco.s2),
+            Text(
+              valor,
+              style: t.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                fontFeatures: numerosTabulares,
+              ),
+            ),
+          ],
+        ),
+      );
+      return Painel(
+        titulo: 'Resumo',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            linha('Obras', '${obras.length}'),
+            const Divider(height: 1),
+            linha('Em andamento', '$emAndamento'),
+            if (comValores) ...[
+              const Divider(height: 1),
+              linha('Soma das estimativas', brlInteiro.format(total)),
+            ],
+          ],
+        ),
+      );
     }
     Widget item(String rotulo, String valor) => Expanded(
       child: Padding(
@@ -224,7 +247,7 @@ class _Resumo extends StatelessWidget {
             item('Obras', '${obras.length}'),
             const VerticalDivider(width: 1),
             item('Em andamento', '$emAndamento'),
-            if (obras.any((o) => o.funcao.veValores)) ...[
+            if (comValores) ...[
               const VerticalDivider(width: 1),
               Expanded(
                 flex: 2,
@@ -243,8 +266,11 @@ class _Resumo extends StatelessWidget {
 }
 
 class _CartaoObra extends StatelessWidget {
-  const _CartaoObra({required this.obra});
+  const _CartaoObra({required this.obra, this.largo = false});
   final Obra obra;
+
+  /// Nas telas largas o valor fica à direita, na altura do nome.
+  final bool largo;
 
   @override
   Widget build(BuildContext context) {
@@ -275,6 +301,17 @@ class _CartaoObra extends StatelessWidget {
       obra.dados.cidade,
       obra.dados.uf,
     ].where((s) => s.isNotEmpty).join(' – ');
+
+    final valor = Text(
+      c.resultado == null
+          ? 'Revisar parâmetros'
+          : brl.format(c.resultado!.total),
+      style: t.titleLarge?.copyWith(fontFeatures: numerosTabulares),
+    );
+    final tamanho = Text(
+      '${obra.parametros.area} m², ${obra.parametros.padrao.rotulo.toLowerCase()}',
+      style: t.bodyMedium?.copyWith(color: context.cores.textoSuave),
+    );
 
     return Material(
       color: context.cores.superficie,
@@ -321,17 +358,18 @@ class _CartaoObra extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: Espaco.s4),
-              if (obra.funcao.veValores)
-                Text(
-                  c.resultado == null
-                      ? 'Revisar parâmetros'
-                      : brl.format(c.resultado!.total),
-                  style: t.titleLarge?.copyWith(fontFeatures: numerosTabulares),
-                ),
-              Text(
-                '${obra.parametros.area} m², ${obra.parametros.padrao.rotulo.toLowerCase()}',
-                style: t.bodyMedium?.copyWith(color: context.cores.textoSuave),
-              ),
+              if (largo)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(child: tamanho),
+                    if (obra.funcao.veValores) valor,
+                  ],
+                )
+              else ...[
+                if (obra.funcao.veValores) valor,
+                tamanho,
+              ],
               if (etapas.isNotEmpty) ...[
                 const SizedBox(height: Espaco.s4),
                 FaixaMini(etapas: etapas, status: obra.statusEtapas),

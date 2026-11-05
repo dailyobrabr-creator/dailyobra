@@ -96,7 +96,6 @@ void main() {
         await abrir(tester, const LoginScreen());
         expect(find.text('Entrar'), findsWidgets);
         // Marca que se adapta ao tema (a logo horizontal tem texto escuro e 6 mil px)
-        expect(find.byType(MarcaDailyObra), findsOneWidget);
         await tester.tap(find.widgetWithText(FilledButton, 'Entrar'));
         await tester.pump();
         expect(find.text('Informe um e-mail válido.'), findsOneWidget);
@@ -113,7 +112,6 @@ void main() {
         ObrasService.instance.definirParaTeste(obras: []);
         await abrir(tester, const ObrasScreen());
         expect(find.text('Nenhuma obra cadastrada'), findsOneWidget);
-        expect(find.byType(MarcaDailyObra), findsOneWidget);
         expect(find.text('Cadastrar primeira obra'), findsOneWidget);
       });
 

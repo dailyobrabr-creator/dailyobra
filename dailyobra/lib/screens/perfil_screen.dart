@@ -448,7 +448,7 @@ class _ObraAtiva extends StatelessWidget {
                   Espaco.s1,
                 ),
                 child: Text(
-                  'A obra que aparece no Início, com o andamento e os materiais.',
+                  'A obra que abre na aba Obras, com o andamento e as funções dela.',
                   style: t.bodySmall?.copyWith(color: c.textoSuave),
                 ),
               ),

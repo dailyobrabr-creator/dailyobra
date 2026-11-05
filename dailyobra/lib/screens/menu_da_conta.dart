@@ -42,16 +42,12 @@ class AvatarDaConta extends StatelessWidget {
   }
 }
 
-/// No celular abre por cima, com volta; nas telas largas é uma aba do menu lateral.
+/// A lista de todas as obras abre por cima das abas, com volta.
 void abrirMinhasObras(BuildContext context) {
-  if (formatoDoContexto(context) == Formato.celular) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const ObrasScreen()),
-    );
-  } else {
-    irParaAba(context, Aba.obras);
-  }
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => const ObrasScreen()),
+  );
 }
 
 Future<void> sairDaConta(BuildContext context) async {

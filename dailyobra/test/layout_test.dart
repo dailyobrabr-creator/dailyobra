@@ -74,6 +74,25 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
+      testWidgets('celular: Obras é a aba do meio', (tester) async {
+        await abrirLargura(tester, 390, escuro: escuro);
+        final rotulos = tester
+            .widgetList<NavigationDestination>(
+              find.byType(NavigationDestination),
+            )
+            .map((d) => d.label)
+            .toList();
+        expect(rotulos, [
+          'Início',
+          'Orçamentos',
+          'Obras',
+          'Carteira',
+          'Perfil',
+        ]);
+        await tester.tap(find.text('Obras'));
+        expect(escolhida, Aba.obras);
+      });
+
       testWidgets('tablet: trilho lateral', (tester) async {
         for (final largura in [600.0, 1023.0]) {
           await abrirLargura(tester, largura, escuro: escuro);
@@ -91,7 +110,7 @@ void main() {
         tester,
       ) async {
         await abrirLargura(tester, 1024, escuro: escuro);
-        expect(find.text('Minhas obras'), findsOneWidget);
+        expect(find.text('Obras'), findsOneWidget);
         expect(find.text('Clube DailyObra'), findsOneWidget);
         expect(find.text('Usar no orçamento'), findsOneWidget);
         expect(find.text('Olá, Ana'), findsOneWidget);

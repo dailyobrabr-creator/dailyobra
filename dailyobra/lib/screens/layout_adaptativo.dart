@@ -13,13 +13,13 @@ const _itens = [
     Icons.request_quote,
     'Orçamentos',
   ),
+  (Aba.obras, Icons.home_work_outlined, Icons.home_work, 'Obras'),
   (
     Aba.carteira,
     Icons.account_balance_wallet_outlined,
     Icons.account_balance_wallet,
     'Carteira',
   ),
-  (Aba.obras, Icons.home_work_outlined, Icons.home_work, 'Minhas obras'),
   (Aba.perfil, Icons.person_outline, Icons.person, 'Perfil'),
 ];
 
@@ -69,12 +69,6 @@ class LayoutAdaptativo extends StatelessWidget {
     );
     switch (formatoDoContexto(context)) {
       case Formato.celular:
-        const abasCelular = [
-          Aba.inicio,
-          Aba.orcamentos,
-          Aba.carteira,
-          Aba.perfil,
-        ];
         return Scaffold(
           body: corpo,
           bottomNavigationBar: DecoratedBox(
@@ -82,18 +76,15 @@ class LayoutAdaptativo extends StatelessWidget {
               border: Border(top: BorderSide(color: c.borda)),
             ),
             child: NavigationBar(
-              selectedIndex: aba == Aba.obras
-                  ? abasCelular.indexOf(Aba.perfil)
-                  : abasCelular.indexOf(aba),
-              onDestinationSelected: (i) => onAba(abasCelular[i]),
+              selectedIndex: _itens.indexWhere((e) => e.$1 == aba),
+              onDestinationSelected: (i) => onAba(_itens[i].$1),
               destinations: [
                 for (final (a, icone, selecionado, rotulo) in _itens)
-                  if (abasCelular.contains(a))
-                    NavigationDestination(
-                      icon: _icone(a, icone),
-                      selectedIcon: _icone(a, selecionado),
-                      label: rotulo,
-                    ),
+                  NavigationDestination(
+                    icon: _icone(a, icone),
+                    selectedIcon: _icone(a, selecionado),
+                    label: rotulo,
+                  ),
               ],
             ),
           ),

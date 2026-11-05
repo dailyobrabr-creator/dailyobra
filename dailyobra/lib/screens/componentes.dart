@@ -67,8 +67,75 @@ class EntradaDaObra extends StatelessWidget {
   final VoidCallback aoTocar;
   final bool alerta;
 
+  Widget _comoBloco(BuildContext context, String tom) {
+    final t = Theme.of(context).textTheme;
+    final c = context.cores;
+    final cor = coresDaCategoria(tom, Theme.of(context).brightness);
+    final corDoDetalhe = alerta ? c.erro : c.textoSuave;
+    return Material(
+      color: c.superficie,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Raio.lg),
+        side: BorderSide(color: c.borda),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: aoTocar,
+        child: Padding(
+          padding: const EdgeInsets.all(Espaco.s3),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: cor.fundo,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icone, color: cor.icone, size: 22),
+              ),
+              const SizedBox(height: Espaco.s2),
+              Text(
+                titulo,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 2),
+              Text.rich(
+                TextSpan(
+                  children: [
+                    if (alerta)
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: Espaco.s1),
+                          child: Icon(
+                            Icons.warning_amber,
+                            size: 14,
+                            color: corDoDetalhe,
+                          ),
+                        ),
+                      ),
+                    TextSpan(text: detalhe),
+                  ],
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: t.bodySmall?.copyWith(color: corDoDetalhe),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bloco = context.dependOnInheritedWidgetOfExactType<BlocoDaObra>();
+    if (bloco != null) return _comoBloco(context, bloco.tom);
     final t = Theme.of(context).textTheme;
     final cor = alerta ? context.cores.erro : context.cores.textoSuave;
     return Painel(
@@ -109,6 +176,15 @@ class EntradaDaObra extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Faz a [EntradaDaObra] de dentro virar um bloco de grade, na cor da categoria [tom].
+class BlocoDaObra extends InheritedWidget {
+  const BlocoDaObra({super.key, required this.tom, required super.child});
+  final String tom;
+
+  @override
+  bool updateShouldNotify(BlocoDaObra oldWidget) => oldWidget.tom != tom;
 }
 
 /// Campo de data: tocar abre o calendário. Mostra "Escolher data" enquanto estiver vazio.

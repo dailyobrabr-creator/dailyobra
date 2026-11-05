@@ -195,7 +195,7 @@ void main() {
 
           final etapas = Calculo.de(parametros).resultado!.etapas;
           final percentual = progresso(etapas, statusObra);
-          await rolarAte(tester, find.text('$percentual% concluída'));
+          await rolarAte(tester, find.textContaining('$percentual% concluída'));
           await rolarAte(tester, find.text(brl.format(1284)));
           for (final m in ['jun', 'jul', 'ago', 'set', 'out', 'nov']) {
             expect(find.text(m), findsOneWidget, reason: m);

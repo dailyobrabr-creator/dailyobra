@@ -90,6 +90,18 @@ void main() {
       expect(abaAtual.value, Aba.perfil);
     });
 
+    for (final larga in [false, true]) {
+      testWidgets('abre a lista de obras (larga: $larga)', (tester) async {
+        preparar();
+        await tela(tester, comMenu(), larga: larga);
+        await abrirMenu(tester);
+        await tester.tap(find.text('Minhas obras'));
+        await tester.pumpAndSettle();
+        expect(find.byType(ObrasScreen), findsOneWidget);
+        expect(find.text('Residência Silva'), findsOneWidget);
+      });
+    }
+
     testWidgets('leva à carteira', (tester) async {
       preparar();
       await tela(tester, comMenu());

@@ -14,21 +14,25 @@ final _data = DateFormat("d 'de' MMM 'de' y", 'pt_BR');
 const _larguraDeDuasColunas = 900.0;
 const _larguraDaLateral = 320.0;
 
-class ObrasScreen extends StatelessWidget {
-  const ObrasScreen({super.key});
-
-  Future<void> _nova(BuildContext context) async {
-    final id = await Navigator.push<String>(
+/// Cadastra a obra, deixa ela ativa e abre a tela dela.
+Future<void> novaObra(BuildContext context) async {
+  final id = await Navigator.push<String>(
+    context,
+    MaterialPageRoute(builder: (_) => const ObraFormScreen()),
+  );
+  if (id == null) return;
+  ObrasService.instance.fixarAtiva(id);
+  if (context.mounted) {
+    Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const ObraFormScreen()),
+      MaterialPageRoute(builder: (_) => ObraScreen(id: id)),
     );
-    if (id != null && context.mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => ObraScreen(id: id)),
-      );
-    }
   }
+}
+
+class ObrasScreen extends StatelessWidget {
+  const ObrasScreen({super.key, this.titulo = 'Minhas obras'});
+  final String titulo;
 
   @override
   Widget build(BuildContext context) {
@@ -36,13 +40,13 @@ class ObrasScreen extends StatelessWidget {
     final celular = formatoDoContexto(context) == Formato.celular;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Minhas obras'),
+        title: Text(titulo),
         actions: [
           if (!celular)
             Padding(
               padding: const EdgeInsets.only(right: Espaco.s4),
               child: FilledButton.icon(
-                onPressed: () => _nova(context),
+                onPressed: () => novaObra(context),
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Nova obra'),
               ),
@@ -51,7 +55,7 @@ class ObrasScreen extends StatelessWidget {
       ),
       floatingActionButton: celular
           ? FloatingActionButton.extended(
-              onPressed: () => _nova(context),
+              onPressed: () => novaObra(context),
               backgroundColor: context.cores.acao,
               foregroundColor: context.cores.textoSobreAcao,
               elevation: 2,
@@ -93,7 +97,7 @@ class ObrasScreen extends StatelessWidget {
                       ]
                     else if (obras != null && obras.isEmpty) ...[
                       _Vazio(
-                        onNova: () => _nova(context),
+                        onNova: () => novaObra(context),
                         onCodigo: () => entrarComConvite(context),
                       ),
                       // A proposta vem antes da obra existir

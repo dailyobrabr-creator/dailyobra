@@ -10,10 +10,7 @@ import '../services/negociacao_service.dart';
 import '../services/novidades_service.dart';
 import '../services/obras_service.dart';
 import '../services/perfil_service.dart';
-import 'busca_screen.dart';
-import 'categoria_screen.dart';
 import 'componentes.dart';
-import 'hoje_na_obra.dart';
 import 'loja_screen.dart';
 import 'obra_form_screen.dart';
 import 'pedido_screen.dart';
@@ -21,10 +18,11 @@ import 'produto_screen.dart';
 import 'proposta_screen.dart';
 import 'smart_list_screen.dart';
 import 'topo_vitrine.dart';
+import 'vitrine_do_inicio.dart';
 
-/// Início: o painel Hoje na obra vem primeiro; depois lista inteligente, avisos de propostas e pedidos, economia,
-/// categorias, ofertas, mais barato hoje e lojas perto. Uma coluna no celular e no tablet; duas no computador
-/// (a lateral com avisos, economia e lojas).
+/// Início: a loja. Faixa da obra, avisos de propostas e pedidos, grade de categorias, banners, lista inteligente,
+/// economia, ofertas, mais barato hoje e lojas perto. O trabalho do dia fica na aba Obras. Uma coluna no celular e no
+/// tablet; duas no computador (a lateral com avisos, economia e lojas).
 class InicioScreen extends StatelessWidget {
   const InicioScreen({super.key, this.tema, this.onSino});
   final PreferenciaTema? tema;
@@ -79,10 +77,11 @@ class InicioScreen extends StatelessWidget {
                     v.obra(),
                     v.contraproposta(),
                     v.pedido(),
+                    v.categorias(),
+                    v.banners(),
                     const _ListaInteligente(compacta: true),
                     v.clube(),
                     v.economia(),
-                    v.categorias(),
                     v.ofertas(),
                     v.maisBarato(),
                     v.lojas(),
@@ -104,9 +103,10 @@ class InicioScreen extends StatelessWidget {
                     v.obra(),
                     v.contraproposta(),
                     v.pedido(),
+                    v.categorias(),
+                    v.banners(),
                     const _ListaInteligente(compacta: false),
                     v.economia(),
-                    v.categorias(),
                     v.ofertas(),
                     v.maisBarato(),
                     v.lojas(),
@@ -135,8 +135,9 @@ class InicioScreen extends StatelessWidget {
                           Expanded(
                             child: _coluna([
                               v.obra(),
-                              const _ListaInteligente(compacta: false),
                               v.categorias(),
+                              v.banners(),
+                              const _ListaInteligente(compacta: false),
                               v.ofertas(),
                               v.maisBarato(),
                             ], Espaco.s6),
@@ -451,48 +452,29 @@ class _Vitrine {
 
   Widget obra() {
     final servico = ObrasService.instance;
-    if (servico.obras == null) return const EsqueletoBrilho(altura: 132);
+    if (servico.obras == null) return const EsqueletoBrilho(altura: 44);
     final obra = servico.obraAtiva;
     if (obra == null) {
-      return _Cartao(
-        onTap: () => _abrir(const ObraFormScreen()),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: c.destaqueSuave,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(Icons.home_work_outlined, color: c.acao),
-            ),
-            const SizedBox(width: Espaco.s3),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Cadastre sua obra e organize o dia a dia',
-                    style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Diário, cronograma, gastos, compras, equipe e relatório para o cliente.',
-                    style: t.bodySmall?.copyWith(color: c.textoSuave),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right, color: c.textoSuave),
-          ],
-        ),
+      return FaixaDaObra(
+        texto: 'Cadastre sua obra e organize o dia a dia',
+        aoTocar: () => _abrir(const ObraFormScreen()),
       );
     }
-    return HojeNaObra(
-      key: ValueKey(obra.id),
-      obra: obra,
-      compacto: formato == Formato.celular,
+    final etapas =
+        Calculo.de(obra.parametros).resultado?.etapas ??
+        const <LinhaResultado>[];
+    final resumo = resumirCronograma(
+      etapas: [for (final e in etapas) e.etapa],
+      datas: obra.cronograma,
+      status: obra.statusEtapas,
+      hoje: hoje,
+    );
+    final alerta = alertaDaObra(resumo, obra.pendenciasVencidas(hoje));
+    final percentual = progresso(etapas, obra.statusEtapas);
+    return FaixaDaObra(
+      texto: alerta ?? '${obra.nome}: $percentual% concluída',
+      alerta: alerta != null,
+      aoTocar: () => irParaAba(context, Aba.obras),
     );
   }
 
@@ -557,51 +539,14 @@ class _Vitrine {
   Widget? categorias() {
     final categorias = CatalogoService.instance.categorias;
     if (categorias.isEmpty) return null;
-    Widget tile(Categoria cat, bool horizontal) => TileCategoria(
-      categoria: cat,
-      horizontal: horizontal,
-      onTap: () =>
-          _abrir(CategoriaScreen(categoriaId: cat.id, titulo: cat.nome)),
-    );
-    final Widget grade;
-    if (formato == Formato.celular) {
-      grade = SizedBox(
-        height: 108,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          itemCount: categorias.length,
-          separatorBuilder: (_, _) => const SizedBox(width: Espaco.s2),
-          itemBuilder: (_, i) =>
-              SizedBox(width: 88, child: tile(categorias[i], false)),
-        ),
-      );
-    } else {
-      final horizontal = formato == Formato.computador;
-      grade = GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: categorias.length,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4,
-          mainAxisSpacing: Espaco.s3,
-          crossAxisSpacing: Espaco.s3,
-          mainAxisExtent: horizontal ? 64 : 108,
-        ),
-        itemBuilder: (_, i) => tile(categorias[i], horizontal),
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        TituloSecao(
-          'Categorias',
-          acao: 'Ver todas',
-          onAcao: () => _abrir(const BuscaScreen()),
-          margem: const EdgeInsets.only(bottom: Espaco.s2),
-        ),
-        grade,
-      ],
-    );
+    return GradeDeCategorias(categorias: categorias);
+  }
+
+  Widget banners() {
+    final lojas = CatalogoService.instance.lojas
+        .where((l) => l.bannerUrl != null)
+        .toList();
+    return CarrosselDeBanners(key: ValueKey(lojas.length), lojas: lojas);
   }
 
   Widget? ofertas() {

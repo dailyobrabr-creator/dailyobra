@@ -13,20 +13,37 @@ import 'obra_screen.dart';
 import 'pendencias_screen.dart';
 import 'propostas_comerciais_screen.dart';
 
-const _linhasNoCelular = 5;
-const _larguraDeDuasColunas = 640.0;
+/// As cores dos blocos, na ordem em que aparecem: a mesma paleta das categorias do catálogo.
+const _tons = [
+  'basico',
+  'hidraulica',
+  'pintura',
+  'eletrica',
+  'estrutura',
+  'loucas-metais',
+  'ferramentas',
+  'cobertura',
+  'acabamento',
+  'alvenaria',
+];
+
+int _colunasPara(double largura) => switch (largura) {
+  >= 900 => 4,
+  >= 600 => 3,
+  _ => 2,
+};
 
 DateTime _diaDeHoje() {
   final agora = DateTime.now();
   return DateTime(agora.year, agora.month, agora.day);
 }
 
-/// A primeira coisa do Início: como a obra está hoje, o que dá para fazer em um toque e o caminho para cada parte dela.
+/// O miolo da aba Obras: como a obra está hoje, o que dá para fazer em um toque e o caminho para cada parte dela.
 class HojeNaObra extends StatefulWidget {
   const HojeNaObra({super.key, required this.obra, this.compacto = false});
   final Obra obra;
 
-  /// No celular ficam só as primeiras linhas: o resto continua na tela da obra.
+  /// No celular o nome e a data ficam em linhas separadas e os atalhos, em duas colunas.
   final bool compacto;
 
   @override
@@ -97,18 +114,17 @@ class _HojeNaObraState extends State<HojeNaObra> {
     );
   }
 
-  Widget _duasColunas(List<Widget> itens) {
+  Widget _emColunas(List<Widget> itens, int colunas) {
     return _coluna([
-      for (var i = 0; i < itens.length; i += 2)
+      for (var i = 0; i < itens.length; i += colunas)
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(child: itens[i]),
-              const SizedBox(width: Espaco.s2),
-              Expanded(
-                child: i + 1 < itens.length ? itens[i + 1] : const SizedBox(),
-              ),
+              for (var j = i; j < i + colunas; j++) ...[
+                if (j > i) const SizedBox(width: Espaco.s2),
+                Expanded(child: j < itens.length ? itens[j] : const SizedBox()),
+              ],
             ],
           ),
         ),
@@ -116,10 +132,13 @@ class _HojeNaObraState extends State<HojeNaObra> {
   }
 
   Widget _grade(List<Widget> linhas) {
+    final blocos = [
+      for (final (i, linha) in linhas.indexed)
+        BlocoDaObra(tom: _tons[i % _tons.length], child: linha),
+    ];
     return LayoutBuilder(
-      builder: (context, espaco) => espaco.maxWidth < _larguraDeDuasColunas
-          ? _coluna(linhas)
-          : _duasColunas(linhas),
+      builder: (context, espaco) =>
+          _emColunas(blocos, _colunasPara(espaco.maxWidth)),
     );
   }
 
@@ -153,7 +172,6 @@ class _HojeNaObraState extends State<HojeNaObra> {
       ...entradasDaObra(obra, resumo),
       if (funcao.administra) const EntradaDasPropostas(),
     ];
-    final corte = widget.compacto && linhas.length > _linhasNoCelular;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -231,7 +249,7 @@ class _HojeNaObraState extends State<HojeNaObra> {
                 if (atalhos.isNotEmpty) ...[
                   const SizedBox(height: Espaco.s4),
                   if (widget.compacto)
-                    _duasColunas(atalhos)
+                    _emColunas(atalhos, 2)
                   else
                     Wrap(
                       spacing: Espaco.s2,
@@ -243,20 +261,12 @@ class _HojeNaObraState extends State<HojeNaObra> {
             ),
           ),
         ),
-        const SizedBox(height: Espaco.s2),
-        KeyedSubtree(
-          key: ValueKey(_versao),
-          child: _grade(
-            corte ? linhas.take(_linhasNoCelular).toList() : linhas,
-          ),
+        const SizedBox(height: Espaco.s4),
+        const TituloSecao(
+          'Tudo da obra',
+          margem: EdgeInsets.only(bottom: Espaco.s2),
         ),
-        if (corte) ...[
-          const SizedBox(height: Espaco.s2),
-          OutlinedButton(
-            onPressed: _abrirObra,
-            child: const Text('Ver tudo da obra'),
-          ),
-        ],
+        KeyedSubtree(key: ValueKey(_versao), child: _grade(linhas)),
       ],
     );
   }

@@ -207,15 +207,18 @@ void main() {
   });
 
   group('tamanho da tela', () {
-    testWidgets('no celular mostra as primeiras linhas', (tester) async {
+    testWidgets('no celular mostra tudo em duas colunas', (tester) async {
       await abrirPainel(tester);
-      expect(find.byType(EntradaDaObra), findsNWidgets(5));
-      expect(find.text('Ver tudo da obra'), findsOneWidget);
-      await tocar(tester, find.text('Ver tudo da obra'));
-      expect(find.byType(ObraScreen), findsOneWidget);
+      expect(find.byType(EntradaDaObra), findsNWidgets(13));
+      expect(find.text('Ver tudo da obra'), findsNothing);
+      final diario = tester.getTopLeft(find.text('Diário de hoje'));
+      final cronograma = tester.getTopLeft(find.text('Cronograma'));
+      final pendencias = tester.getTopLeft(find.text('Pendências'));
+      expect(cronograma.dy, diario.dy);
+      expect(pendencias.dy, greaterThan(diario.dy));
     });
 
-    testWidgets('no computador mostra tudo em duas colunas', (tester) async {
+    testWidgets('no computador mostra tudo em quatro colunas', (tester) async {
       await abrirPainel(tester, compacto: false);
       telaLarga(tester);
       await tester.pumpAndSettle();
@@ -239,6 +242,11 @@ void main() {
       final cronograma = tester.getTopLeft(find.text('Cronograma'));
       expect(cronograma.dy, diario.dy);
       expect(cronograma.dx, greaterThan(diario.dx));
+      expect(tester.getTopLeft(find.text('Compras da obra')).dy, diario.dy);
+      expect(
+        tester.getTopLeft(find.text('Dinheiro da obra')).dy,
+        greaterThan(diario.dy),
+      );
     });
 
     testWidgets('no celular os atalhos ficam em duas colunas', (tester) async {

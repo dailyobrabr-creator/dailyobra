@@ -13,18 +13,18 @@ import '../services/perfil_service.dart';
 import 'busca_screen.dart';
 import 'categoria_screen.dart';
 import 'componentes.dart';
+import 'hoje_na_obra.dart';
 import 'loja_screen.dart';
 import 'obra_form_screen.dart';
-import 'obra_screen.dart';
 import 'pedido_screen.dart';
 import 'produto_screen.dart';
 import 'proposta_screen.dart';
 import 'smart_list_screen.dart';
 import 'topo_vitrine.dart';
 
-/// Vitrine "vitrine viva": obra ativa, economia, lista inteligente, avisos de propostas e pedidos,
-/// categorias, ofertas, mais barato hoje e lojas perto. Uma coluna no celular e no tablet; duas
-/// no computador (a lateral com avisos e lojas).
+/// Início: o painel Hoje na obra vem primeiro; depois lista inteligente, avisos de propostas e pedidos, economia,
+/// categorias, ofertas, mais barato hoje e lojas perto. Uma coluna no celular e no tablet; duas no computador
+/// (a lateral com avisos, economia e lojas).
 class InicioScreen extends StatelessWidget {
   const InicioScreen({super.key, this.tema, this.onSino});
   final PreferenciaTema? tema;
@@ -76,11 +76,11 @@ class InicioScreen extends StatelessWidget {
                   ),
                   child: _coluna([
                     if (erro != null) Aviso(erro, tom: TomSelo.aviso),
-                    v.clube(),
+                    v.obra(),
                     v.contraproposta(),
                     v.pedido(),
                     const _ListaInteligente(compacta: true),
-                    v.obra(),
+                    v.clube(),
                     v.economia(),
                     v.categorias(),
                     v.ofertas(),
@@ -101,10 +101,11 @@ class InicioScreen extends StatelessWidget {
                   ),
                   child: _coluna([
                     if (erro != null) Aviso(erro, tom: TomSelo.aviso),
+                    v.obra(),
                     v.contraproposta(),
                     v.pedido(),
                     const _ListaInteligente(compacta: false),
-                    v.dupla(),
+                    v.economia(),
                     v.categorias(),
                     v.ofertas(),
                     v.maisBarato(),
@@ -133,7 +134,7 @@ class InicioScreen extends StatelessWidget {
                         children: [
                           Expanded(
                             child: _coluna([
-                              v.dupla(),
+                              v.obra(),
                               const _ListaInteligente(compacta: false),
                               v.categorias(),
                               v.ofertas(),
@@ -146,6 +147,7 @@ class InicioScreen extends StatelessWidget {
                             child: _coluna([
                               v.contraproposta(),
                               v.pedido(),
+                              v.economia(),
                               v.lojas(),
                             ], Espaco.s6),
                           ),
@@ -471,12 +473,12 @@ class _Vitrine {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Cadastre sua obra e cote os materiais dela',
+                    'Cadastre sua obra e organize o dia a dia',
                     style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'O app calcula os materiais e manda para as lojas.',
+                    'Diário, cronograma, gastos, compras, equipe e relatório para o cliente.',
                     style: t.bodySmall?.copyWith(color: c.textoSuave),
                   ),
                 ],
@@ -487,83 +489,10 @@ class _Vitrine {
         ),
       );
     }
-    final etapas =
-        Calculo.de(obra.parametros).resultado?.etapas ??
-        const <LinhaResultado>[];
-    final percentual = progresso(etapas, obra.statusEtapas);
-    final atual = etapaAtual(etapas, obra.statusEtapas);
-    final feitas = etapas
-        .where((e) => obra.statusEtapas[e.etapa] == StatusEtapa.concluida)
-        .length;
-    final agora = DateTime.now();
-    final resumo = resumirCronograma(
-      etapas: [for (final e in etapas) e.etapa],
-      datas: obra.cronograma,
-      status: obra.statusEtapas,
-      hoje: agora,
-    );
-    final alerta = alertaDaObra(resumo, obra.pendenciasVencidas(agora));
-    return _Cartao(
-      onTap: () => _abrir(ObraScreen(id: obra.id)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Obra ativa · ${obra.nome}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: _rotulo,
-          ),
-          const SizedBox(height: 2),
-          Text('$percentual% concluída', style: _grande),
-          const SizedBox(height: Espaco.s3),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: percentual / 100,
-              minHeight: 8,
-              color: c.topo,
-              backgroundColor: c.segPrevista,
-            ),
-          ),
-          const SizedBox(height: Espaco.s3),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  atual == null
-                      ? 'Todas as etapas concluídas'
-                      : 'Etapa atual: ${atual.nome}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: t.bodySmall?.copyWith(color: c.textoSuave),
-                ),
-              ),
-              const SizedBox(width: Espaco.s2),
-              Text(
-                '$feitas de ${etapas.length} etapas',
-                style: t.bodySmall?.copyWith(color: c.textoSuave),
-              ),
-            ],
-          ),
-          if (alerta != null) ...[
-            const SizedBox(height: Espaco.s2),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.warning_amber, size: 14, color: c.erro),
-                const SizedBox(width: Espaco.s1),
-                Expanded(
-                  child: Text(
-                    alerta,
-                    style: t.bodySmall?.copyWith(color: c.erro),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
+    return HojeNaObra(
+      key: ValueKey(obra.id),
+      obra: obra,
+      compacto: formato == Formato.celular,
     );
   }
 
@@ -624,18 +553,6 @@ class _Vitrine {
       ),
     );
   }
-
-  /// Obra ativa e economia lado a lado (tablet e computador), com a mesma altura.
-  Widget dupla() => IntrinsicHeight(
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(child: obra()),
-        const SizedBox(width: Espaco.s4),
-        Expanded(child: economia()),
-      ],
-    ),
-  );
 
   Widget? categorias() {
     final categorias = CatalogoService.instance.categorias;

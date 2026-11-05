@@ -5,20 +5,11 @@ import 'package:dailyobra_comum/dailyobra_comum.dart';
 import '../services/carrinho_service.dart';
 import '../services/catalogo_service.dart';
 import '../services/obras_service.dart';
-import 'caixa_screen.dart';
-import 'checklists_screen.dart';
-import 'compras_screen.dart';
 import 'componentes.dart';
-import 'contratos_screen.dart';
-import 'cronograma_screen.dart';
 import 'diario_screen.dart';
-import 'dinheiro_screen.dart';
-import 'documentos_screen.dart';
-import 'equipe_screen.dart';
-import 'mao_de_obra_screen.dart';
+import 'entradas_da_obra.dart';
 import 'mudancas_screen.dart';
 import 'obra_form_screen.dart';
-import 'pendencias_screen.dart';
 import 'relatorio_screen.dart';
 
 class ObraScreen extends StatefulWidget {
@@ -198,46 +189,11 @@ class _ObraScreenState extends State<ObraScreen> {
             ],
             EntradaDoDiario(obra: obra),
             const SizedBox(height: Espaco.s4),
-            EntradaDoCronograma(obra: obra, resumo: resumo),
+            for (final entrada in entradasDaObra(obra, resumo)) ...[
+              entrada,
+              const SizedBox(height: Espaco.s2),
+            ],
             const SizedBox(height: Espaco.s2),
-            if (funcao.registra) ...[
-              EntradaDasPendencias(obra: obra),
-              const SizedBox(height: Espaco.s2),
-            ],
-            if (funcao.cuidaDasCompras) ...[
-              EntradaDasCompras(obra: obra),
-              const SizedBox(height: Espaco.s2),
-            ],
-            if (funcao.lidera) ...[
-              EntradaDoDinheiro(obra: obra),
-              const SizedBox(height: Espaco.s2),
-              EntradaDaMaoDeObra(obra: obra),
-              const SizedBox(height: Espaco.s2),
-            ],
-            if (admin) ...[
-              EntradaDoCaixa(obra: obra),
-              const SizedBox(height: Espaco.s2),
-            ],
-            if (funcao == FuncaoObra.empreiteiro) ...[
-              EntradaDoContrato(obra: obra),
-              const SizedBox(height: Espaco.s2),
-            ],
-            if (funcao.veMudancas && !cliente) ...[
-              EntradaDasMudancas(obra: obra),
-              const SizedBox(height: Espaco.s2),
-            ],
-            if (funcao.veMudancas) ...[
-              EntradaDoRelatorio(obra: obra),
-              const SizedBox(height: Espaco.s2),
-            ],
-            EntradaDosDocumentos(obra: obra),
-            const SizedBox(height: Espaco.s2),
-            if (funcao.inspeciona) ...[
-              EntradaDosChecklists(obra: obra),
-              const SizedBox(height: Espaco.s2),
-            ],
-            EntradaDaEquipe(obra: obra),
-            const SizedBox(height: Espaco.s4),
             if (calculo.resultado == null)
               Painel(
                 child: Padding(

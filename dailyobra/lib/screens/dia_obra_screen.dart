@@ -53,10 +53,14 @@ class DiaObraScreen extends StatefulWidget {
     required this.data,
     this.escolherFoto,
     this.enviarPdf,
+    this.ditarAoAbrir = false,
   });
 
   final Obra obra;
   final DateTime data;
+
+  /// O atalho do Início abre direto a janela do ditado, se o dia ainda puder mudar.
+  final bool ditarAoAbrir;
 
   /// Câmera ([true]) ou galeria; os testes trocam por fotos prontas.
   final Future<List<XFile>> Function(bool camera)? escolherFoto;
@@ -83,6 +87,7 @@ class _DiaObraScreenState extends State<DiaObraScreen> {
   bool _alterado = false;
   bool _ocupado = false;
   bool _enviandoFoto = false;
+  bool _jaDitou = false;
 
   bool get _registra => widget.obra.funcao.registra;
   bool get _admin => widget.obra.funcao.administra;
@@ -124,6 +129,12 @@ class _DiaObraScreenState extends State<DiaObraScreen> {
         _links = links;
         _carregando = false;
       });
+      if (widget.ditarAoAbrir && !_jaDitou && _edita) {
+        _jaDitou = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _ditar();
+        });
+      }
     } on FalhaAoSalvar catch (e) {
       if (mounted) {
         setState(() {

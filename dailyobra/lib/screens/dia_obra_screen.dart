@@ -10,6 +10,7 @@ import '../services/marca_service.dart';
 import '../services/obras_service.dart';
 import '../services/pdf_diario.dart';
 import 'componentes.dart';
+import 'ditar_dia.dart';
 
 const _funcoes = [
   'Pedreiro',
@@ -137,6 +138,33 @@ class _DiaObraScreenState extends State<DiaObraScreen> {
     _dia = novo;
     _alterado = true;
   });
+
+  /// A sugestão só preenche a tela: nada vai para o banco até a pessoa conferir e salvar.
+  Future<void> _ditar() async {
+    final sugestao = await ditarODia(context, widget.obra.id);
+    if (sugestao == null || !mounted) return;
+    final antes = _dia;
+    final alteradoAntes = _alterado;
+    void mostrar(DiaObra dia, bool alterado) => setState(() {
+      _dia = dia;
+      _observacoes.text = dia.observacoes;
+      _alterado = alterado;
+    });
+    mostrar(sugestao.aplicar(_dia), true);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: const Text('Dia preenchido. Confira antes de salvar.'),
+          action: SnackBarAction(
+            label: 'Desfazer',
+            onPressed: () {
+              if (mounted) mostrar(antes, alteradoAntes);
+            },
+          ),
+        ),
+      );
+  }
 
   Future<void> _salvar({bool finalizar = false}) async {
     setState(() => _ocupado = true);
@@ -741,6 +769,14 @@ class _DiaObraScreenState extends State<DiaObraScreen> {
             const Aviso(
               'Este dia ainda não foi registrado.',
               tom: TomSelo.info,
+            ),
+          ],
+          if (_edita) ...[
+            const SizedBox(height: Espaco.s4),
+            OutlinedButton.icon(
+              onPressed: _ocupado ? null : _ditar,
+              icon: const Icon(Icons.mic_none, size: 18),
+              label: const Text('Ditar o dia'),
             ),
           ],
           for (final parte in partes) ...[

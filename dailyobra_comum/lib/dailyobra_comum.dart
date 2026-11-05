@@ -27,6 +27,7 @@ export 'src/obras/dinheiro.dart';
 export 'src/obras/diario.dart';
 export 'src/obras/documentos.dart';
 export 'src/obras/equipe.dart';
+export 'src/obras/ia.dart';
 export 'src/obras/mao_de_obra.dart';
 export 'src/obras/obra.dart';
 export 'src/obras/proposta_comercial.dart';

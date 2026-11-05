@@ -61,6 +61,14 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Para fotografar a obra e as notas dos gastos.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Para você ditar como foi o dia na obra.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Para escolher fotos da obra e das notas dos gastos.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Para transformar em texto o que você ditar sobre o dia na obra.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

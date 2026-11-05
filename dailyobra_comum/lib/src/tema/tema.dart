@@ -199,6 +199,8 @@ class AppTheme {
         behavior: SnackBarBehavior.floating,
         backgroundColor: brilho == Brightness.dark ? c.superficieSutil : c.texto,
         contentTextStyle: texto.bodyMedium?.copyWith(color: brilho == Brightness.dark ? c.texto : Colors.white),
+        // A cor padrão da ação some no fundo escuro
+        actionTextColor: brilho == Brightness.dark ? c.acao : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Raio.sm)),
       ),
       dividerTheme: DividerThemeData(color: c.borda, thickness: 1, space: 1),

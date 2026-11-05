@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../services/dinheiro_service.dart';
+import '../services/ia_service.dart';
 import '../services/obras_service.dart';
 import 'componentes.dart';
 import 'dia_obra_screen.dart';
@@ -638,6 +639,10 @@ class _GastoScreenState extends State<GastoScreen> {
   String? _erroDescricao;
   String? _erroValor;
   bool _ocupado = false;
+  bool _lendo = false;
+  bool _leuNota = false;
+  bool _mexeuNaData = false;
+  bool _mexeuNoTipo = false;
   late final _etapas = nomesDasEtapas(
     Calculo.de(widget.obra.parametros).resultado,
   );
@@ -706,11 +711,43 @@ class _GastoScreenState extends State<GastoScreen> {
           _nota = caminho;
           _bytes = bytes;
         });
+        if (_existente == null) _lerNota(caminho);
       }
     } on FalhaAoSalvar catch (e) {
       if (mounted) avisar(context, e.mensagem);
     } finally {
       if (mounted) setState(() => _ocupado = false);
+    }
+  }
+
+  /// Preenche só o que está vazio. Se a IA falhar, a foto continua no gasto e a pessoa preenche à mão.
+  Future<void> _lerNota(String caminho) async {
+    setState(() {
+      _lendo = true;
+      _leuNota = false;
+    });
+    try {
+      final nota = await IaService.instance.lerNota(widget.obra.id, caminho);
+      if (!mounted || _nota != caminho) return;
+      final valor = nota.valor;
+      final data = nota.data;
+      final tipo = nota.tipo;
+      setState(() {
+        if (_descricao.text.trim().isEmpty) _descricao.text = nota.descricao;
+        if (_valor.text.trim().isEmpty && valor != null) {
+          _valor.text = formatarQuantidade(valor);
+        }
+        if (_fornecedor.text.trim().isEmpty) {
+          _fornecedor.text = nota.fornecedor;
+        }
+        if (!_mexeuNaData && data != null) _data = data;
+        if (!_mexeuNoTipo && tipo != null) _tipo = tipo;
+        _leuNota = true;
+      });
+    } on FalhaAoSalvar catch (e) {
+      if (mounted) avisar(context, e.mensagem);
+    } finally {
+      if (mounted) setState(() => _lendo = false);
     }
   }
 
@@ -802,8 +839,67 @@ class _GastoScreenState extends State<GastoScreen> {
         _nota = null;
         _bytes = null;
         _link = null;
+        _leuNota = false;
       }),
     );
+  }
+
+  /// Num gasto novo fica no topo: a foto preenche o resto do formulário.
+  List<Widget> _fotoDaNota() {
+    final t = Theme.of(context).textTheme;
+    final suave = t.bodySmall?.copyWith(color: context.cores.textoSuave);
+    return [
+      const Rotulo('Foto da nota'),
+      if (_existente == null && _nota == null) ...[
+        Text(
+          'A IA lê a nota e preenche o gasto para você conferir.',
+          style: suave,
+        ),
+        const SizedBox(height: Espaco.s2),
+      ],
+      if (_nota != null)
+        Align(alignment: Alignment.centerLeft, child: _miniatura())
+      else
+        Wrap(
+          spacing: Espaco.s2,
+          runSpacing: Espaco.s2,
+          children: [
+            OutlinedButton.icon(
+              onPressed: _ocupado ? null : () => _pegarFoto(true),
+              icon: const Icon(Icons.photo_camera_outlined, size: 18),
+              label: const Text('Tirar foto'),
+            ),
+            OutlinedButton.icon(
+              onPressed: _ocupado ? null : () => _pegarFoto(false),
+              icon: const Icon(Icons.photo_library_outlined, size: 18),
+              label: const Text('Da galeria'),
+            ),
+          ],
+        ),
+      if (_lendo) ...[
+        const SizedBox(height: Espaco.s2),
+        Row(
+          children: [
+            SizedBox.square(
+              dimension: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: context.cores.acao,
+              ),
+            ),
+            const SizedBox(width: Espaco.s2),
+            Expanded(child: Text('Lendo a nota...', style: suave)),
+          ],
+        ),
+      ],
+      if (_leuNota) ...[
+        const SizedBox(height: Espaco.s2),
+        const Aviso(
+          'Confira os dados lidos da nota antes de salvar.',
+          tom: TomSelo.info,
+        ),
+      ],
+    ];
   }
 
   @override
@@ -826,6 +922,10 @@ class _GastoScreenState extends State<GastoScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (existente == null) ...[
+              ..._fotoDaNota(),
+              const SizedBox(height: Espaco.s4),
+            ],
             CampoTexto(
               rotulo: 'O que foi pago',
               controller: _descricao,
@@ -849,7 +949,10 @@ class _GastoScreenState extends State<GastoScreen> {
               valor: _data,
               ate: DateTime.now(),
               limpavel: false,
-              aoMudar: (d) => setState(() => _data = d ?? _data),
+              aoMudar: (d) => setState(() {
+                _data = d ?? _data;
+                _mexeuNaData = true;
+              }),
             ),
             const SizedBox(height: Espaco.s4),
             const Rotulo('Etapa'),
@@ -861,6 +964,8 @@ class _GastoScreenState extends State<GastoScreen> {
             const SizedBox(height: Espaco.s4),
             const Rotulo('Tipo'),
             DropdownButtonFormField<TipoGasto>(
+              // A leitura da nota pode trocar o tipo, e initialValue só vale na criação
+              key: ValueKey(_tipo),
               initialValue: _tipo,
               isExpanded: true,
               style: Theme.of(context).textTheme.bodyLarge,
@@ -868,7 +973,10 @@ class _GastoScreenState extends State<GastoScreen> {
                 for (final t in TipoGasto.values)
                   DropdownMenuItem(value: t, child: Text(t.rotulo)),
               ],
-              onChanged: (v) => setState(() => _tipo = v ?? _tipo),
+              onChanged: (v) => setState(() {
+                _tipo = v ?? _tipo;
+                _mexeuNoTipo = true;
+              }),
             ),
             const SizedBox(height: Espaco.s4),
             CampoTexto(
@@ -876,27 +984,10 @@ class _GastoScreenState extends State<GastoScreen> {
               controller: _fornecedor,
               maxLength: 120,
             ),
-            const SizedBox(height: Espaco.s4),
-            const Rotulo('Foto da nota'),
-            if (_nota != null)
-              Align(alignment: Alignment.centerLeft, child: _miniatura())
-            else
-              Wrap(
-                spacing: Espaco.s2,
-                runSpacing: Espaco.s2,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: _ocupado ? null : () => _pegarFoto(true),
-                    icon: const Icon(Icons.photo_camera_outlined, size: 18),
-                    label: const Text('Tirar foto'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _ocupado ? null : () => _pegarFoto(false),
-                    icon: const Icon(Icons.photo_library_outlined, size: 18),
-                    label: const Text('Da galeria'),
-                  ),
-                ],
-              ),
+            if (existente != null) ...[
+              const SizedBox(height: Espaco.s4),
+              ..._fotoDaNota(),
+            ],
           ],
         ),
       ),

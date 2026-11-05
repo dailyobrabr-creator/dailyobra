@@ -9,12 +9,16 @@ class ObraFormScreen extends StatefulWidget {
   const ObraFormScreen({
     super.key,
     this.obra,
+    this.dadosIniciais,
     this.parametrosIniciais,
     this.consultarCep = buscarCep,
   });
   final Obra? obra;
 
-  /// Parâmetros trazidos do simulador
+  /// Dados trazidos de uma proposta aceita
+  final DadosObra? dadosIniciais;
+
+  /// Parâmetros trazidos do simulador ou de uma proposta aceita
   final ParametrosObra? parametrosIniciais;
 
   /// Busca do CEP; o padrão é o ViaCEP.
@@ -25,7 +29,8 @@ class ObraFormScreen extends StatefulWidget {
 }
 
 class _ObraFormScreenState extends State<ObraFormScreen> {
-  late DadosObra _dados = widget.obra?.dados ?? const DadosObra();
+  late DadosObra _dados =
+      widget.obra?.dados ?? widget.dadosIniciais ?? const DadosObra();
   late ParametrosObra _parametros =
       widget.obra?.parametros ??
       widget.parametrosIniciais ??

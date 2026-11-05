@@ -29,6 +29,7 @@ export 'src/obras/documentos.dart';
 export 'src/obras/equipe.dart';
 export 'src/obras/mao_de_obra.dart';
 export 'src/obras/obra.dart';
+export 'src/obras/proposta_comercial.dart';
 export 'src/orcamento/materiais.dart';
 export 'src/orcamento/orcamento.dart';
 export 'src/orcamento/tabelas.dart';

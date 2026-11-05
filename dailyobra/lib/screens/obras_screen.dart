@@ -7,6 +7,7 @@ import 'componentes.dart';
 import 'convite_screen.dart';
 import 'obra_form_screen.dart';
 import 'obra_screen.dart';
+import 'propostas_comerciais_screen.dart';
 
 final _data = DateFormat("d 'de' MMM 'de' y", 'pt_BR');
 
@@ -70,7 +71,9 @@ class ObrasScreen extends StatelessWidget {
                       style: Theme.of(context).textTheme.bodyLarge
                           ?.copyWith(color: context.cores.textoSuave),
                     ),
-                    const SizedBox(height: Espaco.s5),
+                    const SizedBox(height: Espaco.s4),
+                    const EntradaDasPropostas(),
+                    const SizedBox(height: Espaco.s4),
                     if (servico.erro != null) ...[
                       Aviso(servico.erro!),
                       const SizedBox(height: Espaco.s4),

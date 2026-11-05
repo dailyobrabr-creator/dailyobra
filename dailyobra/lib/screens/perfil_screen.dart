@@ -6,6 +6,7 @@ import '../services/perfil_service.dart';
 import 'componentes.dart';
 import 'marca_screen.dart';
 import 'obras_screen.dart';
+import 'propostas_comerciais_screen.dart';
 import 'simulador_screen.dart';
 
 /// Dados do construtor, cidade (ordena as lojas), tema, obras e saída da conta.
@@ -264,6 +265,19 @@ class _PerfilScreenState extends State<PerfilScreen> {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const ObrasScreen()),
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.request_quote_outlined),
+                      title: const Text('Propostas comerciais'),
+                      subtitle: const Text('Proposta em PDF com a sua marca'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const PropostasComerciaisScreen(),
+                        ),
                       ),
                     ),
                     const Divider(height: 1),

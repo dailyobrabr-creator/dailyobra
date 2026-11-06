@@ -156,14 +156,14 @@ select pg_temp.venda(pg_temp.pegar('A')::uuid, pg_temp.pegar('item'), 3, 'entreg
 select pg_temp.venda(pg_temp.pegar('A')::uuid, pg_temp.pegar('item'), 50, 'cancelado', now() - interval '1 day');
 select pg_temp.venda(pg_temp.pegar('A')::uuid, pg_temp.pegar('item'), 70, 'entregue', now() - interval '30 days');
 
+create function pg_temp.do_anuncio(k text, campo text) returns text language sql as $$
+  select e ->> campo from jsonb_array_elements(pg_temp.pegar('lista')::jsonb) e where e ->> 'id' = pg_temp.pegar(k) $$;
 -- Resultado para a loja
 select pg_temp.como('00000000-0000-0000-0000-00000000e001');
 select pg_temp.tentar('v1', format('select public.anuncios_da_loja(%L)', pg_temp.pegar('A')));
 select pg_temp.conferir('vendedor não vê resultados', pg_temp.pegar('v1') = 'Só o dono ou o gerente da loja cuidam dos anúncios.', pg_temp.pegar('v1'));
 select pg_temp.como('00000000-0000-0000-0000-00000000d001');
 select pg_temp.guardar('lista', public.anuncios_da_loja(pg_temp.pegar('A')::uuid)::text);
-create function pg_temp.do_anuncio(k text, campo text) returns text language sql as $$
-  select e ->> campo from jsonb_array_elements(pg_temp.pegar('lista')::jsonb) e where e ->> 'id' = pg_temp.pegar(k) $$;
 select pg_temp.conferir('soma as impressões sem a equipe', pg_temp.do_anuncio('destaque', 'impressoes') = '2', pg_temp.do_anuncio('destaque', 'impressoes'));
 select pg_temp.conferir('soma os cliques', pg_temp.do_anuncio('destaque', 'cliques') = '1', pg_temp.do_anuncio('destaque', 'cliques'));
 select pg_temp.conferir('agendado não conta', pg_temp.do_anuncio('agendado', 'impressoes') = '0', pg_temp.do_anuncio('agendado', 'impressoes'));
@@ -193,11 +193,13 @@ select pg_temp.conferir('retomar respeita o limite', pg_temp.pegar('p3') = 'A lo
 select pg_temp.admin();
 select pg_temp.conferir('pausado não conta impressão', (select count(*) from public.anuncio_metricas where anuncio_id = pg_temp.pegar('banner')::uuid) = 0);
 
--- Loja suspensa
+-- Loja suspensa: só o suporte muda o status, então o teste entra como ele
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 update public.lojas set status = 'suspensa' where id = pg_temp.pegar('A')::uuid;
 select pg_temp.como('00000000-0000-0000-0000-00000000c001');
 select pg_temp.conferir('loja suspensa some', (select count(*) from public.anuncios where loja_id = pg_temp.pegar('A')::uuid) = 0);
 select pg_temp.admin();
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 update public.lojas set status = 'ativa' where id = pg_temp.pegar('A')::uuid;
 
 -- Excluir

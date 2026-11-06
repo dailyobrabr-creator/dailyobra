@@ -144,6 +144,58 @@ void main() {
     expect(freteEMinimo(comMinimo), 'Frete a combinar · Pedido mínimo ${brl.format(200)}');
   });
 
+  group('logo da loja', () {
+    const comLogo = Loja(id: 'a', nome: 'Loja Um', cidade: 'Maringá', uf: 'PR', logoUrl: 'https://exemplo.test/logo.png');
+    final tema = temas['claro']!;
+    BoxDecoration decoracao(WidgetTester tester) => tester
+        .widget<Container>(find.descendant(of: find.byType(LogoLoja), matching: find.byType(Container)).first)
+        .decoration! as BoxDecoration;
+
+    for (final semFundo in [false, true]) {
+      testWidgets('sem logo mostra as iniciais sobre a cor da loja (semFundo $semFundo)', (tester) async {
+        await montar(tester, tema, LogoLoja(loja: loja, semFundo: semFundo));
+        expect(find.text('CC'), findsOneWidget);
+        expect(decoracao(tester).color, corDaLoja('a'));
+        expect(decoracao(tester).border, isNotNull);
+      });
+    }
+
+    testWidgets('a logo fica inteira dentro do disco branco', (tester) async {
+      await montar(tester, tema, const LogoLoja(loja: comLogo, tamanho: 48));
+      expect(decoracao(tester).color, Colors.white);
+      expect(tester.getSize(find.byType(Image)), const Size(44, 44));
+      expect(tester.getSize(find.byType(ClipOval)), const Size(44, 44), reason: 'o corte é um círculo, não os cantos do quadrado');
+    });
+
+    testWidgets('sem fundo fica só o ícone, sem disco nem borda', (tester) async {
+      await montar(tester, tema, const LogoLoja(loja: comLogo, tamanho: 48, semFundo: true));
+      expect(decoracao(tester).color, isNull);
+      expect(decoracao(tester).border, isNull);
+      expect(tester.getSize(find.byType(Image)), const Size(48, 48));
+    });
+
+    testWidgets('logo que não abre volta para as iniciais sobre a cor da loja', (tester) async {
+      await montar(tester, tema, const LogoLoja(loja: comLogo, semFundo: true));
+      final imagem = tester.widget<Image>(find.byType(Image));
+      await montar(tester, tema, Builder(builder: (ctx) => imagem.errorBuilder!(ctx, Exception('sem rede'), null)));
+      expect(find.text('LU'), findsOneWidget);
+      final caixa = tester.widget<Container>(find.ancestor(of: find.text('LU'), matching: find.byType(Container)).first);
+      expect(caixa.color, corDaLoja('a'));
+    });
+
+    testWidgets('nos cartões de produto a logo vai sem fundo', (tester) async {
+      await montar(tester, tema, SizedBox(width: 180, child: CartaoProduto(item: item, melhorOferta: promo, lojas: 3, loja: comLogo, hoje: hoje)));
+      expect(tester.widget<LogoLoja>(find.byType(LogoLoja)).semFundo, isTrue);
+      await montar(tester, tema, SizedBox(width: 180, child: CartaoOferta(item: itemComReferencia, oferta: promo, loja: comLogo, hoje: hoje)));
+      expect(tester.widget<LogoLoja>(find.byType(LogoLoja)).semFundo, isTrue);
+    });
+
+    testWidgets('no cartão da loja a logo continua com o fundo', (tester) async {
+      await montar(tester, tema, CartaoLoja(loja: comLogo, onTap: () {}));
+      expect(tester.widget<LogoLoja>(find.byType(LogoLoja)).semFundo, isFalse);
+    });
+  });
+
   group('vitrine', () {
     final semPromo = const Oferta(lojaId: 'a', itemId: 'p', preco: 1234567.89);
     for (final MapEntry(key: nome, value: tema) in temas.entries) {

@@ -56,11 +56,15 @@ class ImagemProduto extends StatelessWidget {
   }
 }
 
-/// Logo redonda da loja; sem logo, as iniciais do nome sobre a cor da marca.
+/// Logo redonda da loja, sobre um disco branco porque a imagem pode ser transparente; sem logo, as iniciais do nome
+/// sobre a cor da marca.
 class LogoLoja extends StatelessWidget {
-  const LogoLoja({super.key, required this.loja, this.tamanho = 48});
+  const LogoLoja({super.key, required this.loja, this.tamanho = 48, this.semFundo = false});
   final Loja loja;
   final double tamanho;
+
+  /// Tira o disco branco: nos cartões de produto fica só o ícone.
+  final bool semFundo;
 
   static String iniciais(String nome) {
     const ignorar = {'de', 'da', 'do', 'das', 'dos', 'e', 'ltda', 'me', 'sa'};
@@ -76,19 +80,30 @@ class LogoLoja extends StatelessWidget {
       iniciais(loja.nome),
       style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w700, fontSize: tamanho * 0.34),
     );
+    final cor = corDaLoja(loja.id);
+    final logo = loja.logoUrl;
+    final disco = logo == null ? cor : (semFundo ? null : Colors.white);
     return Container(
       width: tamanho,
       height: tamanho,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: corDaLoja(loja.id),
-        border: Border.all(color: c.superficie, width: 2),
+        color: disco,
+        border: disco == null ? null : Border.all(color: c.superficie, width: 2),
       ),
-      clipBehavior: Clip.antiAlias,
       alignment: Alignment.center,
-      child: loja.logoUrl == null
+      child: logo == null
           ? letras
-          : Image.network(loja.logoUrl!, width: tamanho, height: tamanho, fit: BoxFit.cover, semanticLabel: loja.nome, errorBuilder: (_, _, _) => letras),
+          : ClipOval(
+              child: Image.network(
+                logo,
+                width: tamanho,
+                height: tamanho,
+                fit: BoxFit.cover,
+                semanticLabel: loja.nome,
+                errorBuilder: (_, _, _) => Container(color: cor, alignment: Alignment.center, child: letras),
+              ),
+            ),
     );
   }
 }
@@ -235,7 +250,7 @@ class CartaoProduto extends StatelessWidget {
                               ],
                             ),
                           ),
-                          if (loja != null) ...[const SizedBox(width: Espaco.s2), LogoLoja(loja: loja!, tamanho: 32)],
+                          if (loja != null) ...[const SizedBox(width: Espaco.s2), LogoLoja(loja: loja!, tamanho: 32, semFundo: true)],
                         ],
                       ),
                   ],

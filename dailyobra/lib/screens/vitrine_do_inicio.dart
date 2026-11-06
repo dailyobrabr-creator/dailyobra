@@ -1065,7 +1065,11 @@ class _CartaoDaPrateleira extends StatelessWidget {
             ),
             if (produto.loja != null) ...[
               const SizedBox(width: Espaco.s1),
-              LogoLoja(loja: produto.loja!, tamanho: _logoDoProduto),
+              LogoLoja(
+                loja: produto.loja!,
+                tamanho: _logoDoProduto,
+                semFundo: true,
+              ),
             ],
           ],
         ),

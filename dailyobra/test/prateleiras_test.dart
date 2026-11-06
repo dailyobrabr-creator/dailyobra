@@ -142,6 +142,7 @@ void main() {
         matching: find.byType(LogoLoja),
       );
       expect(tester.widget<LogoLoja>(logo).loja.id, 'l2');
+      expect(tester.widget<LogoLoja>(logo).semFundo, isTrue);
     });
 
     testWidgets('produto sem preço não mostra logo', (tester) async {
@@ -171,6 +172,7 @@ void main() {
         matching: find.byType(LogoLoja),
       );
       expect(tester.widget<LogoLoja>(logo).loja.id, 'l2');
+      expect(tester.widget<LogoLoja>(logo).semFundo, isTrue);
       expect(
         find.descendant(
           of: find.widgetWithText(CartaoOferta, 'Produto y'),

@@ -150,7 +150,7 @@ class CartaoOferta extends StatelessWidget {
                           ],
                         ),
                       ),
-                      if (loja != null && vigente != null) ...[const SizedBox(width: Espaco.s2), LogoLoja(loja: loja!, tamanho: 34)],
+                      if (loja != null && vigente != null) ...[const SizedBox(width: Espaco.s2), LogoLoja(loja: loja!, tamanho: 34, semFundo: true)],
                     ],
                   ),
                 ],

@@ -40,7 +40,7 @@ void main() {
         expect(find.text('2'), findsOneWidget);
         expect(find.text('3'), findsOneWidget);
         for (final rotulo in [
-          'Início',
+          'Dashboard',
           'Propostas',
           'Pedidos',
           'Produtos',

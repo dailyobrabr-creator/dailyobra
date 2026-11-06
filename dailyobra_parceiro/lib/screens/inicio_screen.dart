@@ -11,6 +11,11 @@ import 'pedido_loja_screen.dart';
 import 'proposta_loja_screen.dart';
 import 'resultados_mes.dart';
 
+const _alturaDoIndicador = 116.0;
+const _alturaDoValor = 34.0;
+const _larguraDeDuasColunas = 600.0;
+const _larguraDeSeisColunas = 1000.0;
+
 /// Número com rótulo do painel (tocável quando leva a outra aba).
 /// Números do painel: dois por linha no celular; com espaço, todos na mesma linha e com altura fixa, para não virarem
 /// cartões enormes no computador.
@@ -18,24 +23,24 @@ class GradeIndicadores extends StatelessWidget {
   const GradeIndicadores({super.key, required this.children});
   final List<Widget> children;
 
+  /// Seis números cabem lado a lado só nas telas largas; antes disso, três por linha.
+  int _colunas(double largura) {
+    if (largura < _larguraDeDuasColunas) return 2;
+    if (children.length != 6) return 4;
+    return largura >= _larguraDeSeisColunas ? 6 : 3;
+  }
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, limites) => GridView(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: limites.maxWidth >= 600
-          ? const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
-              mainAxisSpacing: Espaco.s3,
-              crossAxisSpacing: Espaco.s3,
-              mainAxisExtent: 112,
-            )
-          : const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: Espaco.s3,
-              crossAxisSpacing: Espaco.s3,
-              childAspectRatio: 1.55,
-            ),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: _colunas(limites.maxWidth),
+        mainAxisSpacing: Espaco.s3,
+        crossAxisSpacing: Espaco.s3,
+        mainAxisExtent: _alturaDoIndicador,
+      ),
       children: children,
     ),
   );
@@ -46,11 +51,17 @@ class Indicador extends StatelessWidget {
     super.key,
     required this.rotulo,
     required this.valor,
+    this.detalhe,
+    this.icone,
     this.destaque = false,
     this.onTap,
   });
   final String rotulo;
   final String valor;
+
+  /// Linha pequena embaixo do rótulo.
+  final String? detalhe;
+  final IconData? icone;
   final bool destaque;
   final VoidCallback? onTap;
 
@@ -72,26 +83,52 @@ class Indicador extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  valor,
-                  style: t.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: destaque ? c.textoSobreAcao : c.texto,
-                    fontFeatures: numerosTabulares,
+              Row(
+                children: [
+                  // Altura fixa: valor longo encolhe sem desalinhar o rótulo dos cartões vizinhos
+                  Expanded(
+                    child: SizedBox(
+                      height: _alturaDoValor,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          valor,
+                          style: t.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: destaque ? c.textoSobreAcao : c.texto,
+                            fontFeatures: numerosTabulares,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                  if (icone != null) ...[
+                    const SizedBox(width: Espaco.s1),
+                    Icon(
+                      icone,
+                      size: 20,
+                      color: destaque ? c.textoSobreAcao : c.acao,
+                    ),
+                  ],
+                ],
               ),
               const SizedBox(height: 2),
               Text(
                 rotulo,
                 maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: t.bodySmall?.copyWith(
                   color: destaque ? c.textoSobreAcao : c.textoSuave,
                 ),
               ),
+              if (detalhe != null)
+                Text(
+                  detalhe!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: t.labelSmall?.copyWith(color: c.textoSuave),
+                ),
             ],
           ),
         ),
@@ -100,7 +137,7 @@ class Indicador extends StatelessWidget {
   }
 }
 
-/// Painel da loja: o que precisa de resposta, pedidos em andamento, vendas do mês e atalhos.
+/// Dashboard da loja: o que precisa de resposta, pedidos em andamento, resultados do mês e atalhos.
 class InicioScreen extends StatelessWidget {
   const InicioScreen({super.key});
 
@@ -120,6 +157,7 @@ class InicioScreen extends StatelessWidget {
             final novas = propostas.novas;
             final andamento = propostas.pedidosEmAndamento;
             final hoje = DateTime.now();
+            final computador = formatoDoContexto(context) == Formato.computador;
             return RefreshIndicator(
               color: c.acao,
               onRefresh: () async {
@@ -138,16 +176,21 @@ class InicioScreen extends StatelessWidget {
                   Espaco.s8,
                 ),
                 children: [
+                  // No computador a barra laranja já traz a logo e o nome da loja
                   Row(
                     children: [
-                      if (minha != null) LogoLoja(loja: minha, tamanho: 48),
-                      const SizedBox(width: Espaco.s3),
+                      if (minha != null && !computador) ...[
+                        LogoLoja(loja: minha, tamanho: 48),
+                        const SizedBox(width: Espaco.s3),
+                      ],
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              minha?.nome ?? 'Sua loja',
+                              computador
+                                  ? 'Dashboard'
+                                  : minha?.nome ?? 'Sua loja',
                               style: t.titleLarge,
                               maxLines: 2,
                             ),
@@ -174,21 +217,25 @@ class InicioScreen extends StatelessWidget {
                       Indicador(
                         rotulo: 'Propostas novas',
                         valor: '${novas.length}',
+                        icone: Icons.inbox_outlined,
                         destaque: novas.isNotEmpty,
                         onTap: () => irParaAba(context, Aba.propostas),
                       ),
                       Indicador(
                         rotulo: 'Pedidos em andamento',
                         valor: '${andamento.length}',
+                        icone: Icons.local_shipping_outlined,
                         onTap: () => irParaAba(context, Aba.pedidos),
                       ),
                       Indicador(
                         rotulo: 'Entregue no mês',
                         valor: brlInteiro.format(propostas.vendidoNoMes(hoje)),
+                        icone: Icons.task_alt,
                       ),
                       Indicador(
                         rotulo: 'Produtos com preço',
                         valor: '${ofertas.ativas}',
+                        icone: Icons.sell_outlined,
                         onTap: () => irParaAba(context, Aba.produtos),
                       ),
                     ],

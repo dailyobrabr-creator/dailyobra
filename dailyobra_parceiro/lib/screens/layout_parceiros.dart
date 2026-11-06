@@ -6,19 +6,33 @@ import 'componentes.dart';
 typedef _ItemMenu = (Aba, IconData, IconData, String);
 
 const List<_ItemMenu> _itens = [
-  (Aba.inicio, Icons.dashboard_outlined, Icons.dashboard, 'Início'),
+  (Aba.inicio, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard'),
   (Aba.propostas, Icons.inbox_outlined, Icons.inbox, 'Propostas'),
   (Aba.pedidos, Icons.receipt_long_outlined, Icons.receipt_long, 'Pedidos'),
   (Aba.mesa, Icons.fact_check_outlined, Icons.fact_check, 'Mesa do Gerente'),
   (Aba.produtos, Icons.sell_outlined, Icons.sell, 'Produtos'),
+  (Aba.sincronizacao, Icons.sync_outlined, Icons.sync, 'Sincronização D+0'),
   (Aba.clientes, Icons.people_outline, Icons.people, 'Clientes'),
+  (
+    Aba.usuarios,
+    Icons.manage_accounts_outlined,
+    Icons.manage_accounts,
+    'Usuários',
+  ),
   (Aba.configuracoes, Icons.settings_outlined, Icons.settings, 'Configurações'),
 ];
 
-/// O celular só tem cinco abas: Mesa e Clientes abrem pela última, Mais (as configurações).
+/// O celular só tem cinco abas: estas abrem pela última, Mais, ou de dentro de Produtos.
+const _foraDoCelular = {
+  Aba.mesa,
+  Aba.sincronizacao,
+  Aba.clientes,
+  Aba.usuarios,
+};
+
 final _itensDoCelular = [
   for (final item in _itens)
-    if (item.$1 != Aba.clientes && item.$1 != Aba.mesa) item,
+    if (!_foraDoCelular.contains(item.$1)) item,
 ];
 
 /// Moldura do painel por largura: abas embaixo no celular, trilho no tablet e, no computador,
@@ -32,6 +46,7 @@ class LayoutParceiros extends StatelessWidget {
     this.pedidos = 0,
     this.mesa = 0,
     this.gere = true,
+    this.dono = false,
     required this.loja,
     required this.conteudo,
   });
@@ -47,14 +62,19 @@ class LayoutParceiros extends StatelessWidget {
   /// Número sobre a Mesa do Gerente (decisões esperando).
   final int mesa;
 
-  /// Dono ou gerente: só eles têm a Mesa do Gerente.
+  /// Dono ou gerente: só eles têm a Mesa do Gerente e a Sincronização D+0.
   final bool gere;
+
+  /// Só o dono cuida dos usuários da loja.
+  final bool dono;
   final Loja? loja;
   final Widget conteudo;
 
   List<_ItemMenu> get _itensDaLargura => [
     for (final item in _itens)
-      if (item.$1 != Aba.mesa || gere) item,
+      if ((gere || (item.$1 != Aba.mesa && item.$1 != Aba.sincronizacao)) &&
+          (dono || item.$1 != Aba.usuarios))
+        item,
   ];
 
   int _numero(Aba a) => switch (a) {
@@ -99,9 +119,7 @@ class LayoutParceiros extends StatelessWidget {
               selectedIndex: _itensDoCelular.indexWhere(
                 (i) =>
                     i.$1 ==
-                    (aba == Aba.clientes || aba == Aba.mesa
-                        ? Aba.configuracoes
-                        : aba),
+                    (_foraDoCelular.contains(aba) ? Aba.configuracoes : aba),
               ),
               onDestinationSelected: (i) => onAba(_itensDoCelular[i].$1),
               destinations: [

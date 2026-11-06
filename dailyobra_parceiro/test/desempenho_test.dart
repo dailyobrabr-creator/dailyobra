@@ -274,7 +274,7 @@ void main() {
         usar(completo);
         await abrirNaLargura(tester, 360, escuro: escuro);
         await rolarAte(tester, find.text('Funil de propostas'));
-        await rolarAte(tester, find.textContaining('viraram pedido'));
+        await rolarAte(tester, find.text('Viraram pedido'));
         expect(find.text('Recebidas'), findsOneWidget);
         expect(find.text('Respondidas'), findsOneWidget);
         expect(find.text('Viraram pedido'), findsOneWidget);
@@ -323,33 +323,47 @@ void main() {
           periodo: const ResultadosPeriodo(),
         );
         await abrirNaLargura(tester, 360, escuro: escuro);
-        expect(find.text('Vendas por dia'), findsNothing);
-        expect(find.text('Produtos mais vendidos'), findsNothing);
+        expect(find.byType(GraficoVendas), findsNothing);
+        expect(find.byType(ProdutosMaisVendidos), findsNothing);
+        expect(find.text('Vendas por dia'), findsOneWidget);
+        await rolarAte(tester, find.text('Produtos mais vendidos'));
         await rolarAte(tester, find.text('Funil de propostas'));
         expect(find.text('0 · 0%'), findsOneWidget);
       });
 
-      testWidgets('mês sem proposta não desenha o funil', (tester) async {
-        usar(const DesempenhoPeriodo(), periodo: const ResultadosPeriodo());
-        await abrirNaLargura(tester, 360, escuro: escuro);
-        expect(find.text('Funil de propostas'), findsNothing);
-      });
-
-      testWidgets('computador põe funil e produtos lado a lado', (
+      testWidgets('mês sem proposta mantém o bloco do funil com uma frase', (
         tester,
       ) async {
+        usar(const DesempenhoPeriodo(), periodo: const ResultadosPeriodo());
+        await abrirNaLargura(tester, 360, escuro: escuro);
+        expect(find.byType(FunilPropostas), findsNothing);
+        await rolarAte(
+          tester,
+          find.textContaining('Nenhuma proposta recebida em'),
+        );
+      });
+
+      testWidgets('computador põe vendas ao lado do funil', (tester) async {
         usar(completo);
         await abrirNaLargura(tester, 1366, escuro: escuro);
         await rolarAte(tester, find.text('Vendas por dia'));
-        await rolarAte(tester, find.text('Funil de propostas'));
         expect(
           tester.getTopLeft(find.text('Funil de propostas')).dy,
+          tester.getTopLeft(find.text('Vendas por dia')).dy,
+        );
+        expect(
+          tester.getTopLeft(find.text('Funil de propostas')).dx,
+          greaterThan(tester.getTopLeft(find.text('Vendas por dia')).dx),
+        );
+        await rolarAte(tester, find.text('Produtos mais vendidos'));
+        expect(
+          tester.getTopLeft(find.text('Top construtores')).dy,
           tester.getTopLeft(find.text('Produtos mais vendidos')).dy,
         );
         expect(tester.takeException(), isNull);
       });
 
-      testWidgets('computador põe os quatro números numa linha só', (
+      testWidgets('computador põe os seis números numa linha só', (
         tester,
       ) async {
         usar(completo);
@@ -359,13 +373,17 @@ void main() {
           tester.getTopLeft(find.text('Ticket médio')).dy,
         );
         expect(
+          tester.getTopLeft(find.text('Propostas respondidas')).dy,
+          tester.getTopLeft(find.text('Faturamento')).dy,
+        );
+        expect(
           tester.getSize(find.widgetWithText(Indicador, 'Faturamento')).height,
           lessThan(160),
         );
         expect(tester.takeException(), isNull);
       });
 
-      testWidgets('tablet cabe os quatro números sem estourar', (tester) async {
+      testWidgets('tablet cabe os números sem estourar', (tester) async {
         usar(completo);
         await abrirNaLargura(tester, 680, escuro: escuro);
         expect(

@@ -6,9 +6,11 @@ import '../services/loja_service.dart';
 import '../services/ofertas_service.dart';
 import '../services/propostas_loja_service.dart';
 import '../services/resultados_service.dart';
+import 'atualizar_estoque_screen.dart';
 import 'clientes_screen.dart';
 import 'componentes.dart';
 import 'configuracoes_screen.dart';
+import 'equipe_screen.dart';
 import 'inicio_screen.dart';
 import 'layout_parceiros.dart';
 import 'mesa_screen.dart';
@@ -16,8 +18,8 @@ import 'pedidos_screen.dart';
 import 'produtos_screen.dart';
 import 'propostas_screen.dart';
 
-/// Navegação do painel da loja: Início · Propostas · Pedidos · Mesa do Gerente · Produtos · Clientes · Configurações,
-/// na moldura de cada largura.
+/// Navegação do painel da loja: Dashboard, Propostas, Pedidos, Mesa do Gerente, Produtos, Sincronização D+0, Clientes,
+/// Usuários e Configurações, na moldura de cada largura.
 class NavegacaoScreen extends StatefulWidget {
   const NavegacaoScreen({super.key, required this.tema});
   final PreferenciaTema tema;
@@ -29,6 +31,10 @@ class NavegacaoScreen extends StatefulWidget {
 class _NavegacaoScreenState extends State<NavegacaoScreen> {
   /// Clientes só busca no banco quando abre pela primeira vez; depois fica montada.
   var _clientesAberta = false;
+
+  /// As duas só existem para quem pode usar: montam ao abrir pela primeira vez.
+  var _sincronizacaoAberta = false;
+  var _usuariosAberta = false;
 
   @override
   void initState() {
@@ -56,6 +62,8 @@ class _NavegacaoScreenState extends State<NavegacaoScreen> {
       valueListenable: abaAtual,
       builder: (context, aba, _) {
         if (aba == Aba.clientes) _clientesAberta = true;
+        if (aba == Aba.sincronizacao) _sincronizacaoAberta = true;
+        if (aba == Aba.usuarios) _usuariosAberta = true;
         return PopScope(
           canPop: aba == Aba.inicio,
           onPopInvokedWithResult: (saiu, _) {
@@ -74,6 +82,7 @@ class _NavegacaoScreenState extends State<NavegacaoScreen> {
               pedidos: PropostasLojaService.instance.pedidosEmAndamento.length,
               mesa: PropostasLojaService.instance.naMesa,
               gere: LojaService.instance.meuPapel.gere,
+              dono: LojaService.instance.meuPapel == PapelLoja.dono,
               loja: LojaService.instance.minhaLoja,
               conteudo: IndexedStack(
                 index: aba.index,
@@ -83,8 +92,16 @@ class _NavegacaoScreenState extends State<NavegacaoScreen> {
                   const PedidosScreen(),
                   const MesaScreen(),
                   const ProdutosScreen(),
+                  if (_sincronizacaoAberta)
+                    const AtualizarEstoqueScreen()
+                  else
+                    const SizedBox.shrink(),
                   if (_clientesAberta)
                     const ClientesScreen()
+                  else
+                    const SizedBox.shrink(),
+                  if (_usuariosAberta)
+                    const EquipeScreen()
                   else
                     const SizedBox.shrink(),
                   ConfiguracoesScreen(tema: widget.tema),

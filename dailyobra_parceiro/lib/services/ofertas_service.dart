@@ -132,7 +132,7 @@ class OfertasService extends ChangeNotifier {
         _db
             .from('catalogo_itens')
             .select(
-              'id, nome, unidade, categoria_id, tier_cashback, sinonimos, imagem_path',
+              'id, nome, unidade, categoria_id, tier_cashback, sinonimos, imagem_path, catalogo_referencias(preco, fonte)',
             )
             .eq('ativo', true)
             .order('nome'),

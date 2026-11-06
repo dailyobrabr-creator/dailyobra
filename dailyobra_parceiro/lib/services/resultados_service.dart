@@ -146,7 +146,47 @@ class DesempenhoPeriodo {
   double? get conversao => propostas == 0 ? null : viraramPedido / propostas;
 }
 
-/// Resultados do mês da loja no Início, para dono e gerente (o banco recusa o vendedor).
+/// Quanto a loja vendeu numa faixa de cashback (tier) no período.
+class VendaDaFaixa {
+  const VendaDaFaixa({required this.tier, this.total = 0, this.percentual});
+  final int tier;
+
+  /// Valor dos produtos, sem frete.
+  final double total;
+
+  /// Cashback da faixa, em fração; nulo se a tabela não carregou.
+  final double? percentual;
+}
+
+/// As quatro faixas, sempre todas, com os pedidos não cancelados feitos no período. As contas saem das propostas que a
+/// loja já tem na memória (as 200 mais recentes), porque o banco não soma por faixa.
+List<VendaDaFaixa> vendasPorFaixa(
+  Iterable<PropostaResumo> pedidos,
+  PeriodoResultados periodo,
+  Map<int, double> percentuais,
+) {
+  final totais = <int, double>{1: 0, 2: 0, 3: 0, 4: 0};
+  for (final p in pedidos) {
+    final pedido = p.pedido;
+    if (pedido == null || pedido.status == StatusPedido.cancelado) continue;
+    final quando = pedido.criadoEm;
+    if (quando.isBefore(periodo.de) || !quando.isBefore(periodo.ate)) continue;
+    for (final item in p.itens) {
+      if (!totais.containsKey(item.tier)) continue;
+      totais[item.tier] = totais[item.tier]! + item.total;
+    }
+  }
+  return [
+    for (final tier in totais.keys)
+      VendaDaFaixa(
+        tier: tier,
+        total: totais[tier]!,
+        percentual: percentuais[tier],
+      ),
+  ];
+}
+
+/// Resultados do mês da loja no Dashboard, para dono e gerente (o banco recusa o vendedor).
 class ResultadosService extends ChangeNotifier {
   ResultadosService._();
 
@@ -159,6 +199,7 @@ class ResultadosService extends ChangeNotifier {
   ResultadosPeriodo? _atual;
   ResultadosPeriodo? _anterior;
   DesempenhoPeriodo? _desempenho;
+  Map<int, double> _percentuais = const {};
   bool _carregando = false;
   String? _erro;
   int _pedido = 0;
@@ -176,6 +217,9 @@ class ResultadosService extends ChangeNotifier {
 
   /// Gráfico, funil e produtos do mês aberto.
   DesempenhoPeriodo? get desempenho => _desempenho;
+
+  /// Cashback de cada faixa, em fração.
+  Map<int, double> get percentuais => _percentuais;
   bool get carregando => _carregando;
   String? get erro => _erro;
 
@@ -185,10 +229,12 @@ class ResultadosService extends ChangeNotifier {
     buscar,
     Future<DesempenhoPeriodo> Function(DateTime de, DateTime ate)?
     buscarDesempenho,
+    Map<int, double> percentuais = const {},
   }) {
     limpar();
     _buscarDeTeste = buscar;
     _buscarDesempenhoDeTeste = buscarDesempenho;
+    _percentuais = percentuais;
   }
 
   void limpar() {
@@ -227,6 +273,8 @@ class ResultadosService extends ChangeNotifier {
       _atual = r[0] as ResultadosPeriodo;
       _anterior = r[1] as ResultadosPeriodo;
       _desempenho = r[2] as DesempenhoPeriodo;
+      await _carregarPercentuais();
+      if (meu != _pedido) return;
     } on FalhaComMensagem catch (e) {
       if (meu != _pedido) return;
       _erro = e.mensagem;
@@ -235,7 +283,23 @@ class ResultadosService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// O mesmo mês de novo (puxar para atualizar no Início).
+  /// A tabela de cashback muda pouco e é um detalhe do painel: se falhar, a faixa só não mostra o percentual.
+  Future<void> _carregarPercentuais() async {
+    if (_buscarDeTeste != null || _percentuais.isNotEmpty) return;
+    try {
+      final linhas = await _db
+          .from('cashback_tiers')
+          .select('tier, percentual');
+      _percentuais = {
+        for (final j in linhas)
+          (j['tier'] as num).toInt(): lerValor(j['percentual']),
+      };
+    } on Exception {
+      _percentuais = const {};
+    }
+  }
+
+  /// O mesmo mês de novo (puxar para atualizar no Dashboard).
   Future<void> recarregar() async {
     final mes = _mes;
     if (mes != null) await carregar(mes);

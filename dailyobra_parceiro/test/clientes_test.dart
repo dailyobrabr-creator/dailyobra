@@ -481,7 +481,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(buscas, 1);
     expect(find.text('Ana Souza'), findsOneWidget);
-    await tester.tap(find.text('Início'));
+    await tester.tap(find.text('Dashboard'));
     await tester.pumpAndSettle();
     expect(find.text('Ana Souza'), findsNothing);
     await tester.tap(find.text('Clientes'));

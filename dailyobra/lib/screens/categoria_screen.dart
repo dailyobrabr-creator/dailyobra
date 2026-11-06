@@ -77,6 +77,9 @@ class _ListaProdutosState extends State<ListaProdutos> {
                 item: item,
                 melhorOferta: resumo.oferta,
                 lojas: resumo.lojas,
+                loja: resumo.oferta == null
+                    ? null
+                    : catalogo.loja(resumo.oferta!.lojaId),
                 hoje: hoje,
                 noOrcamento: carrinho.contem(item.id),
                 onTap: () => _abrir(item),
@@ -179,6 +182,9 @@ class _ListaProdutosState extends State<ListaProdutos> {
                         CartaoOfertaComBotao(
                           item: item,
                           oferta: ofertas[item.id],
+                          loja: ofertas[item.id] == null
+                              ? null
+                              : catalogo.loja(ofertas[item.id]!.lojaId),
                           hoje: hoje,
                           noOrcamento: carrinho.contem(item.id),
                           onTap: () => _abrir(item),

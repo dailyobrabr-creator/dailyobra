@@ -456,6 +456,7 @@ class _Vitrine {
             preco: oferta.precoVigente(hoje)!,
             precoCheio: oferta.preco,
             rodape: loja.nome,
+            loja: loja,
           ),
       ],
     );
@@ -482,7 +483,8 @@ class _Vitrine {
           ProdutoDaPrateleira(
             item: f.item,
             preco: f.menor,
-            rodape: 'de ${brl.format(f.menor)} a ${brl.format(f.maior)}',
+            rodape: 'até ${brl.format(f.maior)}',
+            loja: catalogo.loja(f.melhor.lojaId),
           ),
       ],
     );
@@ -523,6 +525,7 @@ class _Vitrine {
                 rodape: p.lojas > 1
                     ? 'em ${p.lojas} lojas'
                     : catalogo.loja(p.oferta.lojaId)?.nome ?? '',
+                loja: catalogo.loja(p.oferta.lojaId),
               ),
           ],
         ),

@@ -88,7 +88,7 @@ class LogoLoja extends StatelessWidget {
       alignment: Alignment.center,
       child: loja.logoUrl == null
           ? letras
-          : Image.network(loja.logoUrl!, width: tamanho, height: tamanho, fit: BoxFit.cover, errorBuilder: (_, _, _) => letras),
+          : Image.network(loja.logoUrl!, width: tamanho, height: tamanho, fit: BoxFit.cover, semanticLabel: loja.nome, errorBuilder: (_, _, _) => letras),
     );
   }
 }
@@ -151,6 +151,7 @@ class CartaoProduto extends StatelessWidget {
     required this.hoje,
     this.melhorOferta,
     this.lojas = 0,
+    this.loja,
     this.noOrcamento = false,
     this.onTap,
     this.onAdicionar,
@@ -161,6 +162,9 @@ class CartaoProduto extends StatelessWidget {
 
   /// Em quantas lojas o produto tem oferta.
   final int lojas;
+
+  /// Loja do preço mostrado: a logo dela aparece ao lado do preço.
+  final Loja? loja;
   final bool noOrcamento;
   final VoidCallback? onTap;
   final VoidCallback? onAdicionar;
@@ -197,11 +201,23 @@ class CartaoProduto extends StatelessWidget {
                             : '${'Referência ${item.fonteReferencia ?? ''}'.trim()}: ${brl.format(item.precoReferencia)}',
                         style: t.bodySmall?.copyWith(color: c.textoSuave),
                       )
-                    else ...[
-                      PrecoOferta(oferta: oferta, hoje: hoje, unidade: item.unidade, aPartirDe: lojas > 1),
-                      if (lojas > 0)
-                        Text(lojas == 1 ? 'em 1 loja' : 'em $lojas lojas', style: t.bodySmall?.copyWith(color: c.textoSuave)),
-                    ],
+                    else
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                PrecoOferta(oferta: oferta, hoje: hoje, unidade: item.unidade, aPartirDe: lojas > 1),
+                                if (lojas > 0)
+                                  Text(lojas == 1 ? 'em 1 loja' : 'em $lojas lojas', style: t.bodySmall?.copyWith(color: c.textoSuave)),
+                              ],
+                            ),
+                          ),
+                          if (loja != null) ...[const SizedBox(width: Espaco.s2), LogoLoja(loja: loja!, tamanho: 32)],
+                        ],
+                      ),
                   ],
                 ),
               ),

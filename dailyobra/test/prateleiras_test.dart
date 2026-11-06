@@ -1,6 +1,8 @@
+import 'package:dailyobra/screens/busca_screen.dart';
 import 'package:dailyobra/screens/componentes.dart';
 import 'package:dailyobra/screens/carteira_screen.dart';
 import 'package:dailyobra/screens/inicio_screen.dart';
+import 'package:dailyobra/screens/loja_screen.dart';
 import 'package:dailyobra/screens/produto_screen.dart';
 import 'package:dailyobra/screens/vitrine_do_inicio.dart';
 import 'package:dailyobra/services/carteira_service.dart';
@@ -124,6 +126,74 @@ void main() {
     });
   });
 
+  group('logo da loja nos produtos', () {
+    final itens = [produto('x', 'basico'), produto('y', 'basico')];
+    final ofertas = [preco('l1', 'x', 20), preco('l2', 'x', 10)];
+
+    testWidgets('na lista do celular, com a loja do melhor preço', (
+      tester,
+    ) async {
+      preparar(itens: itens, ofertas: ofertas);
+      await abrir(tester, const BuscaScreen());
+      await tester.enterText(find.byType(TextField), 'produto');
+      await tester.pumpAndSettle();
+      final logo = find.descendant(
+        of: find.widgetWithText(CartaoProduto, 'Produto x'),
+        matching: find.byType(LogoLoja),
+      );
+      expect(tester.widget<LogoLoja>(logo).loja.id, 'l2');
+    });
+
+    testWidgets('produto sem preço não mostra logo', (tester) async {
+      preparar(itens: itens, ofertas: ofertas);
+      await abrir(tester, const BuscaScreen());
+      await tester.enterText(find.byType(TextField), 'produto');
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.widgetWithText(CartaoProduto, 'Produto y'),
+          matching: find.byType(LogoLoja),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('na grade da tela grande', (tester) async {
+      preparar(itens: itens, ofertas: ofertas);
+      await abrir(tester, const BuscaScreen());
+      tester.view.physicalSize = const Size(1300, 900);
+      tester.view.devicePixelRatio = 1;
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'produto');
+      await tester.pumpAndSettle();
+      final logo = find.descendant(
+        of: find.widgetWithText(CartaoOferta, 'Produto x'),
+        matching: find.byType(LogoLoja),
+      );
+      expect(tester.widget<LogoLoja>(logo).loja.id, 'l2');
+      expect(
+        find.descendant(
+          of: find.widgetWithText(CartaoOferta, 'Produto y'),
+          matching: find.byType(LogoLoja),
+        ),
+        findsNothing,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('na página da loja', (tester) async {
+      preparar(itens: itens, ofertas: ofertas);
+      await abrir(tester, const LojaScreen(lojaId: 'l1'));
+      expect(
+        find.descendant(
+          of: find.byType(CartaoProduto),
+          matching: find.byType(LogoLoja),
+        ),
+        findsOneWidget,
+      );
+    });
+  });
+
   group('prateleira', () {
     for (final escuro in [false, true]) {
       for (final emFaixa in [false, true]) {
@@ -227,6 +297,36 @@ void main() {
       produto('$categoria-1', categoria),
       produto('$categoria-2', categoria),
     ];
+
+    testWidgets('produto mostra a logo da loja do melhor preço', (
+      tester,
+    ) async {
+      preparar(
+        itens: [produto('x', 'basico'), produto('y', 'basico')],
+        ofertas: [
+          preco('l1', 'x', 20),
+          preco('l2', 'x', 10),
+          preco('l1', 'y', 30),
+        ],
+      );
+      await abrir(tester, const InicioScreen());
+      tester.view.physicalSize = const Size(1080, 9000);
+      await tester.pumpAndSettle();
+      for (final prateleira in tester.widgetList<Prateleira>(
+        find.byType(Prateleira),
+      )) {
+        for (final p in prateleira.produtos) {
+          expect(p.loja?.id, p.item.id == 'x' ? 'l2' : 'l1');
+        }
+      }
+      expect(
+        find.descendant(
+          of: find.byType(Prateleira),
+          matching: find.byType(LogoLoja),
+        ),
+        findsWidgets,
+      );
+    });
 
     testWidgets('cotar é uma barra só, com o botão ao lado do campo', (
       tester,

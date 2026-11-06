@@ -147,6 +147,7 @@ class LayoutAdaptativo extends StatelessWidget {
                       tema: tema,
                       novidades: novidades,
                       onSino: onSino,
+                      comBusca: aba != Aba.busca,
                     ),
                     Expanded(child: corpo),
                   ],

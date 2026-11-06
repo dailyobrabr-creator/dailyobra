@@ -51,13 +51,16 @@ class TituloSecao extends StatelessWidget {
 /// Oferta na vitrine: quadro da categoria (ou foto), selo de desconto, nome em duas linhas,
 /// loja e preço (o antigo riscado em cima). Todos têm a mesma altura para alinhar em linha.
 class CartaoOferta extends StatelessWidget {
-  const CartaoOferta({super.key, required this.item, required this.oferta, required this.hoje, this.nomeLoja, this.onTap, this.largura});
+  const CartaoOferta({super.key, required this.item, required this.oferta, required this.hoje, this.nomeLoja, this.loja, this.onTap, this.largura});
   final ItemCatalogo item;
 
   /// Sem oferta, o cartão mostra o preço de referência do item (ex.: SINAPI) ou "Sem oferta no momento".
   final Oferta? oferta;
   final DateTime hoje;
   final String? nomeLoja;
+
+  /// Loja do preço mostrado: a logo dela aparece ao lado do preço.
+  final Loja? loja;
   final VoidCallback? onTap;
   final double? largura;
 
@@ -119,19 +122,32 @@ class CartaoOferta extends StatelessWidget {
                   ),
                   Text(nomeLoja ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: t.bodySmall?.copyWith(color: c.textoSuave)),
                   const SizedBox(height: Espaco.s2),
-                  Text(
-                    promo ? brl.format(oferta!.preco) : referencia != null ? 'Referência ${item.fonteReferencia ?? ''}'.trim() : '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: t.bodySmall?.copyWith(color: c.textoSuave, decoration: promo ? TextDecoration.lineThrough : null, fontFeatures: numerosTabulares),
-                  ),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      vigente != null ? brl.format(vigente) : referencia != null ? brl.format(referencia) : 'Sem oferta no momento',
-                      style: t.titleMedium?.copyWith(color: vigente == null ? c.textoSuave : c.acao, fontWeight: FontWeight.w700, fontFeatures: numerosTabulares),
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              promo ? brl.format(oferta!.preco) : referencia != null ? 'Referência ${item.fonteReferencia ?? ''}'.trim() : '',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: t.bodySmall?.copyWith(color: c.textoSuave, decoration: promo ? TextDecoration.lineThrough : null, fontFeatures: numerosTabulares),
+                            ),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                vigente != null ? brl.format(vigente) : referencia != null ? brl.format(referencia) : 'Sem oferta no momento',
+                                style: t.titleMedium?.copyWith(color: vigente == null ? c.textoSuave : c.acao, fontWeight: FontWeight.w700, fontFeatures: numerosTabulares),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (loja != null && vigente != null) ...[const SizedBox(width: Espaco.s2), LogoLoja(loja: loja!, tamanho: 34)],
+                    ],
                   ),
                 ],
               ),

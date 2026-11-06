@@ -17,9 +17,13 @@ class TopoVitrine extends StatelessWidget {
     this.tema,
     this.novidades,
     this.onSino,
+    this.comBusca = true,
   });
   final bool compacto;
   final PreferenciaTema? tema;
+
+  /// Na aba Busca a tela já traz o campo: a barra não repete.
+  final bool comBusca;
 
   /// Número no sino; sem valor, usa as não vistas do NovidadesService.
   final int? novidades;
@@ -128,13 +132,17 @@ class TopoVitrine extends StatelessWidget {
                         ),
                         const SizedBox(width: Espaco.s6),
                         Expanded(
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 620),
-                              child: const _CampoBusca(),
-                            ),
-                          ),
+                          child: comBusca
+                              ? Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 620,
+                                    ),
+                                    child: const _CampoBusca(),
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
                         ),
                         const SizedBox(width: Espaco.s4),
                         ...acoes,

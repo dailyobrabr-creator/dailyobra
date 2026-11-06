@@ -244,6 +244,7 @@ class _LojaScreenState extends State<LojaScreen> {
                                     CartaoOfertaComBotao(
                                       item: item,
                                       oferta: oferta,
+                                      loja: loja,
                                       hoje: hoje,
                                       noOrcamento: carrinho.contem(item.id),
                                       onTap: () => abrirProduto(item),
@@ -318,6 +319,7 @@ class _LojaScreenState extends State<LojaScreen> {
                       child: CartaoProduto(
                         item: item,
                         melhorOferta: oferta,
+                        loja: loja,
                         hoje: hoje,
                         noOrcamento: carrinho.contem(item.id),
                         onTap: () => abrirProduto(item),

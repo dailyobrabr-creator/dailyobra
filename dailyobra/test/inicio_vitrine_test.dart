@@ -206,7 +206,7 @@ void main() {
           expect(
             find.descendant(
               of: barato,
-              matching: find.text('de ${brl.format(38)} a ${brl.format(45)}'),
+              matching: find.text('até ${brl.format(45)}'),
             ),
             findsOneWidget,
           );

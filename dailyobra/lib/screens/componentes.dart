@@ -561,6 +561,7 @@ class CartaoOfertaComBotao extends StatelessWidget {
     required this.oferta,
     required this.hoje,
     this.nomeLoja,
+    this.loja,
     this.noOrcamento = false,
     this.onTap,
     this.onAdicionar,
@@ -569,6 +570,9 @@ class CartaoOfertaComBotao extends StatelessWidget {
   final Oferta? oferta;
   final DateTime hoje;
   final String? nomeLoja;
+
+  /// Loja do preço mostrado: a logo dela aparece ao lado do preço.
+  final Loja? loja;
   final bool noOrcamento;
   final VoidCallback? onTap;
   final VoidCallback? onAdicionar;
@@ -583,6 +587,7 @@ class CartaoOfertaComBotao extends StatelessWidget {
           oferta: oferta,
           hoje: hoje,
           nomeLoja: nomeLoja,
+          loja: loja,
           onTap: onTap,
         ),
         if (onAdicionar != null)

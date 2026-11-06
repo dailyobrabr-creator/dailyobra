@@ -1,5 +1,6 @@
 import 'package:dailyobra/screens/componentes.dart';
 import 'package:dailyobra/screens/layout_adaptativo.dart';
+import 'package:dailyobra/screens/menu_da_conta.dart';
 import 'package:dailyobra/services/carteira_service.dart';
 import 'package:dailyobra/services/perfil_service.dart';
 import 'package:dailyobra_comum/dailyobra_comum.dart';
@@ -13,6 +14,7 @@ Future<void> abrirLargura(
   WidgetTester tester,
   double largura, {
   bool escuro = false,
+  Aba aba = Aba.inicio,
 }) async {
   tester.view.physicalSize = Size(largura, 900);
   tester.view.devicePixelRatio = 1;
@@ -30,7 +32,7 @@ Future<void> abrirLargura(
         GlobalCupertinoLocalizations.delegate,
       ],
       home: LayoutAdaptativo(
-        aba: Aba.inicio,
+        aba: aba,
         onAba: (a) => escolhida = a,
         pendencias: 3,
         conteudo: const ColoredBox(
@@ -127,6 +129,15 @@ void main() {
         expect(tester.takeException(), isNull);
         await tester.tap(find.text('Busca'));
         expect(escolhida, Aba.busca);
+      });
+
+      testWidgets('computador: a aba Busca não repete o campo na barra', (
+        tester,
+      ) async {
+        await abrirLargura(tester, 1366, escuro: escuro, aba: Aba.busca);
+        expect(find.textContaining('Buscar cimento'), findsNothing);
+        expect(find.text('Olá, Ana'), findsOneWidget);
+        expect(find.byType(MenuDaConta), findsOneWidget);
       });
 
       testWidgets('tela muito larga: conteúdo até 1320 px', (tester) async {

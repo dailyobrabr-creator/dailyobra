@@ -22,6 +22,7 @@ const _larguraDoProdutoGrande = 176.0;
 const _alturaDaFoto = 128.0;
 const _raioDoProduto = 14.0;
 const _larguraDaLoja = 132.0;
+const _logoDoProduto = 34.0;
 
 void _abrir(BuildContext context, Widget tela) =>
     Navigator.push(context, MaterialPageRoute(builder: (_) => tela));
@@ -575,9 +576,13 @@ class ProdutoDaPrateleira {
     required this.preco,
     this.precoCheio,
     this.rodape = '',
+    this.loja,
   });
   final ItemCatalogo item;
   final double preco;
+
+  /// Loja do preço mostrado: a logo dela fica no canto do cartão.
+  final Loja? loja;
 
   /// Preço sem a promoção, riscado ao lado do que vale hoje.
   final double? precoCheio;
@@ -940,40 +945,56 @@ class _CartaoDaPrateleira extends StatelessWidget {
           ),
           const SizedBox(height: Espaco.s1),
         ],
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              _Preco(produto.preco),
-              if (desconto > 0) ...[
-                const SizedBox(width: 6),
-                Text(
-                  brl.format(cheio),
-                  style: t.bodySmall?.copyWith(
-                    color: c.textoSuave,
-                    decoration: TextDecoration.lineThrough,
-                    fontFeatures: numerosTabulares,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        _Preco(produto.preco),
+                        if (desconto > 0) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            brl.format(cheio),
+                            style: t.bodySmall?.copyWith(
+                              color: c.textoSuave,
+                              decoration: TextDecoration.lineThrough,
+                              fontFeatures: numerosTabulares,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        if (produto.rodape.isNotEmpty) ...[
-          const SizedBox(height: 2),
-          Text(
-            produto.rodape,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: t.bodySmall?.copyWith(
-              color: c.textoSuave,
-              fontFeatures: numerosTabulares,
+                  if (produto.rodape.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      produto.rodape,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: t.bodySmall?.copyWith(
+                        color: c.textoSuave,
+                        fontFeatures: numerosTabulares,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
-        ],
+            if (produto.loja != null) ...[
+              const SizedBox(width: Espaco.s1),
+              LogoLoja(loja: produto.loja!, tamanho: _logoDoProduto),
+            ],
+          ],
+        ),
       ],
     );
     void abrir() => _abrir(context, ProdutoScreen(itemId: item.id));

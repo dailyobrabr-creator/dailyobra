@@ -10,6 +10,12 @@ const List<_ItemMenu> _itens = [
   (Aba.propostas, Icons.inbox_outlined, Icons.inbox, 'Propostas'),
   (Aba.pedidos, Icons.receipt_long_outlined, Icons.receipt_long, 'Pedidos'),
   (Aba.mesa, Icons.fact_check_outlined, Icons.fact_check, 'Mesa do Gerente'),
+  (
+    Aba.faturamento,
+    Icons.point_of_sale_outlined,
+    Icons.point_of_sale,
+    'Faturamento / Caixa',
+  ),
   (Aba.produtos, Icons.sell_outlined, Icons.sell, 'Produtos'),
   (Aba.sincronizacao, Icons.sync_outlined, Icons.sync, 'Sincronização D+0'),
   (Aba.clientes, Icons.people_outline, Icons.people, 'Clientes'),
@@ -25,10 +31,13 @@ const List<_ItemMenu> _itens = [
 /// O celular só tem cinco abas: estas abrem pela última, Mais, ou de dentro de Produtos.
 const _foraDoCelular = {
   Aba.mesa,
+  Aba.faturamento,
   Aba.sincronizacao,
   Aba.clientes,
   Aba.usuarios,
 };
+
+const _soQuemGere = {Aba.mesa, Aba.faturamento, Aba.sincronizacao};
 
 final _itensDoCelular = [
   for (final item in _itens)
@@ -45,6 +54,7 @@ class LayoutParceiros extends StatelessWidget {
     required this.novas,
     this.pedidos = 0,
     this.mesa = 0,
+    this.faturar = 0,
     this.gere = true,
     this.dono = false,
     required this.loja,
@@ -62,7 +72,10 @@ class LayoutParceiros extends StatelessWidget {
   /// Número sobre a Mesa do Gerente (decisões esperando).
   final int mesa;
 
-  /// Dono ou gerente: só eles têm a Mesa do Gerente e a Sincronização D+0.
+  /// Número sobre Faturamento / Caixa (pedidos para lançar).
+  final int faturar;
+
+  /// Dono ou gerente: só eles têm a Mesa do Gerente, o Faturamento e a Sincronização D+0.
   final bool gere;
 
   /// Só o dono cuida dos usuários da loja.
@@ -72,7 +85,7 @@ class LayoutParceiros extends StatelessWidget {
 
   List<_ItemMenu> get _itensDaLargura => [
     for (final item in _itens)
-      if ((gere || (item.$1 != Aba.mesa && item.$1 != Aba.sincronizacao)) &&
+      if ((gere || !_soQuemGere.contains(item.$1)) &&
           (dono || item.$1 != Aba.usuarios))
         item,
   ];
@@ -81,6 +94,7 @@ class LayoutParceiros extends StatelessWidget {
     Aba.propostas => novas,
     Aba.pedidos => pedidos,
     Aba.mesa when gere => mesa,
+    Aba.faturamento when gere => faturar,
     _ => 0,
   };
 
@@ -90,9 +104,13 @@ class LayoutParceiros extends StatelessWidget {
 
   Widget _icone(Aba a, IconData icone) => _emblema(_numero(a), icone);
 
-  /// No celular a Mesa fica dentro de Mais, então o número dela aparece ali.
-  Widget _iconeDoCelular(Aba a, IconData icone) =>
-      _emblema(a == Aba.configuracoes ? _numero(Aba.mesa) : _numero(a), icone);
+  /// No celular a Mesa e o Faturamento ficam dentro de Mais, então o número deles aparece ali.
+  Widget _iconeDoCelular(Aba a, IconData icone) => _emblema(
+    a == Aba.configuracoes
+        ? _numero(Aba.mesa) + _numero(Aba.faturamento)
+        : _numero(a),
+    icone,
+  );
 
   @override
   Widget build(BuildContext context) {

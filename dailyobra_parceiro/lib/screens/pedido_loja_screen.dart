@@ -418,6 +418,7 @@ class _DadosDaNotaState extends State<_DadosDaNota> {
         ),
         if (p.pagadorNome != null) _Dado('Nome', p.pagadorNome!),
         _Dado('CPF/CNPJ', documento),
+        if (p.erpNumero != null) _Dado('Venda no Santri', 'nº ${p.erpNumero}'),
         if (_falhou)
           Align(
             alignment: Alignment.centerRight,

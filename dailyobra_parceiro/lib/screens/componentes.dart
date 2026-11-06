@@ -7,6 +7,7 @@ enum Aba {
   propostas,
   pedidos,
   mesa,
+  faturamento,
   produtos,
   sincronizacao,
   clientes,

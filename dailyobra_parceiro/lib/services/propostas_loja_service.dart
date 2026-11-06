@@ -87,6 +87,29 @@ class PropostasLojaService extends ChangeNotifier {
       )
       .toList();
 
+  List<PropostaResumo> _semLancar({required bool prontos}) =>
+      pedidos
+          .where(
+            (p) =>
+                p.pedido!.status != StatusPedido.cancelado &&
+                p.pedido!.erpNumero == null &&
+                p.pedido!.prontoParaFaturar == prontos,
+          )
+          .toList()
+        ..sort((a, b) => a.pedido!.criadoEm.compareTo(b.pedido!.criadoEm));
+
+  /// Pedidos que já podem entrar no Santri, o mais antigo primeiro.
+  List<PropostaResumo> get paraFaturar => _semLancar(prontos: true);
+
+  /// Pedidos que ainda não têm pagamento confirmado nem prazo aprovado.
+  List<PropostaResumo> get aguardandoPagamento => _semLancar(prontos: false);
+
+  /// Pedidos com número de venda, o lançado mais recente primeiro. Inclui os cancelados depois de lançar.
+  List<PropostaResumo> get faturados =>
+      pedidos.where((p) => p.pedido!.erpNumero != null).toList()..sort(
+        (a, b) => b.pedido!.erpLancadoEm!.compareTo(a.pedido!.erpLancadoEm!),
+      );
+
   /// Quantas decisões esperam na Mesa do Gerente.
   int get naMesa => ofertasPendentes.length + prazosPendentes.length;
 
@@ -147,6 +170,7 @@ class PropostasLojaService extends ChangeNotifier {
     _teste = true;
     prazosDeTeste.clear();
     ofertasDeTeste.clear();
+    faturamentosDeTeste.clear();
     _carregado = true;
     _erro = null;
     notifyListeners();
@@ -157,6 +181,10 @@ class PropostasLojaService extends ChangeNotifier {
   /// Respostas ao prazo nos testes (pedido, aprovou), sem chamar o banco.
   @visibleForTesting
   final prazosDeTeste = <(String, bool)>[];
+
+  /// O que [registrarFaturamento] e [desfazerFaturamento] mandariam ao banco, quando montado por [definirParaTeste].
+  @visibleForTesting
+  final faturamentosDeTeste = <(String, String?)>[];
 
   /// O que [responderOferta] mandaria ao banco, quando montado por [definirParaTeste].
   @visibleForTesting
@@ -183,7 +211,7 @@ class PropostasLojaService extends ChangeNotifier {
       'proposta_itens(item_id, nome, unidade, tier, quantidade, preco_anunciado, preco_ofertado), '
       'pedidos(id, status, total, pagamento_confirmado_em, entregue_em, criado_em, pagador, pagador_nome, '
       'pagador_whatsapp, link_codigo, documento_informado_em, pagamento_informado_em, forma_pagamento, prazo, '
-      'prazo_status, prazo_respondido_em)';
+      'prazo_status, prazo_respondido_em, pedido_faturamento(numero, lancado_em))';
 
   void iniciar(String lojaId) {
     if (_teste) return;
@@ -336,6 +364,27 @@ class PropostasLojaService extends ChangeNotifier {
 
   Future<void> confirmarPagamento(String pedidoId) =>
       _pedidoRpc('confirmar_pagamento', {'p_pedido': pedidoId});
+
+  /// O pedido entrou no Santri: guarda o número da venda.
+  Future<void> registrarFaturamento(String pedidoId, String numero) async {
+    if (_teste) {
+      faturamentosDeTeste.add((pedidoId, numero));
+      return;
+    }
+    await _pedidoRpc('registrar_faturamento', {
+      'p_pedido': pedidoId,
+      'p_numero': numero,
+    });
+  }
+
+  /// Lançado por engano: o pedido volta para a fila.
+  Future<void> desfazerFaturamento(String pedidoId) async {
+    if (_teste) {
+      faturamentosDeTeste.add((pedidoId, null));
+      return;
+    }
+    await _pedidoRpc('desfazer_faturamento', {'p_pedido': pedidoId});
+  }
 
   /// Dono ou gerente aprova a oferta do construtor (vira pedido) ou recusa com o [motivo].
   Future<void> responderOferta(

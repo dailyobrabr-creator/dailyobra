@@ -58,6 +58,8 @@ class PedidoResumo {
     this.prazo,
     this.prazoStatus,
     this.prazoRespondidoEm,
+    this.erpNumero,
+    this.erpLancadoEm,
   });
   final String id;
   final StatusPedido status;
@@ -65,6 +67,13 @@ class PedidoResumo {
   final DateTime criadoEm;
   final DateTime? pagamentoConfirmadoEm;
   final DateTime? entregueEm;
+
+  /// Número da venda no Santri, registrado pela loja no Faturamento / Caixa. Só a equipe da loja lê.
+  final String? erpNumero;
+  final DateTime? erpLancadoEm;
+
+  /// Pode entrar no Santri: pagamento confirmado ou crediário com o prazo aprovado. É a mesma regra de registrar_faturamento.
+  bool get prontoParaFaturar => pagamentoConfirmadoEm != null || (formaPagamento == FormaPagamento.crediario && prazoStatus == StatusPrazo.aprovado);
 
   /// Quem paga (nulo até o construtor escolher). O CPF/CNPJ de quem paga fica em pedido_documentos, só para a loja.
   final Pagador? pagador;
@@ -112,10 +121,19 @@ class PedidoResumo {
     prazo: j['prazo'] as String?,
     prazoStatus: StatusPrazo.fromCodigo(j['prazo_status'] as String?),
     prazoRespondidoEm: _data(j['prazo_respondido_em']),
+    erpNumero: _faturamento(j['pedido_faturamento'])?['numero'] as String?,
+    erpLancadoEm: _data(_faturamento(j['pedido_faturamento'])?['lancado_em']),
   );
 }
 
 DateTime? _data(Object? v) => v is String ? DateTime.parse(v).toLocal() : null;
+
+/// A linha de pedido_faturamento vem como objeto ou como lista, conforme a relação que o banco enxerga.
+Map<String, dynamic>? _faturamento(Object? v) => switch (v) {
+      final Map<String, dynamic> linha => linha,
+      final List<dynamic> lista when lista.isNotEmpty => lista.first as Map<String, dynamic>,
+      _ => null,
+    };
 
 /// Resposta da loja à oferta do construtor.
 enum StatusOferta {

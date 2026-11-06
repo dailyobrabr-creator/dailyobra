@@ -11,6 +11,7 @@ import 'clientes_screen.dart';
 import 'componentes.dart';
 import 'configuracoes_screen.dart';
 import 'equipe_screen.dart';
+import 'faturamento_screen.dart';
 import 'inicio_screen.dart';
 import 'layout_parceiros.dart';
 import 'mesa_screen.dart';
@@ -18,8 +19,8 @@ import 'pedidos_screen.dart';
 import 'produtos_screen.dart';
 import 'propostas_screen.dart';
 
-/// Navegação do painel da loja: Dashboard, Propostas, Pedidos, Mesa do Gerente, Produtos, Sincronização D+0, Clientes,
-/// Usuários e Configurações, na moldura de cada largura.
+/// Navegação do painel da loja: Dashboard, Propostas, Pedidos, Mesa do Gerente, Faturamento / Caixa, Produtos,
+/// Sincronização D+0, Clientes, Usuários e Configurações, na moldura de cada largura.
 class NavegacaoScreen extends StatefulWidget {
   const NavegacaoScreen({super.key, required this.tema});
   final PreferenciaTema tema;
@@ -81,6 +82,7 @@ class _NavegacaoScreenState extends State<NavegacaoScreen> {
               novas: PropostasLojaService.instance.novas.length,
               pedidos: PropostasLojaService.instance.pedidosEmAndamento.length,
               mesa: PropostasLojaService.instance.naMesa,
+              faturar: PropostasLojaService.instance.paraFaturar.length,
               gere: LojaService.instance.meuPapel.gere,
               dono: LojaService.instance.meuPapel == PapelLoja.dono,
               loja: LojaService.instance.minhaLoja,
@@ -91,6 +93,7 @@ class _NavegacaoScreenState extends State<NavegacaoScreen> {
                   const PropostasScreen(),
                   const PedidosScreen(),
                   const MesaScreen(),
+                  const FaturamentoScreen(),
                   const ProdutosScreen(),
                   if (_sincronizacaoAberta)
                     const AtualizarEstoqueScreen()

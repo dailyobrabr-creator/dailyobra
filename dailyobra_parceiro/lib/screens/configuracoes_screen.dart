@@ -6,6 +6,7 @@ import '../services/propostas_loja_service.dart';
 import 'clientes_screen.dart';
 import 'componentes.dart';
 import 'equipe_screen.dart';
+import 'faturamento_screen.dart';
 import 'mesa_screen.dart';
 import 'secoes_loja.dart';
 
@@ -128,7 +129,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
               ),
             ],
             const SizedBox(height: Espaco.s4),
-            // O celular não tem aba para a Mesa e para Clientes: entram por aqui
+            // O celular não tem aba para a Mesa, o Faturamento e Clientes: entram por aqui
             if (formatoDoContexto(context) == Formato.celular) ...[
               Painel(
                 child: Column(
@@ -136,6 +137,26 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                     if (servico.meuPapel.gere) ...[
                       EntradaDaMesa(
                         decisoes: PropostasLojaService.instance.naMesa,
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.point_of_sale_outlined),
+                        title: const Text('Faturamento / Caixa'),
+                        subtitle: Text(switch (PropostasLojaService
+                            .instance
+                            .paraFaturar
+                            .length) {
+                          0 => 'Nenhum pedido para lançar',
+                          1 => '1 pedido para lançar no Santri',
+                          final n => '$n pedidos para lançar no Santri',
+                        }),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const FaturamentoScreen(),
+                          ),
+                        ),
                       ),
                       const Divider(height: 1),
                     ],

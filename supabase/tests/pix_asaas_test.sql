@@ -104,9 +104,9 @@ select pg_temp.conferir('traz valor e carteira', (pg_temp.pegar('dados')::jsonb 
 select pg_temp.conferir('traz o documento', pg_temp.pegar('dados')::jsonb ->> 'documento' = '52998224725');
 select pg_temp.conferir('sem cobrança aberta', pg_temp.pegar('dados')::jsonb -> 'aberta' = 'null'::jsonb, pg_temp.pegar('dados'));
 select pg_temp.admin();
-update public.pedidos set link_codigo = 'CODIGO1' where id = pg_temp.pegar('p1')::uuid;
+update public.pedidos set link_codigo = 'CODIGOdeTESTEdoLINK_01' where id = pg_temp.pegar('p1')::uuid;
 select pg_temp.servidor();
-select pg_temp.conferir('o link acha o pedido', public.cobranca_para_pix(null, null, 'CODIGO1') ->> 'pedido' = pg_temp.pegar('p1'));
+select pg_temp.conferir('o link acha o pedido', public.cobranca_para_pix(null, null, 'CODIGOdeTESTEdoLINK_01') ->> 'pedido' = pg_temp.pegar('p1'));
 
 -- Registrar
 select pg_temp.conferir('registra a cobrança', public.registrar_cobranca_pix(pg_temp.pegar('p1')::uuid, 'pay_1', 100, 'pix-1', now() + interval '1 day'));

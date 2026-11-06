@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'componentes.dart';
+import 'qr_do_pix.dart';
 
 typedef _Link = ({String codigo, String nome, String whatsapp});
 
@@ -25,6 +26,7 @@ class QuemPaga extends StatefulWidget {
     required this.escolherPagamento,
     required this.criarLink,
     required this.abrirLink,
+    required this.abrirBanco,
   });
   final PedidoResumo pedido;
   final String nomeLoja;
@@ -49,6 +51,9 @@ class QuemPaga extends StatefulWidget {
   criarLink;
   final Future<void> Function(Uri) abrirLink;
 
+  /// Tenta abrir o app do banco com o PIX pronto.
+  final Future<void> Function(Uri) abrirBanco;
+
   @override
   State<QuemPaga> createState() => _QuemPagaState();
 }
@@ -68,8 +73,9 @@ class _QuemPagaState extends State<QuemPaga> {
   bool _ocupado = false;
   bool _documentoConfirmado = false;
   bool _alterandoTitular = false;
+  bool _pixGravado = false;
 
-  /// Sem forma gravada, o PIX vem marcado (sem gravar nada).
+  /// Sem forma gravada, o PIX vem marcado; só grava quando o código aparece.
   late FormaPagamento _forma =
       widget.pedido.formaPagamento ?? FormaPagamento.pix;
   late String _prazo = widget.pedido.prazo ?? prazosCrediario.first;
@@ -473,17 +479,53 @@ class _QuemPagaState extends State<QuemPaga> {
     ];
   }
 
+  /// Com o código na tela o PIX marcado vale: a loja passa a ver a forma no pedido.
+  void _gravarPixMarcado() {
+    final p = widget.pedido;
+    if (_pixGravado ||
+        p.formaPagamento != null ||
+        p.pagamentoConfirmadoEm != null ||
+        p.pagamentoInformadoEm != null) {
+      return;
+    }
+    _pixGravado = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        await widget.escolherPagamento(FormaPagamento.pix, null);
+      } on Exception {
+        // Só falta a forma no pedido: o pagamento segue igual
+      }
+    });
+  }
+
+  /// O código vai copiado antes: se nenhum banco abrir o link, é só colar no Pix do app.
+  Future<void> _abrirNoBanco(String pix) async {
+    await Clipboard.setData(ClipboardData(text: pix));
+    if (!mounted) return;
+    avisar(context, 'PIX copiado. Se o banco não abrir, cole no Pix do app.');
+    await widget.abrirBanco(linkDoPix(pix));
+  }
+
   List<Widget> _pagarComPix(TextTheme t, CoresDailyObra c, String? pix) {
     if (pix == null) {
       return [Text('Combine o pagamento com a loja.', style: t.bodyMedium)];
     }
+    _gravarPixMarcado();
     return [
-      Text('PIX da loja (copia e cola)', style: t.titleSmall),
+      Text('PIX da loja', style: t.titleSmall),
+      const SizedBox(height: Espaco.s3),
+      Center(child: QrDoPix(codigo: pix)),
+      const SizedBox(height: Espaco.s3),
+      SizedBox(
+        width: double.infinity,
+        child: FilledButton(
+          onPressed: () => _abrirNoBanco(pix),
+          child: const Text('Abrir no app do banco'),
+        ),
+      ),
       const SizedBox(height: Espaco.s2),
-      SelectableText(pix, style: t.bodySmall),
-      const SizedBox(height: Espaco.s2),
-      Align(
-        alignment: Alignment.centerLeft,
+      SizedBox(
+        width: double.infinity,
         child: OutlinedButton(
           onPressed: () async {
             await Clipboard.setData(ClipboardData(text: pix));
@@ -492,6 +534,10 @@ class _QuemPagaState extends State<QuemPaga> {
           child: const Text('Copiar'),
         ),
       ),
+      const SizedBox(height: Espaco.s3),
+      Text('Código copia e cola', style: t.labelMedium),
+      const SizedBox(height: Espaco.s1),
+      SelectableText(pix, style: t.bodySmall),
       const SizedBox(height: Espaco.s2),
       Text(
         'Pague pelo app do seu banco. A loja confirma aqui quando receber.',

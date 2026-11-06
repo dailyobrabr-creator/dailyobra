@@ -39,6 +39,19 @@ class _PedidoScreenState extends State<PedidoScreen> {
     if (!abriu && mounted) avisar(context, 'Não deu para abrir o WhatsApp.');
   }
 
+  /// Na mesma aba, para não deixar uma aba em branco no celular quando nenhum banco abre o link.
+  Future<void> _abrirBanco(Uri uri) async {
+    try {
+      await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+        webOnlyWindowName: '_self',
+      );
+    } on Exception {
+      // Sem app para o link: o código já foi copiado
+    }
+  }
+
   Future<void> _cancelar(PropostaResumo p) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -252,6 +265,7 @@ class _PedidoScreenState extends State<PedidoScreen> {
               documento: doc,
             ),
             abrirLink: _abrirLink,
+            abrirBanco: _abrirBanco,
           ),
         if (p.cashbackPrevisto > 0 &&
             pedido.status != StatusPedido.cancelado) ...[

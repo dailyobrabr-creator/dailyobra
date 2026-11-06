@@ -1,6 +1,8 @@
 import 'package:dailyobra/screens/quem_paga.dart';
 import 'package:dailyobra_comum/dailyobra_comum.dart';
+import 'package:dailyobra/screens/qr_do_pix.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'apoio.dart';
@@ -10,6 +12,7 @@ class Chamadas {
   final documentos = <String>[];
   final links = <(String, String, String?)>[];
   final abertos = <Uri>[];
+  final bancos = <Uri>[];
   final saldos = <bool>[];
   final formas = <(FormaPagamento, String?)>[];
 }
@@ -63,6 +66,7 @@ Future<Chamadas> montar(
   PedidoResumo? p,
   String? pix = pixDaLoja,
   Future<String?> Function()? carregarPix,
+  Future<void> Function(FormaPagamento, String?)? escolher,
   String? documentoDoPerfil,
   double saldoDisponivel = 0,
   double saldoNoPedido = 0,
@@ -83,13 +87,14 @@ Future<Chamadas> montar(
           pix: carregarPix ?? () async => pix,
           pagarEuMesmo: (doc) async => ch.documentos.add(doc),
           usarSaldo: (usar) async => ch.saldos.add(usar),
-          escolherPagamento: (forma, prazo) async =>
-              ch.formas.add((forma, prazo)),
+          escolherPagamento:
+              escolher ?? (forma, prazo) async => ch.formas.add((forma, prazo)),
           criarLink: (nome, zap, documento) async {
             ch.links.add((nome, zap, documento));
             return 'COD';
           },
           abrirLink: (uri) async => ch.abertos.add(uri),
+          abrirBanco: (uri) async => ch.bancos.add(uri),
         ),
       ),
     ),
@@ -125,7 +130,7 @@ void main() {
         await tester.tap(find.text('Confirmar'));
         await tester.pumpAndSettle();
         expect(ch.documentos, ['52998224725']);
-        expect(find.text('PIX da loja (copia e cola)'), findsOneWidget);
+        expect(find.text('PIX da loja'), findsOneWidget);
         expect(find.text(pixDaLoja), findsOneWidget);
         expect(find.widgetWithText(OutlinedButton, 'Copiar'), findsOneWidget);
         expect(tester.takeException(), isNull);
@@ -436,6 +441,7 @@ void main() {
                 escolherPagamento: (_, _) async {},
                 criarLink: (_, _, _) async => 'COD',
                 abrirLink: (_) async {},
+                abrirBanco: (_) async {},
               ),
             ),
           ),
@@ -532,8 +538,75 @@ void main() {
         expect(find.textContaining('Usar saldo da carteira'), findsNothing);
       });
 
-      testWidgets('formas de pagamento', (tester) async {
+      testWidgets(
+        'o pix mostra o qr code e abre o banco com o código copiado',
+        (tester) async {
+          final copiados = <String?>[];
+          final canal = tester.binding.defaultBinaryMessenger;
+          canal.setMockMethodCallHandler(SystemChannels.platform, (c) async {
+            if (c.method == 'Clipboard.setData') {
+              copiados.add((c.arguments as Map)['text'] as String?);
+            }
+            return null;
+          });
+          addTearDown(
+            () => canal.setMockMethodCallHandler(SystemChannels.platform, null),
+          );
+          final ch = await montar(tester, escuro: escuro, p: euPago());
+          expect(find.byType(QrDoPix), findsOneWidget);
+          await rolarAte(tester, find.text('Abrir no app do banco'));
+          await tester.tap(find.text('Abrir no app do banco'));
+          await tester.pump();
+          expect(copiados, [pixDaLoja]);
+          expect(ch.bancos, [linkDoPix(pixDaLoja)]);
+          expect(find.textContaining('PIX copiado'), findsOneWidget);
+          expect(tester.takeException(), isNull);
+        },
+      );
+
+      testWidgets('o pix marcado fica gravado quando o código aparece', (
+        tester,
+      ) async {
         final ch = await montar(tester, escuro: escuro, p: euPago());
+        await tester.pumpAndSettle();
+        expect(ch.formas, [(FormaPagamento.pix, null)]);
+      });
+
+      testWidgets('com a forma já gravada não grava de novo', (tester) async {
+        final ch = await montar(
+          tester,
+          escuro: escuro,
+          p: euPago(forma: FormaPagamento.pix),
+        );
+        await tester.pumpAndSettle();
+        expect(ch.formas, isEmpty);
+      });
+
+      testWidgets('sem chave pix não grava a forma', (tester) async {
+        final ch = await montar(tester, escuro: escuro, p: euPago(), pix: null);
+        await tester.pumpAndSettle();
+        expect(find.text('Combine o pagamento com a loja.'), findsOneWidget);
+        expect(ch.formas, isEmpty);
+      });
+
+      testWidgets('se não gravar, o código continua na tela', (tester) async {
+        await montar(
+          tester,
+          escuro: escuro,
+          p: euPago(),
+          escolher: (_, _) async => throw Exception('sem rede'),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text(pixDaLoja), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('formas de pagamento', (tester) async {
+        final ch = await montar(
+          tester,
+          escuro: escuro,
+          p: euPago(forma: FormaPagamento.pix),
+        );
         await rolarAte(tester, find.text('Cartão na loja'));
         await tester.tap(find.text('Cartão na loja'));
         await tester.pumpAndSettle();
@@ -605,6 +678,7 @@ void main() {
                 escolherPagamento: (_, _) async {},
                 criarLink: (_, _, _) async => 'COD',
                 abrirLink: (_) async {},
+                abrirBanco: (_) async {},
               ),
             ),
           ),

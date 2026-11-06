@@ -165,7 +165,9 @@
           <div class="codigo" id="codigo">${escapar(p.pix)}</div>
           <button id="copiar" class="secundario">Copiar</button>
           <div id="erro" class="erro" hidden></div>
-          <button id="paguei">Já paguei</button>
+          ${p.automatico
+            ? '<p class="suave">Assim que o banco confirmar, esta página atualiza sozinha.</p>'
+            : '<button id="paguei">Já paguei</button>'}
         </div>`;
     }
 
@@ -180,6 +182,8 @@
         q.make();
         qr.innerHTML = q.createSvgTag(4, 2);
       }
+
+      if (p.automatico) vigiar();
 
       const copiar = document.getElementById('copiar');
       if (copiar) copiar.onclick = async () => {
@@ -243,9 +247,10 @@
     }
 
     function mostrar(p, corrigindo = false) {
+      clearInterval(vigia);
       const t = tela(p, corrigindo);
       let corpo;
-      if (t === 'pago') corpo = estado('✅', 'Pagamento confirmado pela loja.', 'A loja segue com a separação e a entrega dos materiais.');
+      if (t === 'pago') corpo = estado('✅', 'Pagamento confirmado.', 'A loja segue com a separação e a entrega dos materiais.');
       else if (t === 'cancelado') corpo = estado('⛔', 'Este pedido foi cancelado.', 'Fale com quem montou o orçamento para saber o que mudou.');
       else if (t === 'informado') corpo = estado('⏳', 'Pronto! A loja vai conferir o pagamento e confirmar.', 'Você não precisa fazer mais nada por aqui.');
       else if (t === 'sem_chave') corpo = estado('💬', 'A loja ainda não cadastrou a chave PIX.', 'Seus dados para a nota foram recebidos. Fale com a loja para combinar o pagamento.');
@@ -258,10 +263,40 @@
       app.innerHTML = estado('🔗', 'Link inválido', 'Este link foi substituído ou não existe. Peça um link novo a quem montou o orçamento.');
     }
 
+    // Com a loja no Asaas o PIX vira uma cobrança que confirma sozinha. Sem isso, ou se falhar, fica o PIX da chave da loja.
+    async function comPixAutomatico(p) {
+      if (tela(p) !== 'pagamento') return p;
+      try {
+        const resposta = await fetch(`${SUPABASE_URL}/functions/v1/pix-asaas`, {
+          method: 'POST',
+          headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ acao: 'cobrar', codigo }),
+        });
+        const dados = await resposta.json();
+        if (resposta.ok && dados.codigo) return { ...p, pix: dados.codigo, automatico: true };
+      } catch {
+        // Segue com a chave da loja
+      }
+      return p;
+    }
+
+    // O aviso do banco chega no servidor: a página pergunta de tempos em tempos até o pedido sair de "aguardando"
+    let vigia;
+    function vigiar() {
+      vigia = setInterval(async () => {
+        try {
+          const p = await rpc('pedido_do_link', { p_codigo: codigo });
+          if (p.situacao === 'pago' || p.situacao === 'cancelado') mostrar(p);
+        } catch {
+          // Tenta de novo na próxima volta
+        }
+      }, 5000);
+    }
+
     async function carregar() {
       if (!codigo) return invalido();
       try {
-        mostrar(await rpc('pedido_do_link', { p_codigo: codigo }));
+        mostrar(await comPixAutomatico(await rpc('pedido_do_link', { p_codigo: codigo })));
       } catch (e) {
         if (e.message === LINK_INVALIDO) return invalido();
         app.innerHTML = estado('⚠️', 'Não deu para abrir o pedido', escapar(e.message)) +

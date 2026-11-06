@@ -238,7 +238,7 @@ class _PedidoScreenState extends State<PedidoScreen> {
             child: Padding(
               padding: const EdgeInsets.all(Espaco.s4),
               child: Text(
-                'A loja confirmou o pagamento em ${dataHora(pedido.pagamentoConfirmadoEm!)}.',
+                'Pagamento confirmado em ${dataHora(pedido.pagamentoConfirmadoEm!)}.',
                 style: t.bodyMedium,
               ),
             ),

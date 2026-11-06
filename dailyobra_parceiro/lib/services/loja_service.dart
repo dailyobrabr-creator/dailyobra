@@ -40,6 +40,7 @@ class DadosLoja {
     this.horario = '',
     this.status = 'ativa',
     this.chavePix,
+    this.carteiraAsaas,
     this.estoqueAtualizadoEm,
     this.cep,
     this.logradouro = '',
@@ -55,6 +56,9 @@ class DadosLoja {
 
   /// Fica em loja_pix: a equipe da loja lê, dono e gerente gravam (o construtor só vê o PIX do pedido).
   final String? chavePix;
+
+  /// Fica em loja_asaas. Com carteira, o pedido pago por PIX confirma sozinho.
+  final String? carteiraAsaas;
 
   /// Última atualização de preço e estoque pelo relatório do Santri.
   final DateTime? estoqueAtualizadoEm;
@@ -107,6 +111,10 @@ class LojaService extends ChangeNotifier {
   @visibleForTesting
   final chavesDeTeste = <String?>[];
 
+  /// O que [ligarPixAutomatico] mandaria ao servidor, quando montado por [definirParaTeste].
+  @visibleForTesting
+  final asaasDeTeste = <String?>[];
+
   Loja? get minhaLoja => _loja;
   DadosLoja get dados => _dados;
   PapelLoja get meuPapel => _papel;
@@ -131,6 +139,7 @@ class LojaService extends ChangeNotifier {
     atualizacoesDeTeste.clear();
     imagensDeTeste.clear();
     chavesDeTeste.clear();
+    asaasDeTeste.clear();
     notifyListeners();
   }
 
@@ -169,12 +178,18 @@ class LojaService extends ChangeNotifier {
             .select('chave')
             .eq('loja_id', j['id'] as String)
             .maybeSingle();
+        final asaas = await _db
+            .from('loja_asaas')
+            .select('carteira')
+            .eq('loja_id', j['id'] as String)
+            .maybeSingle();
         _dados = DadosLoja(
           cnpj: (j['cnpj'] as String?)?.trim() ?? '',
           endereco: (j['endereco'] as String?) ?? '',
           horario: (j['horario'] as String?) ?? '',
           status: (j['status'] as String?) ?? 'ativa',
           chavePix: pix?['chave'] as String?,
+          carteiraAsaas: asaas?['carteira'] as String?,
           estoqueAtualizadoEm: DateTime.tryParse(
             (j['estoque_atualizado_em'] as String?) ?? '',
           )?.toLocal(),
@@ -245,6 +260,43 @@ class LojaService extends ChangeNotifier {
         await tabela.upsert({'loja_id': loja.id, 'chave': chave});
       }
     });
+    await carregar();
+  }
+
+  /// Acha a carteira da loja no Asaas com a chave de API, que o servidor usa uma vez e não guarda.
+  Future<void> ligarPixAutomatico(String chave) async {
+    final loja = _loja;
+    if (loja == null) return;
+    if (_teste) {
+      asaasDeTeste.add(chave);
+      return;
+    }
+    await comMensagem(() async {
+      try {
+        await _db.functions.invoke(
+          'pix-asaas',
+          body: {'acao': 'ligar_loja', 'loja': loja.id, 'valor': chave},
+        );
+      } on FunctionException catch (e) {
+        final erro = (e.details as Map?)?['erro'] as String?;
+        throw FalhaComMensagem(
+          erro ?? 'Não deu para ligar o PIX automático. Tente de novo.',
+        );
+      }
+    });
+    await carregar();
+  }
+
+  Future<void> desligarPixAutomatico() async {
+    final loja = _loja;
+    if (loja == null) return;
+    if (_teste) {
+      asaasDeTeste.add(null);
+      return;
+    }
+    await comMensagem(
+      () => _db.from('loja_asaas').delete().eq('loja_id', loja.id),
+    );
     await carregar();
   }
 

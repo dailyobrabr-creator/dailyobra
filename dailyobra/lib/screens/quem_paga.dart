@@ -40,7 +40,7 @@ class QuemPaga extends StatefulWidget {
   final double saldoNoPedido;
 
   /// PIX copia e cola da loja para este pedido; nulo quando a loja não tem chave PIX.
-  final Future<String?> Function() pix;
+  final Future<PixDoPedido?> Function() pix;
   final Future<void> Function(String documento) pagarEuMesmo;
   final Future<void> Function(bool usar) usarSaldo;
   final Future<void> Function(FormaPagamento forma, String? prazo)
@@ -59,7 +59,7 @@ class QuemPaga extends StatefulWidget {
 }
 
 class _QuemPagaState extends State<QuemPaga> {
-  late Future<String?> _pix = widget.pix();
+  late Future<PixDoPedido?> _pix = widget.pix();
   late Pagador? _escolha = widget.pedido.pagador;
   late final _documento = TextEditingController(
     text: widget.documentoDoPerfil ?? '',
@@ -259,7 +259,7 @@ class _QuemPagaState extends State<QuemPaga> {
       titulo: 'Quem paga este pedido?',
       child: Padding(
         padding: const EdgeInsets.all(Espaco.s4),
-        child: FutureBuilder<String?>(
+        child: FutureBuilder<PixDoPedido?>(
           future: _pix,
           builder: (context, snap) {
             // Ao buscar de novo, segue mostrando o PIX que já tinha
@@ -339,7 +339,7 @@ class _QuemPagaState extends State<QuemPaga> {
   List<Widget> _euPago(
     TextTheme t,
     CoresDailyObra c,
-    String? pix, {
+    PixDoPedido? pix, {
     required bool semValor,
   }) {
     if (!_proprioConfirmado || _alterandoTitular) {
@@ -506,10 +506,11 @@ class _QuemPagaState extends State<QuemPaga> {
     await widget.abrirBanco(linkDoPix(pix));
   }
 
-  List<Widget> _pagarComPix(TextTheme t, CoresDailyObra c, String? pix) {
-    if (pix == null) {
+  List<Widget> _pagarComPix(TextTheme t, CoresDailyObra c, PixDoPedido? dados) {
+    if (dados == null) {
       return [Text('Combine o pagamento com a loja.', style: t.bodyMedium)];
     }
+    final pix = dados.codigo;
     _gravarPixMarcado();
     return [
       Text('PIX da loja', style: t.titleSmall),
@@ -540,7 +541,9 @@ class _QuemPagaState extends State<QuemPaga> {
       SelectableText(pix, style: t.bodySmall),
       const SizedBox(height: Espaco.s2),
       Text(
-        'Pague pelo app do seu banco. A loja confirma aqui quando receber.',
+        dados.automatico
+            ? 'Pague pelo app do seu banco. O pedido confirma sozinho quando o pagamento cair.'
+            : 'Pague pelo app do seu banco. A loja confirma aqui quando receber.',
         style: t.bodySmall?.copyWith(color: c.textoSuave),
       ),
     ];

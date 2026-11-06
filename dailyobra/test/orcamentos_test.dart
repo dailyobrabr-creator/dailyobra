@@ -291,10 +291,7 @@ void main() {
           escuro: escuro,
         );
         expect(find.text('Quem paga este pedido?'), findsNothing);
-        expect(
-          find.textContaining('A loja confirmou o pagamento'),
-          findsOneWidget,
-        );
+        expect(find.textContaining('Pagamento confirmado em'), findsOneWidget);
       });
 
       testWidgets('pedido saiu para entrega marca o terceiro passo', (

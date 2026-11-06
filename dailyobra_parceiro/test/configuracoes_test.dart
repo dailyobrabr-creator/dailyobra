@@ -197,6 +197,51 @@ void main() {
         expect(LojaService.instance.chavesDeTeste, ['11222333000181']);
       });
 
+      testWidgets('pix automático: cola a chave e liga', (tester) async {
+        preparar();
+        await abrirConfiguracoes(tester, escuro: escuro, secao: 'Pagamento');
+        await rolarAte(tester, find.text('Ligar PIX automático'));
+        await tester.tap(find.text('Ligar PIX automático'));
+        await tester.pumpAndSettle();
+        expect(find.text('Cole a chave de API do Asaas.'), findsOneWidget);
+        expect(LojaService.instance.asaasDeTeste, isEmpty);
+        await tester.enterText(
+          find.byKey(const ValueKey('asaas-chave')),
+          '  chave-da-loja  ',
+        );
+        await tester.tap(find.text('Ligar PIX automático'));
+        await tester.pumpAndSettle();
+        expect(LojaService.instance.asaasDeTeste, ['chave-da-loja']);
+        expect(
+          tester
+              .widget<EditableText>(
+                find.descendant(
+                  of: find.byKey(const ValueKey('asaas-chave')),
+                  matching: find.byType(EditableText),
+                ),
+              )
+              .controller
+              .text,
+          isEmpty,
+          reason: 'a chave não fica na tela',
+        );
+      });
+
+      testWidgets('pix automático ligado pode ser desligado', (tester) async {
+        preparar(
+          dados: const DadosLoja(
+            cnpj: '11222333000181',
+            carteiraAsaas: '7bafd95a-e783-4a62-9be1-23999af742c6',
+          ),
+        );
+        await abrirConfiguracoes(tester, escuro: escuro, secao: 'Pagamento');
+        expect(find.byKey(const ValueKey('asaas-chave')), findsNothing);
+        await rolarAte(tester, find.text('Desligar PIX automático'));
+        await tester.tap(find.text('Desligar PIX automático'));
+        await tester.pumpAndSettle();
+        expect(LojaService.instance.asaasDeTeste, [null]);
+      });
+
       testWidgets('salva endereço e horário', (tester) async {
         preparar(
           dados: const DadosLoja(

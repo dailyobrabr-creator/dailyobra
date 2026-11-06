@@ -12,6 +12,13 @@ enum Pagador {
   static Pagador? fromCodigo(String? c) => values.where((v) => v.codigo == c).firstOrNull;
 }
 
+/// PIX do pedido. Automático é a cobrança do Asaas, que confirma o pedido sozinha; senão é a chave da loja, que confere à mão.
+class PixDoPedido {
+  const PixDoPedido(this.codigo, {this.automatico = false});
+  final String codigo;
+  final bool automatico;
+}
+
 /// Como o construtor paga no "Eu pago": PIX da loja, cartão na maquininha da loja ou crediário que a loja aprova.
 enum FormaPagamento {
   pix('pix', 'PIX'),

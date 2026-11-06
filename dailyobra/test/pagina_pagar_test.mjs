@@ -63,3 +63,15 @@ test('Corrigir volta ao formulário', () => {
   assert.match(pagina.formulario(comPix(), true), /id="voltar"/);
   assert.doesNotMatch(pagina.formulario(pedido()), /id="voltar"/);
 });
+
+test('PIX automático não pede Já paguei e avisa que atualiza sozinha', () => {
+  const tela = pagina.pagamento(pedido({ pix: 'PIX', situacao: 'aguardando_pagamento', automatico: true }));
+  assert.doesNotMatch(tela, /Já paguei/);
+  assert.match(tela, /atualiza sozinha/);
+});
+
+test('PIX da chave da loja segue com Já paguei', () => {
+  const tela = pagina.pagamento(pedido({ pix: 'PIX', situacao: 'aguardando_pagamento' }));
+  assert.match(tela, /Já paguei/);
+  assert.doesNotMatch(tela, /atualiza sozinha/);
+});

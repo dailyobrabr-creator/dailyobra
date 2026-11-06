@@ -65,7 +65,7 @@ Future<Chamadas> montar(
   required bool escuro,
   PedidoResumo? p,
   String? pix = pixDaLoja,
-  Future<String?> Function()? carregarPix,
+  Future<PixDoPedido?> Function()? carregarPix,
   Future<void> Function(FormaPagamento, String?)? escolher,
   String? documentoDoPerfil,
   double saldoDisponivel = 0,
@@ -84,7 +84,7 @@ Future<Chamadas> montar(
           documentoDoPerfil: documentoDoPerfil,
           saldoDisponivel: saldoDisponivel,
           saldoNoPedido: saldoNoPedido,
-          pix: carregarPix ?? () async => pix,
+          pix: carregarPix ?? () async => pix == null ? null : PixDoPedido(pix),
           pagarEuMesmo: (doc) async => ch.documentos.add(doc),
           usarSaldo: (usar) async => ch.saldos.add(usar),
           escolherPagamento:
@@ -355,7 +355,7 @@ void main() {
                 'Sem conexão. Confira a internet e tente de novo.',
               );
             }
-            return pixDaLoja;
+            return const PixDoPedido(pixDaLoja);
           },
         );
         expect(
@@ -435,7 +435,7 @@ void main() {
                 documentoDoPerfil: null,
                 saldoDisponivel: 0,
                 saldoNoPedido: 0,
-                pix: () async => pixDaLoja,
+                pix: () async => const PixDoPedido(pixDaLoja),
                 pagarEuMesmo: (_) async {},
                 usarSaldo: (_) async {},
                 escolherPagamento: (_, _) async {},
@@ -572,6 +572,33 @@ void main() {
         expect(ch.formas, [(FormaPagamento.pix, null)]);
       });
 
+      testWidgets('o pix da chave diz que a loja confere', (tester) async {
+        await montar(tester, escuro: escuro, p: euPago());
+        expect(
+          find.text(
+            'Pague pelo app do seu banco. A loja confirma aqui quando receber.',
+          ),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('o pix automático diz que confirma sozinho', (tester) async {
+        await montar(
+          tester,
+          escuro: escuro,
+          p: euPago(),
+          carregarPix: () async =>
+              const PixDoPedido(pixDaLoja, automatico: true),
+        );
+        expect(
+          find.text(
+            'Pague pelo app do seu banco. O pedido confirma sozinho quando o pagamento cair.',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Abrir no app do banco'), findsOneWidget);
+      });
+
       testWidgets('com a forma já gravada não grava de novo', (tester) async {
         final ch = await montar(
           tester,
@@ -671,7 +698,7 @@ void main() {
                 saldoNoPedido: 0,
                 pix: () async {
                   buscas++;
-                  return pixDaLoja;
+                  return const PixDoPedido(pixDaLoja);
                 },
                 pagarEuMesmo: (_) async {},
                 usarSaldo: (_) async {},

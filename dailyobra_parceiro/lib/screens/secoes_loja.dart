@@ -14,12 +14,16 @@ class _Formulario extends StatelessWidget {
     required this.onSalvar,
     this.topo,
     this.erro,
+    this.rodape,
   });
   final List<Widget> campos;
   final bool salvando;
   final VoidCallback onSalvar;
   final Widget? topo;
   final String? erro;
+
+  /// Abaixo do Salvar, para quem gere a loja.
+  final Widget? rodape;
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +66,10 @@ class _Formulario extends StatelessWidget {
                   onPressed: salvando ? null : onSalvar,
                   child: Text(salvando ? 'Salvando…' : 'Salvar'),
                 ),
+                if (rodape case final parte?) ...[
+                  const SizedBox(height: Espaco.s8),
+                  parte,
+                ],
               ],
             ],
           ),
@@ -492,6 +500,7 @@ class _SecaoPagamentoState extends State<SecaoPagamento> with _Gravacao {
   Widget build(BuildContext context) => _Formulario(
     salvando: salvando,
     onSalvar: _salvar,
+    rodape: const _PixAutomatico(),
     campos: [
       CampoTexto(
         key: const ValueKey('chave-pix'),
@@ -502,6 +511,79 @@ class _SecaoPagamentoState extends State<SecaoPagamento> with _Gravacao {
       ),
     ],
   );
+}
+
+/// Liga a loja ao Asaas: pedido pago por PIX confirma sozinho e o valor cai na conta da loja lá.
+class _PixAutomatico extends StatefulWidget {
+  const _PixAutomatico();
+
+  @override
+  State<_PixAutomatico> createState() => _PixAutomaticoState();
+}
+
+class _PixAutomaticoState extends State<_PixAutomatico> with _Gravacao {
+  final _servico = LojaService.instance;
+  final _chave = TextEditingController();
+
+  @override
+  void dispose() {
+    _chave.dispose();
+    super.dispose();
+  }
+
+  Future<void> _ligar() async {
+    final chave = _chave.text.trim();
+    if (chave.isEmpty) return avisar(context, 'Cole a chave de API do Asaas.');
+    await gravar(() => _servico.ligarPixAutomatico(chave));
+    if (mounted) _chave.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final c = context.cores;
+    return ListenableBuilder(
+      listenable: _servico,
+      builder: (context, _) {
+        final ligado = _servico.dados.carteiraAsaas != null;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('PIX automático', style: t.titleSmall),
+            const SizedBox(height: Espaco.s1),
+            Text(
+              ligado
+                  ? 'Ligado. Pedido pago por PIX confirma sozinho e o valor cai na sua conta Asaas, já sem a tarifa.'
+                  : 'Com uma conta no Asaas, o pedido pago por PIX confirma sozinho e o valor cai lá, já sem a tarifa.',
+              style: t.bodySmall?.copyWith(color: c.textoSuave),
+            ),
+            const SizedBox(height: Espaco.s3),
+            if (ligado)
+              OutlinedButton(
+                onPressed: salvando
+                    ? null
+                    : () => gravar(_servico.desligarPixAutomatico),
+                child: const Text('Desligar PIX automático'),
+              )
+            else ...[
+              CampoTexto(
+                key: const ValueKey('asaas-chave'),
+                rotulo: 'Chave de API do Asaas',
+                controller: _chave,
+                senha: true,
+                ajuda: 'No Asaas: Integrações, Chaves de API. Usamos uma vez para achar sua carteira e não guardamos.',
+              ),
+              const SizedBox(height: Espaco.s3),
+              OutlinedButton(
+                onPressed: salvando ? null : _ligar,
+                child: Text(salvando ? 'Ligando…' : 'Ligar PIX automático'),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
 }
 
 class SecaoAparencia extends StatelessWidget {

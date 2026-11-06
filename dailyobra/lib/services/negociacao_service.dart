@@ -261,13 +261,27 @@ class NegociacaoService extends ChangeNotifier {
     'p_status': 'cancelado',
   });
 
-  /// PIX copia e cola da loja para o pedido (função pix_do_pedido); nulo quando a loja não tem chave PIX.
-  Future<String?> pixDoPedido(String pedidoId) async {
-    if (_teste) return _pixTeste;
+  /// PIX do pedido: a cobrança do Asaas quando a loja tem carteira lá; fora isso, ou se o Asaas falhar, o copia e cola da
+  /// chave da loja (função pix_do_pedido). Nulo quando a loja não tem chave PIX.
+  Future<PixDoPedido?> pixDoPedido(String pedidoId) async {
+    if (_teste) {
+      final pix = _pixTeste;
+      return pix == null ? null : PixDoPedido(pix);
+    }
+    try {
+      final resposta = await _db.functions.invoke(
+        'pix-asaas',
+        body: {'acao': 'cobrar', 'pedido': pedidoId},
+      );
+      final codigo = (resposta.data as Map?)?['codigo'] as String?;
+      if (codigo != null) return PixDoPedido(codigo, automatico: true);
+    } on Exception {
+      // Segue com a chave da loja
+    }
     final pix = await comMensagem(
       () => _db.rpc('pix_do_pedido', params: {'p_pedido': pedidoId}),
     );
-    return pix as String?;
+    return pix == null ? null : PixDoPedido(pix as String);
   }
 
   /// "Eu pago": a nota sai no CPF/CNPJ do construtor (fica salvo no perfil).

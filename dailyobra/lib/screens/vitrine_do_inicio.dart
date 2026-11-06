@@ -5,6 +5,7 @@ import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+import '../services/anuncios_service.dart';
 import 'categoria_screen.dart';
 import 'componentes.dart';
 import 'loja_screen.dart';
@@ -234,10 +235,17 @@ class FaixaDaObra extends StatelessWidget {
 /// Banners do Início: primeiro as campanhas das lojas, que chegam como a loja subiu, depois os do DailyObra.
 /// Passa sozinho, menos para quem pediu ao aparelho para reduzir o movimento.
 class CarrosselDeBanners extends StatefulWidget {
-  const CarrosselDeBanners({super.key, required this.lojas});
+  const CarrosselDeBanners({
+    super.key,
+    required this.lojas,
+    this.anuncios = const [],
+  });
 
   /// Lojas com banner, na ordem de mostrar.
   final List<Loja> lojas;
+
+  /// Banners pagos no ar: vêm antes dos banners das lojas.
+  final List<(Anuncio, Loja)> anuncios;
 
   @override
   State<CarrosselDeBanners> createState() => _CarrosselDeBannersState();
@@ -248,13 +256,26 @@ class _CarrosselDeBannersState extends State<CarrosselDeBanners> {
   Timer? _relogio;
   var _atual = 0;
 
-  List<Loja> get _lojas => widget.lojas.take(_bannersDeLojas).toList();
-  int get _total => _lojas.length + _bannersDaMarca;
+  List<(Anuncio, Loja)> get _anuncios =>
+      widget.anuncios.take(_bannersDeLojas).toList();
+  List<Loja> get _lojas =>
+      widget.lojas.take(_bannersDeLojas - _anuncios.length).toList();
+  int get _total => _anuncios.length + _lojas.length + _bannersDaMarca;
+
+  /// O banner pago na tela conta como visto; só o que apareceu conta.
+  void _contarImpressao(int pagina) {
+    if (pagina < _anuncios.length) {
+      AnunciosService.instance.impressao(_anuncios[pagina].$1.id);
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _ligarRelogio();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _atual < _anuncios.length) _contarImpressao(_atual);
+    });
   }
 
   @override
@@ -288,6 +309,8 @@ class _CarrosselDeBannersState extends State<CarrosselDeBanners> {
   List<Widget> _slides(BuildContext context) {
     final c = context.cores;
     return [
+      for (final (anuncio, loja) in _anuncios)
+        _SlideDoAnuncio(anuncio: anuncio, loja: loja),
       for (final loja in _lojas) _SlideDaLoja(loja: loja),
       _SlideDaMarca(
         titulo: 'Sua obra inteira em um só lugar',
@@ -352,6 +375,7 @@ class _CarrosselDeBannersState extends State<CarrosselDeBanners> {
                       controller: _paginas,
                       onPageChanged: (pagina) {
                         setState(() => _atual = pagina);
+                        _contarImpressao(pagina);
                         _ligarRelogio();
                       },
                       children: _slides(context),
@@ -412,6 +436,56 @@ class _Marcas extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Banner pago: a imagem da campanha inteira, com o aviso de patrocinado. Tocar abre a loja.
+class _SlideDoAnuncio extends StatelessWidget {
+  const _SlideDoAnuncio({required this.anuncio, required this.loja});
+  final Anuncio anuncio;
+  final Loja loja;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.cores;
+    final t = Theme.of(context).textTheme;
+    return Semantics(
+      button: true,
+      label: 'Anúncio de ${loja.nome}',
+      excludeSemantics: true,
+      child: Material(
+        color: c.cartaoEscuro,
+        child: InkWell(
+          onTap: () {
+            AnunciosService.instance.clique(anuncio.id);
+            _abrir(context, LojaScreen(lojaId: loja.id));
+          },
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.network(
+                anuncio.imagemUrl!,
+                fit: BoxFit.contain,
+                errorBuilder: (_, _, _) => Center(
+                  child: Text(
+                    loja.nome,
+                    style: t.titleLarge?.copyWith(
+                      color: c.textoCartaoEscuro,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              const Positioned(
+                top: Espaco.s2,
+                right: Espaco.s2,
+                child: SeloPatrocinado(),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

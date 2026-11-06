@@ -562,12 +562,16 @@ class CartaoOfertaComBotao extends StatelessWidget {
     required this.hoje,
     this.nomeLoja,
     this.loja,
+    this.patrocinado = false,
     this.noOrcamento = false,
     this.onTap,
     this.onAdicionar,
   });
   final ItemCatalogo item;
   final Oferta? oferta;
+
+  /// Destaque pago pela loja.
+  final bool patrocinado;
   final DateTime hoje;
   final String? nomeLoja;
 
@@ -588,6 +592,7 @@ class CartaoOfertaComBotao extends StatelessWidget {
           hoje: hoje,
           nomeLoja: nomeLoja,
           loja: loja,
+          patrocinado: patrocinado,
           onTap: onTap,
         ),
         if (onAdicionar != null)

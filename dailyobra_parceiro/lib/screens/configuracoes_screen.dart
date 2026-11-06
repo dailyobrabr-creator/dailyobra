@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../services/loja_service.dart';
 import '../services/propostas_loja_service.dart';
+import 'anuncios_screen.dart';
 import 'clientes_screen.dart';
 import 'componentes.dart';
 import 'equipe_screen.dart';
@@ -155,6 +156,19 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                           context,
                           MaterialPageRoute(
                             builder: (_) => const FaturamentoScreen(),
+                          ),
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.campaign_outlined),
+                        title: const Text('Retail Media'),
+                        subtitle: const Text('Banners e destaques no app'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AnunciosScreen(),
                           ),
                         ),
                       ),

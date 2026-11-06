@@ -1,11 +1,13 @@
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
 
+import '../services/anuncios_service.dart';
 import '../services/clientes_service.dart';
 import '../services/loja_service.dart';
 import '../services/ofertas_service.dart';
 import '../services/propostas_loja_service.dart';
 import '../services/resultados_service.dart';
+import 'anuncios_screen.dart';
 import 'atualizar_estoque_screen.dart';
 import 'clientes_screen.dart';
 import 'componentes.dart';
@@ -20,7 +22,7 @@ import 'produtos_screen.dart';
 import 'propostas_screen.dart';
 
 /// Navegação do painel da loja: Dashboard, Propostas, Pedidos, Mesa do Gerente, Faturamento / Caixa, Produtos,
-/// Sincronização D+0, Clientes, Usuários e Configurações, na moldura de cada largura.
+/// Sincronização D+0, Retail Media, Clientes, Usuários e Configurações, na moldura de cada largura.
 class NavegacaoScreen extends StatefulWidget {
   const NavegacaoScreen({super.key, required this.tema});
   final PreferenciaTema tema;
@@ -35,6 +37,7 @@ class _NavegacaoScreenState extends State<NavegacaoScreen> {
 
   /// As duas só existem para quem pode usar: montam ao abrir pela primeira vez.
   var _sincronizacaoAberta = false;
+  var _anunciosAberta = false;
   var _usuariosAberta = false;
 
   @override
@@ -54,6 +57,7 @@ class _NavegacaoScreenState extends State<NavegacaoScreen> {
     OfertasService.instance.limpar();
     ResultadosService.instance.limpar();
     ClientesService.instance.limpar();
+    AnunciosService.instance.limpar();
     super.dispose();
   }
 
@@ -64,6 +68,7 @@ class _NavegacaoScreenState extends State<NavegacaoScreen> {
       builder: (context, aba, _) {
         if (aba == Aba.clientes) _clientesAberta = true;
         if (aba == Aba.sincronizacao) _sincronizacaoAberta = true;
+        if (aba == Aba.anuncios) _anunciosAberta = true;
         if (aba == Aba.usuarios) _usuariosAberta = true;
         return PopScope(
           canPop: aba == Aba.inicio,
@@ -97,6 +102,10 @@ class _NavegacaoScreenState extends State<NavegacaoScreen> {
                   const ProdutosScreen(),
                   if (_sincronizacaoAberta)
                     const AtualizarEstoqueScreen()
+                  else
+                    const SizedBox.shrink(),
+                  if (_anunciosAberta)
+                    const AnunciosScreen()
                   else
                     const SizedBox.shrink(),
                   if (_clientesAberta)

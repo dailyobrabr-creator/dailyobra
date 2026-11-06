@@ -1,10 +1,13 @@
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
 
+import '../services/anuncios_service.dart';
 import '../services/carrinho_service.dart';
 import '../services/catalogo_service.dart';
 import 'componentes.dart';
 import 'produto_screen.dart';
+
+const _destaquesPorLista = 2;
 
 enum _Ordem {
   relevancia('Relevância'),
@@ -42,6 +45,36 @@ class _ListaProdutosState extends State<ListaProdutos> {
     MaterialPageRoute(builder: (_) => ProdutoScreen(itemId: item.id)),
   );
 
+  /// Os destaques pagos que sobem na lista, no máximo dois. Só eles têm o selo e o preço de quem anuncia, e contam como
+  /// vistos.
+  Set<ItemCatalogo> _destaques(List<ItemCatalogo> itens, DateTime hoje) {
+    final catalogo = CatalogoService.instance;
+    final destaques = itens
+        .where((i) => catalogo.destaqueDoItem(i.id, hoje) != null)
+        .take(_destaquesPorLista)
+        .toSet();
+    if (destaques.isEmpty) return destaques;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final item in destaques) {
+        final destaque = catalogo.destaqueDoItem(item.id, hoje);
+        if (destaque != null) {
+          AnunciosService.instance.impressao(destaque.anuncio.id);
+        }
+      }
+    });
+    return destaques;
+  }
+
+  List<ItemCatalogo> _primeiro(
+    Set<ItemCatalogo> destaques,
+    List<ItemCatalogo> itens,
+  ) => [...destaques, ...itens.where((i) => !destaques.contains(i))];
+
+  void _abrirDestaque(ItemCatalogo item, Anuncio anuncio) {
+    AnunciosService.instance.clique(anuncio.id);
+    _abrir(item);
+  }
+
   void _adicionar(ItemCatalogo item) {
     CarrinhoService.instance.adicionar(item.id, 1);
     avisarAdicionado(context, item.nome);
@@ -57,7 +90,8 @@ class _ListaProdutosState extends State<ListaProdutos> {
       listenable: Listenable.merge([catalogo, carrinho]),
       builder: (context, _) {
         if (formato == Formato.celular) {
-          final itens = widget.itens;
+          final destaques = _destaques(widget.itens, hoje);
+          final itens = _primeiro(destaques, widget.itens);
           final cabecalho = widget.cabecalho;
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(
@@ -73,16 +107,21 @@ class _ListaProdutosState extends State<ListaProdutos> {
               if (i < cabecalho.length) return cabecalho[i];
               final item = itens[i - cabecalho.length];
               final resumo = catalogo.resumoDoItem(item.id, hoje: hoje);
+              final destaque = destaques.contains(item)
+                  ? catalogo.destaqueDoItem(item.id, hoje)
+                  : null;
+              final oferta = destaque?.oferta ?? resumo.oferta;
               return CartaoProduto(
                 item: item,
-                melhorOferta: resumo.oferta,
+                melhorOferta: oferta,
                 lojas: resumo.lojas,
-                loja: resumo.oferta == null
-                    ? null
-                    : catalogo.loja(resumo.oferta!.lojaId),
+                loja: oferta == null ? null : catalogo.loja(oferta.lojaId),
+                patrocinado: destaque != null,
                 hoje: hoje,
                 noOrcamento: carrinho.contem(item.id),
-                onTap: () => _abrir(item),
+                onTap: destaque == null
+                    ? () => _abrir(item)
+                    : () => _abrirDestaque(item, destaque.anuncio),
                 onAdicionar: () => _adicionar(item),
               );
             },
@@ -97,12 +136,17 @@ class _ListaProdutosState extends State<ListaProdutos> {
             i.id: catalogo.resumoDoItem(i.id, hoje: hoje).oferta,
         };
         double? preco(ItemCatalogo i) => ofertas[i.id]?.precoVigente(hoje);
-        final itens = [
+        final filtrados = [
           for (final i in widget.itens)
             if ((categoria == null || i.categoriaId == categoria) &&
                 (!_soComOferta || preco(i) != null))
               i,
         ];
+        // Com a pessoa pedindo outra ordem, o patrocinado não passa na frente
+        final destaques = _ordem == _Ordem.relevancia
+            ? _destaques(filtrados, hoje)
+            : <ItemCatalogo>{};
+        final itens = _primeiro(destaques, filtrados);
         switch (_ordem) {
           case _Ordem.relevancia:
             break;
@@ -120,6 +164,25 @@ class _ListaProdutosState extends State<ListaProdutos> {
             itens.sort(
               (a, b) => a.nome.toLowerCase().compareTo(b.nome.toLowerCase()),
             );
+        }
+
+        Widget cartao(ItemCatalogo item) {
+          final destaque = destaques.contains(item)
+              ? catalogo.destaqueDoItem(item.id, hoje)
+              : null;
+          final oferta = destaque?.oferta ?? ofertas[item.id];
+          return CartaoOfertaComBotao(
+            item: item,
+            oferta: oferta,
+            loja: oferta == null ? null : catalogo.loja(oferta.lojaId),
+            patrocinado: destaque != null,
+            hoje: hoje,
+            noOrcamento: carrinho.contem(item.id),
+            onTap: destaque == null
+                ? () => _abrir(item)
+                : () => _abrirDestaque(item, destaque.anuncio),
+            onAdicionar: () => _adicionar(item),
+          );
         }
 
         final filtros = Wrap(
@@ -177,20 +240,7 @@ class _ListaProdutosState extends State<ListaProdutos> {
                 else
                   GradeCartoes(
                     colunas: colunasDaGrade(formato),
-                    filhos: [
-                      for (final item in itens)
-                        CartaoOfertaComBotao(
-                          item: item,
-                          oferta: ofertas[item.id],
-                          loja: ofertas[item.id] == null
-                              ? null
-                              : catalogo.loja(ofertas[item.id]!.lojaId),
-                          hoje: hoje,
-                          noOrcamento: carrinho.contem(item.id),
-                          onTap: () => _abrir(item),
-                          onAdicionar: () => _adicionar(item),
-                        ),
-                    ],
+                    filhos: [for (final item in itens) cartao(item)],
                   ),
               ],
             );

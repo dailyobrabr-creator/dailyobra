@@ -129,6 +129,21 @@ class PrecoOferta extends StatelessWidget {
   }
 }
 
+/// Aviso de anúncio: quem paga para aparecer na frente precisa estar identificado.
+class SeloPatrocinado extends StatelessWidget {
+  const SeloPatrocinado({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.cores;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: Espaco.s2, vertical: 2),
+      decoration: BoxDecoration(color: c.superficie, borderRadius: BorderRadius.circular(999), border: Border.all(color: c.borda)),
+      child: Text('Patrocinado', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: c.textoSuave, fontWeight: FontWeight.w600)),
+    );
+  }
+}
+
 class _SeloOferta extends StatelessWidget {
   const _SeloOferta();
 
@@ -152,6 +167,7 @@ class CartaoProduto extends StatelessWidget {
     this.melhorOferta,
     this.lojas = 0,
     this.loja,
+    this.patrocinado = false,
     this.noOrcamento = false,
     this.onTap,
     this.onAdicionar,
@@ -159,6 +175,9 @@ class CartaoProduto extends StatelessWidget {
   final ItemCatalogo item;
   final DateTime hoje;
   final Oferta? melhorOferta;
+
+  /// Destaque pago pela loja.
+  final bool patrocinado;
 
   /// Em quantas lojas o produto tem oferta.
   final int lojas;
@@ -191,6 +210,7 @@ class CartaoProduto extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (patrocinado) ...[const SeloPatrocinado(), const SizedBox(height: Espaco.s1)],
                     if (oferta != null && oferta.emPromocao(hoje)) ...[const _SeloOferta(), const SizedBox(height: Espaco.s1)],
                     Text(item.nome, maxLines: 2, overflow: TextOverflow.ellipsis, style: t.titleSmall),
                     const SizedBox(height: Espaco.s1),

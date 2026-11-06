@@ -18,6 +18,7 @@ const List<_ItemMenu> _itens = [
   ),
   (Aba.produtos, Icons.sell_outlined, Icons.sell, 'Produtos'),
   (Aba.sincronizacao, Icons.sync_outlined, Icons.sync, 'Sincronização D+0'),
+  (Aba.anuncios, Icons.campaign_outlined, Icons.campaign, 'Retail Media'),
   (Aba.clientes, Icons.people_outline, Icons.people, 'Clientes'),
   (
     Aba.usuarios,
@@ -33,11 +34,17 @@ const _foraDoCelular = {
   Aba.mesa,
   Aba.faturamento,
   Aba.sincronizacao,
+  Aba.anuncios,
   Aba.clientes,
   Aba.usuarios,
 };
 
-const _soQuemGere = {Aba.mesa, Aba.faturamento, Aba.sincronizacao};
+const _soQuemGere = {
+  Aba.mesa,
+  Aba.faturamento,
+  Aba.sincronizacao,
+  Aba.anuncios,
+};
 
 final _itensDoCelular = [
   for (final item in _itens)
@@ -224,13 +231,15 @@ class _MenuLateral extends StatelessWidget {
     return Container(
       key: const Key('menu-lateral'),
       width: 248,
+      height: double.infinity,
       decoration: BoxDecoration(
         color: c.superficie,
         border: Border(right: BorderSide(color: c.borda)),
       ),
       child: SafeArea(
         right: false,
-        child: Padding(
+        // Em janelas baixas o menu rola em vez de estourar
+        child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(
             Espaco.s4,
             Espaco.s5,

@@ -18,6 +18,7 @@ class CatalogoService extends ChangeNotifier {
   List<Loja> _lojas = [];
   Map<String, Loja> _lojaPorId = const {};
   List<Oferta> _ofertas = const [];
+  List<Anuncio> _anuncios = const [];
   Map<int, double> _tiers = const {1: 0.01, 2: 0.02, 3: 0.03, 4: 0.05};
   Map<String, (String, double)> _planilha = const {};
   String? _cidade;
@@ -50,6 +51,7 @@ class CatalogoService extends ChangeNotifier {
     List<ItemCatalogo> itens = const [],
     List<Loja> lojas = const [],
     List<Oferta> ofertas = const [],
+    List<Anuncio> anuncios = const [],
     Map<int, double>? tiers,
     Map<String, (String, double)> planilha = const {},
     String? cidade,
@@ -63,6 +65,7 @@ class CatalogoService extends ChangeNotifier {
       tiers ?? const {1: 0.01, 2: 0.02, 3: 0.03, 4: 0.05},
       planilha,
     );
+    _anuncios = anuncios;
     _cidade = cidade;
     _ordenarLojas();
     _erro = erro;
@@ -168,6 +171,7 @@ class CatalogoService extends ChangeNotifier {
         },
       );
       _ordenarLojas();
+      _anuncios = await _buscarAnuncios();
       _erro = null;
       _carregado = true;
     } catch (e) {
@@ -179,6 +183,51 @@ class CatalogoService extends ChangeNotifier {
       _carregando = false;
       notifyListeners();
     }
+  }
+
+  /// Anúncio é um extra da vitrine: se a consulta falhar, o catálogo abre sem eles.
+  Future<List<Anuncio>> _buscarAnuncios() async {
+    try {
+      final linhas = await _db
+          .from('anuncios')
+          .select(
+            'id, loja_id, tipo, titulo, imagem_path, item_id, inicio, fim, pausado',
+          );
+      return [for (final j in linhas) Anuncio.fromJson(j)];
+    } on Exception {
+      return const [];
+    }
+  }
+
+  /// Banners pagos no ar, de lojas abertas, com a imagem da campanha.
+  List<(Anuncio, Loja)> bannersPagos(DateTime hoje) => [
+    for (final a in _anuncios)
+      if (a.tipo == TipoAnuncio.banner &&
+          a.noAr(hoje) &&
+          a.imagemUrl != null &&
+          _lojaPorId[a.lojaId]?.aberta == true)
+        (a, _lojaPorId[a.lojaId]!),
+  ];
+
+  /// Destaque pago do produto, com o preço de hoje da loja que anuncia.
+  ({Anuncio anuncio, Oferta oferta, Loja loja})? destaqueDoItem(
+    String itemId,
+    DateTime hoje,
+  ) {
+    for (final a in _anuncios) {
+      if (a.tipo != TipoAnuncio.destaque || a.itemId != itemId) continue;
+      if (!a.noAr(hoje)) continue;
+      final loja = _lojaPorId[a.lojaId];
+      if (loja == null || !loja.aberta) continue;
+      for (final o in _ofertas) {
+        if (o.lojaId == a.lojaId &&
+            o.itemId == itemId &&
+            o.precoVigente(hoje) != null) {
+          return (anuncio: a, oferta: o, loja: loja);
+        }
+      }
+    }
+    return null;
   }
 
   /// Ofertas do produto que valem hoje, das lojas abertas primeiro e do menor para o maior preço.

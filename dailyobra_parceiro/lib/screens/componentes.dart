@@ -10,6 +10,7 @@ enum Aba {
   faturamento,
   produtos,
   sincronizacao,
+  anuncios,
   clientes,
   usuarios,
   configuracoes,

@@ -3,6 +3,7 @@ library;
 
 export 'src/auth/login_screen.dart';
 export 'src/auth/nova_senha_screen.dart';
+export 'src/marketplace/anuncios.dart';
 export 'src/marketplace/busca.dart';
 export 'src/marketplace/cep.dart';
 export 'src/marketplace/cnpj.dart';

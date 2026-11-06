@@ -437,7 +437,12 @@ class _Vitrine {
     final lojas = CatalogoService.instance.lojas
         .where((l) => l.bannerUrl != null)
         .toList();
-    return CarrosselDeBanners(key: ValueKey(lojas.length), lojas: lojas);
+    final anuncios = CatalogoService.instance.bannersPagos(hoje);
+    return CarrosselDeBanners(
+      key: ValueKey('${lojas.length}-${anuncios.length}'),
+      lojas: lojas,
+      anuncios: anuncios,
+    );
   }
 
   Widget? _ofertas(double m) {

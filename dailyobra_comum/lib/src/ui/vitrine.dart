@@ -51,7 +51,7 @@ class TituloSecao extends StatelessWidget {
 /// Oferta na vitrine: quadro da categoria (ou foto), selo de desconto, nome em duas linhas,
 /// loja e preço (o antigo riscado em cima). Todos têm a mesma altura para alinhar em linha.
 class CartaoOferta extends StatelessWidget {
-  const CartaoOferta({super.key, required this.item, required this.oferta, required this.hoje, this.nomeLoja, this.loja, this.onTap, this.largura});
+  const CartaoOferta({super.key, required this.item, required this.oferta, required this.hoje, this.nomeLoja, this.loja, this.patrocinado = false, this.onTap, this.largura});
   final ItemCatalogo item;
 
   /// Sem oferta, o cartão mostra o preço de referência do item (ex.: SINAPI) ou "Sem oferta no momento".
@@ -61,6 +61,9 @@ class CartaoOferta extends StatelessWidget {
 
   /// Loja do preço mostrado: a logo dela aparece ao lado do preço.
   final Loja? loja;
+
+  /// Destaque pago pela loja.
+  final bool patrocinado;
   final VoidCallback? onTap;
   final double? largura;
 
@@ -98,6 +101,7 @@ class CartaoOferta extends StatelessWidget {
                         ? Center(child: icone)
                         : Image.network(item.imagemUrl!, fit: BoxFit.cover, errorBuilder: (_, _, _) => Center(child: icone)),
                   ),
+                  if (patrocinado) const Positioned(left: 10, bottom: 8, child: SeloPatrocinado()),
                   if (desconto > 0)
                     Positioned(
                       left: 10,

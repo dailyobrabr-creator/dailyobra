@@ -197,6 +197,41 @@ void main() {
         expect(LojaService.instance.chavesDeTeste, ['11222333000181']);
       });
 
+      testWidgets('marca as formas que a loja recebe', (tester) async {
+        preparar();
+        await abrirConfiguracoes(tester, escuro: escuro, secao: 'Pagamento');
+        await rolarAte(tester, find.byKey(const ValueKey('recebe-boleto')));
+        await tester.tap(find.byKey(const ValueKey('recebe-boleto')));
+        await tester.pumpAndSettle();
+        await salvar(tester);
+        await tester.pumpAndSettle();
+        expect(LojaService.instance.atualizacoesDeTeste.last, {
+          'formas_pagamento': ['pix', 'cartao', 'boleto', 'crediario'],
+        });
+        expect(
+          LojaService.instance.chavesDeTeste,
+          isEmpty,
+          reason: 'a chave não mudou',
+        );
+      });
+
+      testWidgets('a loja não fica sem forma de pagamento', (tester) async {
+        preparar();
+        await abrirConfiguracoes(tester, escuro: escuro, secao: 'Pagamento');
+        for (final f in ['pix', 'cartao', 'crediario']) {
+          await rolarAte(tester, find.byKey(ValueKey('recebe-$f')));
+          await tester.tap(find.byKey(ValueKey('recebe-$f')));
+          await tester.pumpAndSettle();
+        }
+        await salvar(tester);
+        await tester.pumpAndSettle();
+        expect(
+          find.text('Escolha pelo menos uma forma de pagamento.'),
+          findsOneWidget,
+        );
+        expect(LojaService.instance.atualizacoesDeTeste, isEmpty);
+      });
+
       testWidgets('pix automático: cola a chave e liga', (tester) async {
         preparar();
         await abrirConfiguracoes(tester, escuro: escuro, secao: 'Pagamento');
@@ -205,10 +240,13 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('Cole a chave de API do Asaas.'), findsOneWidget);
         expect(LojaService.instance.asaasDeTeste, isEmpty);
+        await esperarAviso(tester);
         await tester.enterText(
           find.byKey(const ValueKey('asaas-chave')),
           '  chave-da-loja  ',
         );
+        await tester.ensureVisible(find.text('Ligar PIX automático'));
+        await tester.pumpAndSettle();
         await tester.tap(find.text('Ligar PIX automático'));
         await tester.pumpAndSettle();
         expect(LojaService.instance.asaasDeTeste, ['chave-da-loja']);

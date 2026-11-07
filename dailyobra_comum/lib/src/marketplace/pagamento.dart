@@ -19,10 +19,12 @@ class PixDoPedido {
   final bool automatico;
 }
 
-/// Como o construtor paga no "Eu pago": PIX da loja, cartão na maquininha da loja ou crediário que a loja aprova.
+/// Como o construtor paga. Cada loja diz quais recebe; o crediário depende de a loja aprovar o prazo.
 enum FormaPagamento {
   pix('pix', 'PIX'),
   cartao('cartao', 'Cartão na loja'),
+  boleto('boleto', 'Boleto'),
+  dinheiro('dinheiro', 'Dinheiro'),
   crediario('crediario', 'Crediário da loja');
 
   const FormaPagamento(this.codigo, this.rotulo);
@@ -31,6 +33,9 @@ enum FormaPagamento {
 
   static FormaPagamento? fromCodigo(String? c) => values.where((v) => v.codigo == c).firstOrNull;
 }
+
+/// O que a loja recebe enquanto não escolheu as formas dela.
+const formasPadrao = [FormaPagamento.pix, FormaPagamento.cartao, FormaPagamento.crediario];
 
 /// Resposta do dono ou gerente da loja ao pedido de prazo do crediário.
 enum StatusPrazo {

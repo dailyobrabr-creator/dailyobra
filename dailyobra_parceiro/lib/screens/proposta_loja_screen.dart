@@ -148,6 +148,16 @@ class _PropostaLojaScreenState extends State<PropostaLojaScreen> {
                 tom: TomSelo.aviso,
               ),
             ],
+            if (p.formaEscolhida case final forma?) ...[
+              const SizedBox(height: Espaco.s3),
+              Painel(
+                titulo: 'Forma de pagamento',
+                child: Padding(
+                  padding: const EdgeInsets.all(Espaco.s4),
+                  child: Text(forma.rotulo, style: t.bodyMedium),
+                ),
+              ),
+            ],
             if (p.mensagemConstrutor != null &&
                 p.mensagemConstrutor!.isNotEmpty) ...[
               const SizedBox(height: Espaco.s3),

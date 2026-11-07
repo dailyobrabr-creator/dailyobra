@@ -67,6 +67,8 @@ Future<Chamadas> montar(
   String? pix = pixDaLoja,
   Future<PixDoPedido?> Function()? carregarPix,
   Future<void> Function(FormaPagamento, String?)? escolher,
+  List<FormaPagamento> formas = formasPadrao,
+  FormaPagamento? sugerida,
   String? documentoDoPerfil,
   double saldoDisponivel = 0,
   double saldoNoPedido = 0,
@@ -95,6 +97,8 @@ Future<Chamadas> montar(
           },
           abrirLink: (uri) async => ch.abertos.add(uri),
           abrirBanco: (uri) async => ch.bancos.add(uri),
+          formas: formas,
+          formaSugerida: sugerida,
         ),
       ),
     ),
@@ -597,6 +601,70 @@ void main() {
           findsOneWidget,
         );
         expect(find.text('Abrir no app do banco'), findsOneWidget);
+      });
+
+      testWidgets('mostra só as formas que a loja recebe', (tester) async {
+        await montar(
+          tester,
+          escuro: escuro,
+          p: euPago(),
+          pix: null,
+          formas: const [FormaPagamento.boleto, FormaPagamento.dinheiro],
+        );
+        expect(find.widgetWithText(ChoiceChip, 'Boleto'), findsOneWidget);
+        expect(find.widgetWithText(ChoiceChip, 'Dinheiro'), findsOneWidget);
+        expect(find.widgetWithText(ChoiceChip, 'PIX'), findsNothing);
+        expect(
+          find.text('A loja ainda não cadastrou a chave PIX.'),
+          findsNothing,
+          reason: 'a loja nem recebe por PIX',
+        );
+      });
+
+      testWidgets('a forma da cotação vem marcada e fica gravada', (
+        tester,
+      ) async {
+        final ch = await montar(
+          tester,
+          escuro: escuro,
+          p: euPago(),
+          sugerida: FormaPagamento.boleto,
+          formas: const [FormaPagamento.pix, FormaPagamento.boleto],
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.text('A loja envia o boleto depois de confirmar o pedido.'),
+          findsOneWidget,
+        );
+        expect(ch.formas, [(FormaPagamento.boleto, null)]);
+      });
+
+      testWidgets('crediário da cotação ainda pede o prazo', (tester) async {
+        final ch = await montar(
+          tester,
+          escuro: escuro,
+          p: euPago(),
+          sugerida: FormaPagamento.crediario,
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Pedir prazo'), findsOneWidget);
+        expect(ch.formas, isEmpty);
+      });
+
+      testWidgets('forma da cotação que a loja tirou cai na primeira', (
+        tester,
+      ) async {
+        await montar(
+          tester,
+          escuro: escuro,
+          p: euPago(),
+          sugerida: FormaPagamento.boleto,
+          formas: const [FormaPagamento.dinheiro],
+        );
+        expect(
+          find.text('Pague em dinheiro na entrega ou retirada.'),
+          findsOneWidget,
+        );
       });
 
       testWidgets('com a forma já gravada não grava de novo', (tester) async {

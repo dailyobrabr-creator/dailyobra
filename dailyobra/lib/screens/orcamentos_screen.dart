@@ -9,6 +9,8 @@ import 'componentes.dart';
 import 'pedido_screen.dart';
 import 'proposta_screen.dart';
 
+typedef _EnvioDaProposta = ({String mensagem, Map<String, double> ofertas});
+
 /// Cotação do orçamento entre as lojas e as propostas já enviadas.
 class OrcamentosScreen extends StatefulWidget {
   const OrcamentosScreen({super.key});
@@ -28,6 +30,16 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
   /// Proposta aberta ao lado da lista em Enviados (computador).
   String? _aberta;
 
+  /// Forma de pagamento escolhida em cada loja; sem escolha vale a primeira que a loja recebe.
+  final _formas = <String, FormaPagamento>{};
+
+  FormaPagamento _formaDe(Loja loja) {
+    final escolhida = _formas[loja.id];
+    return escolhida != null && loja.formasPagamento.contains(escolhida)
+        ? escolhida
+        : loja.formasPagamento.first;
+  }
+
   @override
   void dispose() {
     _abas.dispose();
@@ -35,11 +47,17 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
   }
 
   Future<void> _proposta(ResultadoCotacao r) async {
-    final mensagem = await mostrarJanela<String>(
+    final envio = await mostrarJanela<_EnvioDaProposta>(
       context,
-      construtor: (_) => _FolhaProposta(lojas: r.grupos.length),
+      construtor: (_) => _FolhaProposta(grupos: r.grupos),
     );
-    if (mensagem != null) await _enviar(ModoProposta.negociacao, r, mensagem);
+    if (envio == null) return;
+    await _enviar(
+      ModoProposta.negociacao,
+      r,
+      envio.mensagem,
+      ofertas: envio.ofertas,
+    );
   }
 
   Future<void> _fecharPedido(ResultadoCotacao r) async {
@@ -70,8 +88,9 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
   Future<void> _enviar(
     ModoProposta modo,
     ResultadoCotacao r,
-    String? mensagem,
-  ) async {
+    String? mensagem, {
+    Map<String, double> ofertas = const {},
+  }) async {
     setState(() => _enviando = true);
     try {
       final res = await NegociacaoService.instance.enviar(
@@ -81,6 +100,8 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
         obraId: ObrasService.instance
             .obra(CarrinhoService.instance.obraId ?? '')
             ?.id,
+        formas: {for (final g in r.grupos) g.loja.id: _formaDe(g.loja)},
+        ofertas: ofertas,
       );
       CarrinhoService.instance.limpar();
       if (!mounted) return;
@@ -89,10 +110,14 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
           ? 'Pedido enviado'
           : 'Proposta enviada';
       setState(() {
-        _avisoEnvio = res.precosAtualizados
+        _avisoEnvio = res.ofertasFora > 0
+            ? '$oQue para $quem, mas o valor proposto não entrou em ${res.ofertasFora == 1 ? '1 loja' : '${res.ofertasFora} lojas'}. Abra a proposta e faça a oferta de novo.'
+            : res.precosAtualizados
             ? '$oQue para $quem. Os preços foram atualizados pelas lojas: confira os valores abaixo.'
             : '$oQue para $quem. As respostas aparecem aqui.';
-        _tomAviso = res.precosAtualizados ? TomSelo.aviso : TomSelo.sucesso;
+        _tomAviso = res.ofertasFora > 0 || res.precosAtualizados
+            ? TomSelo.aviso
+            : TomSelo.sucesso;
       });
       _abas.animateTo(1);
     } on FalhaComMensagem catch (e) {
@@ -266,6 +291,8 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
             _GrupoCotado(
               grupo: g,
               fixadas: fixadas,
+              forma: _formaDe(g.loja),
+              onForma: (f) => setState(() => _formas[g.loja.id] = f),
               onTrocar: (item) => _trocarLoja(item, fixadas[item.id]),
             ),
             const SizedBox(height: Espaco.s3),
@@ -301,10 +328,13 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
         final aviso = motivo == null
             ? null
             : Text(motivo, style: t.bodySmall?.copyWith(color: c.aviso));
-        final proposta = OutlinedButton(
-          onPressed: pode ? () => _proposta(r) : null,
-          child: const Text('Proposta'),
-        );
+        // Proposta só entre as lojas do menor preço: em Melhor por loja é um pedido para uma loja só
+        final proposta = _modo == ModoCotacao.menorPrecoGlobal
+            ? OutlinedButton(
+                onPressed: pode ? () => _proposta(r) : null,
+                child: const Text('Proposta'),
+              )
+            : null;
         final fechar = FilledButton(
           onPressed: pode ? () => _fecharPedido(r) : null,
           child: _enviando
@@ -369,8 +399,10 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
                           ],
                           const SizedBox(height: Espaco.s4),
                           fechar,
-                          const SizedBox(height: Espaco.s2),
-                          proposta,
+                          if (proposta != null) ...[
+                            const SizedBox(height: Espaco.s2),
+                            proposta,
+                          ],
                           const SizedBox(height: Espaco.s3),
                           Text(
                             previa,
@@ -419,7 +451,7 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
                   ],
                 ],
               ),
-              acoes: [proposta, fechar],
+              acoes: [?proposta, fechar],
             ),
           ],
         );
@@ -575,10 +607,14 @@ class _GrupoCotado extends StatelessWidget {
   const _GrupoCotado({
     required this.grupo,
     required this.fixadas,
+    required this.forma,
+    required this.onForma,
     required this.onTrocar,
   });
   final GrupoLoja grupo;
   final Map<String, String> fixadas;
+  final FormaPagamento forma;
+  final ValueChanged<FormaPagamento> onForma;
   final ValueChanged<ItemCatalogo> onTrocar;
 
   @override
@@ -625,6 +661,22 @@ class _GrupoCotado extends StatelessWidget {
                   'Total nesta loja',
                   brl.format(grupo.total),
                   destaque: true,
+                ),
+                const SizedBox(height: Espaco.s3),
+                Text('Forma de pagamento', style: t.titleSmall),
+                const SizedBox(height: Espaco.s2),
+                Wrap(
+                  spacing: Espaco.s2,
+                  runSpacing: Espaco.s2,
+                  children: [
+                    for (final f in loja.formasPagamento)
+                      ChoiceChip(
+                        key: Key('forma-${loja.id}-${f.codigo}'),
+                        label: Text(f.rotulo),
+                        selected: f == forma,
+                        onSelected: (_) => onForma(f),
+                      ),
+                  ],
                 ),
                 if (grupo.abaixoMinimo) ...[
                   const SizedBox(height: Espaco.s2),
@@ -735,8 +787,8 @@ class _LinhaCotada extends StatelessWidget {
 }
 
 class _FolhaProposta extends StatefulWidget {
-  const _FolhaProposta({required this.lojas});
-  final int lojas;
+  const _FolhaProposta({required this.grupos});
+  final List<GrupoLoja> grupos;
 
   @override
   State<_FolhaProposta> createState() => _FolhaPropostaState();
@@ -744,16 +796,50 @@ class _FolhaProposta extends StatefulWidget {
 
 class _FolhaPropostaState extends State<_FolhaProposta> {
   final _mensagem = TextEditingController();
+  late final _valores = {
+    for (final g in widget.grupos) g.loja.id: TextEditingController(),
+  };
+  String? _erro;
 
   @override
   void dispose() {
     _mensagem.dispose();
+    for (final c in _valores.values) {
+      c.dispose();
+    }
     super.dispose();
+  }
+
+  /// O valor fica entre o frete e o total, como pede a oferta do construtor. Em branco vale o preço anunciado.
+  void _enviar() {
+    final ofertas = <String, double>{};
+    for (final g in widget.grupos) {
+      final texto = _valores[g.loja.id]!.text.trim();
+      if (texto.isEmpty) continue;
+      final valor = lerNumero(texto);
+      if (valor >= g.total || valor <= g.frete) {
+        final minimo = g.frete > 0
+            ? ' e maior que o frete de ${brl.format(g.frete)}'
+            : '';
+        setState(
+          () => _erro =
+              'O valor da ${g.loja.nome} precisa ser menor que ${brl.format(g.total)}$minimo.',
+        );
+        return;
+      }
+      ofertas[g.loja.id] = valor;
+    }
+    Navigator.pop<_EnvioDaProposta>(context, (
+      mensagem: _mensagem.text,
+      ofertas: ofertas,
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final c = context.cores;
+    final lojas = widget.grupos.length;
     return Padding(
       padding: EdgeInsets.fromLTRB(
         Espaco.s4,
@@ -761,36 +847,84 @@ class _FolhaPropostaState extends State<_FolhaProposta> {
         Espaco.s4,
         Espaco.s4 + MediaQuery.viewInsetsOf(context).bottom,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text('Enviar proposta', style: t.titleMedium),
-          const SizedBox(height: Espaco.s1),
-          Text(
-            'Cada loja recebe a parte dela e pode aceitar, recusar ou mandar uma contraproposta em até 48 horas.',
-            style: t.bodySmall?.copyWith(color: context.cores.textoSuave),
-          ),
-          const SizedBox(height: Espaco.s3),
-          TextField(
-            controller: _mensagem,
-            maxLength: 500,
-            minLines: 2,
-            maxLines: 4,
-            decoration: const InputDecoration(
-              hintText: 'Mensagem para as lojas (opcional). Ex.: entrega na obra até sexta.',
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Enviar proposta', style: t.titleMedium),
+            const SizedBox(height: Espaco.s1),
+            Text(
+              'Cada loja recebe a parte dela e pode aceitar, recusar ou mandar uma contraproposta em até 48 horas.',
+              style: t.bodySmall?.copyWith(color: c.textoSuave),
             ),
-          ),
-          const SizedBox(height: Espaco.s2),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, _mensagem.text),
-            child: Text(
-              widget.lojas == 1
-                  ? 'Enviar para 1 loja'
-                  : 'Enviar para ${widget.lojas} lojas',
+            const SizedBox(height: Espaco.s3),
+            for (final g in widget.grupos) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          g.loja.nome,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: t.titleSmall,
+                        ),
+                        Text(
+                          'Hoje ${brl.format(g.total)}',
+                          style: t.bodySmall?.copyWith(color: c.textoSuave),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: Espaco.s3),
+                  SizedBox(
+                    width: 176,
+                    child: TextField(
+                      key: Key('proposta-${g.loja.id}'),
+                      controller: _valores[g.loja.id],
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(
+                        hintText: 'Sua proposta',
+                        prefixText: 'R\$ ',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: Espaco.s2),
+            ],
+            Text(
+              'Em branco, a loja recebe pelo preço anunciado.',
+              style: t.bodySmall?.copyWith(color: c.textoSuave),
             ),
-          ),
-        ],
+            const SizedBox(height: Espaco.s3),
+            TextField(
+              controller: _mensagem,
+              maxLength: 500,
+              minLines: 2,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                hintText: 'Mensagem para as lojas (opcional). Ex.: entrega na obra até sexta.',
+              ),
+            ),
+            if (_erro case final erro?) ...[
+              const SizedBox(height: Espaco.s2),
+              Aviso(erro),
+            ],
+            const SizedBox(height: Espaco.s2),
+            FilledButton(
+              onPressed: _enviar,
+              child: Text(
+                lojas == 1 ? 'Enviar para 1 loja' : 'Enviar para $lojas lojas',
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

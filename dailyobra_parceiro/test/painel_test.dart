@@ -21,8 +21,10 @@ PropostaResumo proposta(
   StatusProposta status = StatusProposta.enviada,
   ModoProposta modo = ModoProposta.negociacao,
   PedidoResumo? pedido,
+  FormaPagamento? forma,
 }) => PropostaResumo(
   id: id,
+  formaEscolhida: forma,
   orcamentoId: 'o-$id',
   lojaId: 'l1',
   construtorId: 'c1',
@@ -654,6 +656,23 @@ void main() {
         expect(find.byType(AppBar), findsOneWidget);
         expect(find.widgetWithText(OutlinedButton, 'Recusar'), findsOneWidget);
         expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('a proposta mostra a forma escolhida na cotação', (
+        tester,
+      ) async {
+        preparar(propostas: [proposta('p1', forma: FormaPagamento.boleto)]);
+        await abrir(tester, const PropostaLojaScreen(id: 'p1'), escuro: escuro);
+        expect(find.text('Forma de pagamento'), findsOneWidget);
+        expect(find.text('Boleto'), findsOneWidget);
+      });
+
+      testWidgets('sem forma escolhida a proposta não mostra o bloco', (
+        tester,
+      ) async {
+        preparar(propostas: [proposta('p1')]);
+        await abrir(tester, const PropostaLojaScreen(id: 'p1'), escuro: escuro);
+        expect(find.text('Forma de pagamento'), findsNothing);
       });
 
       testWidgets('lista vazia no computador não repete o aviso', (

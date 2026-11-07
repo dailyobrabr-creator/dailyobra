@@ -1,4 +1,5 @@
 import '../supabase/supabase_config.dart';
+import 'pagamento.dart';
 
 /// Dinheiro e quantidade chegam do PostgREST como número, mas aceitamos texto também.
 double lerValor(Object? v) => switch (v) {
@@ -103,6 +104,7 @@ class Loja {
     this.complemento = '',
     this.bairro = '',
     this.outrasUnidades = '',
+    this.formasPagamento = formasPadrao,
   });
   final String id;
   final String nome;
@@ -142,6 +144,9 @@ class Loja {
   /// Outras lojas da rede, escritas pela loja ("Sagrada Família e Médici").
   final String outrasUnidades;
 
+  /// Como a loja recebe, sempre com pelo menos uma forma.
+  final List<FormaPagamento> formasPagamento;
+
   factory Loja.fromJson(Map<String, dynamic> j) {
     final criada = _data(j['criada_em']);
     return Loja(
@@ -167,8 +172,15 @@ class Loja {
       complemento: (j['complemento'] as String?) ?? '',
       bairro: (j['bairro'] as String?) ?? '',
       outrasUnidades: (j['outras_unidades'] as String?) ?? '',
+      formasPagamento: _formasDaLoja(j['formas_pagamento']),
     );
   }
+}
+
+List<FormaPagamento> _formasDaLoja(Object? valor) {
+  final codigos = valor is List ? valor : const [];
+  final formas = [for (final f in FormaPagamento.values) if (codigos.contains(f.codigo)) f];
+  return formas.isEmpty ? formasPadrao : formas;
 }
 
 enum Disponibilidade {

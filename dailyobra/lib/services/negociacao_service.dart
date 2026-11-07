@@ -13,12 +13,16 @@ class ResultadoEnvio {
     required this.orcamentoId,
     required this.precosAtualizados,
     required this.lojas,
+    this.ofertasFora = 0,
   });
   final String orcamentoId;
 
   /// Algum preço mudou entre a prévia e o envio (o servidor usou o preço atual).
   final bool precosAtualizados;
   final int lojas;
+
+  /// Propostas de valor que não entraram: a proposta foi, sem o valor pedido.
+  final int ofertasFora;
 }
 
 /// Propostas e pedidos do construtor. Toda regra (preço, validade, estados, saldo) é do servidor;
@@ -40,6 +44,14 @@ class NegociacaoService extends ChangeNotifier {
   /// A obra que [enviar] mandaria ao banco, quando montado por [definirParaTeste].
   @visibleForTesting
   String? obraDeTeste;
+
+  /// As formas de pagamento por loja que [enviar] mandaria ao banco.
+  @visibleForTesting
+  Map<String, FormaPagamento> formasDoEnvioDeTeste = const {};
+
+  /// Os valores propostos por loja que [enviar] mandaria ao banco.
+  @visibleForTesting
+  Map<String, double> ofertasDoEnvioDeTeste = const {};
   bool _teste = false;
   String? _pixTeste;
   int _pedido = 0;
@@ -89,10 +101,10 @@ class NegociacaoService extends ChangeNotifier {
 
   static const _colunas =
       'id, orcamento_id, loja_id, modo, status, subtotal_anunciado, desconto, frete, total, '
-      'cashback_previsto, saldo_aplicado, mensagem_construtor, mensagem_loja, motivo_recusa, '
+      'cashback_previsto, saldo_aplicado, mensagem_construtor, mensagem_loja, motivo_recusa, forma_escolhida, '
       'oferta_valor, oferta_status, oferta_mensagem, oferta_motivo, oferta_em, '
       'valida_ate, criada_em, '
-      'lojas(id, nome, descricao, logo_path, capa_path, whatsapp, cidade, uf, frete_fixo, pedido_minimo, aberta, criada_em), '
+      'lojas(id, nome, descricao, logo_path, capa_path, whatsapp, cidade, uf, frete_fixo, pedido_minimo, aberta, criada_em, formas_pagamento), '
       'proposta_itens(item_id, nome, unidade, tier, quantidade, preco_anunciado, preco_ofertado), '
       'pedidos(id, status, total, pagamento_confirmado_em, entregue_em, criado_em, pagador, pagador_nome, '
       'pagador_whatsapp, link_codigo, documento_informado_em, pagamento_informado_em, forma_pagamento, prazo, '
@@ -174,12 +186,15 @@ class NegociacaoService extends ChangeNotifier {
 
   /// Envia a cotação: uma proposta (ou pedido direto) por loja, com os preços do servidor.
   /// O saldo da carteira não entra aqui: só na hora de pagar, no "Eu pago".
+  /// [formas] e [ofertas] vão por loja, depois do envio: se falharem, a cotação já chegou às lojas.
   /// Lança [FalhaComMensagem] com o motivo (pedido mínimo, loja fechada, sem conexão...).
   Future<ResultadoEnvio> enviar({
     required ModoProposta modo,
     required ResultadoCotacao cotacao,
     String? mensagem,
     String? obraId,
+    Map<String, FormaPagamento> formas = const {},
+    Map<String, double> ofertas = const {},
   }) async {
     final itens = [
       for (final g in cotacao.grupos)
@@ -196,6 +211,8 @@ class NegociacaoService extends ChangeNotifier {
     }
     if (_resultadoTeste != null) {
       obraDeTeste = obraId;
+      formasDoEnvioDeTeste = formas;
+      ofertasDoEnvioDeTeste = ofertas;
       return _resultadoTeste!;
     }
     final r = await comMensagem(
@@ -213,16 +230,52 @@ class NegociacaoService extends ChangeNotifier {
       ),
     );
     final mapa = Map<String, dynamic>.from(r as Map);
+    final orcamentoId = mapa['orcamento_id'] as String;
+    final enviadas = (mapa['propostas'] as List? ?? const []).cast<Map>();
+    await _gravarFormas(orcamentoId, formas);
+    var ofertasFora = 0;
+    for (final p in enviadas) {
+      final valor = ofertas[p['loja_id']];
+      if (valor == null) continue;
+      try {
+        await _db.rpc(
+          'fazer_oferta',
+          params: {'p_proposta': p['id'], 'p_valor': valor},
+        );
+      } on Exception {
+        ofertasFora++;
+      }
+    }
     await Future.wait([
       carregar(),
       CarteiraService.instance.carregar(),
       EconomiaService.instance.carregar(),
     ]);
     return ResultadoEnvio(
-      orcamentoId: mapa['orcamento_id'] as String,
+      orcamentoId: orcamentoId,
       precosAtualizados: mapa['precos_atualizados'] == true,
-      lojas: (mapa['propostas'] as List? ?? const []).length,
+      lojas: enviadas.length,
+      ofertasFora: ofertasFora,
     );
+  }
+
+  /// A forma é uma preferência: se não gravar, o construtor escolhe de novo no pedido.
+  Future<void> _gravarFormas(
+    String orcamentoId,
+    Map<String, FormaPagamento> formas,
+  ) async {
+    if (formas.isEmpty) return;
+    try {
+      await _db.rpc(
+        'definir_formas_do_orcamento',
+        params: {
+          'p_orcamento': orcamentoId,
+          'p_formas': {for (final e in formas.entries) e.key: e.value.codigo},
+        },
+      );
+    } on Exception {
+      // Segue sem a forma
+    }
   }
 
   Future<void> _acao(String funcao, Map<String, dynamic> params) async {

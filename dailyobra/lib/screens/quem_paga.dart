@@ -27,6 +27,8 @@ class QuemPaga extends StatefulWidget {
     required this.criarLink,
     required this.abrirLink,
     required this.abrirBanco,
+    this.formas = formasPadrao,
+    this.formaSugerida,
   });
   final PedidoResumo pedido;
   final String nomeLoja;
@@ -54,6 +56,12 @@ class QuemPaga extends StatefulWidget {
   /// Tenta abrir o app do banco com o PIX pronto.
   final Future<void> Function(Uri) abrirBanco;
 
+  /// Como a loja recebe.
+  final List<FormaPagamento> formas;
+
+  /// A forma escolhida na cotação.
+  final FormaPagamento? formaSugerida;
+
   @override
   State<QuemPaga> createState() => _QuemPagaState();
 }
@@ -73,11 +81,14 @@ class _QuemPagaState extends State<QuemPaga> {
   bool _ocupado = false;
   bool _documentoConfirmado = false;
   bool _alterandoTitular = false;
-  bool _pixGravado = false;
+  bool _formaGravada = false;
 
-  /// Sem forma gravada, o PIX vem marcado; só grava quando o código aparece.
+  /// Sem forma gravada vem a da cotação ou a primeira da loja; só grava quando a tela de pagar aparece.
   late FormaPagamento _forma =
-      widget.pedido.formaPagamento ?? FormaPagamento.pix;
+      widget.pedido.formaPagamento ??
+      (widget.formas.contains(widget.formaSugerida)
+          ? widget.formaSugerida!
+          : widget.formas.first);
   late String _prazo = widget.pedido.prazo ?? prazosCrediario.first;
 
   /// Link enviado nesta tela, antes de o pedido voltar do servidor com ele.
@@ -311,7 +322,9 @@ class _QuemPagaState extends State<QuemPaga> {
                     ),
                   ],
                 ),
-                if (pix == null) ...[
+                if (pix == null &&
+                    (semValor ||
+                        widget.formas.contains(FormaPagamento.pix))) ...[
                   const SizedBox(height: Espaco.s2),
                   Text(
                     semValor
@@ -411,7 +424,7 @@ class _QuemPagaState extends State<QuemPaga> {
           spacing: Espaco.s2,
           runSpacing: Espaco.s2,
           children: [
-            for (final f in FormaPagamento.values)
+            for (final f in widget.formas)
               ChoiceChip(
                 label: Text(f.rotulo),
                 selected: _forma == f,
@@ -422,12 +435,18 @@ class _QuemPagaState extends State<QuemPaga> {
         const SizedBox(height: Espaco.s3),
         ...switch (_forma) {
           FormaPagamento.pix => _pagarComPix(t, c, pix),
-          FormaPagamento.cartao => [
-            Text(
-              'Pague na maquininha da loja na entrega ou retirada.',
-              style: t.bodyMedium,
-            ),
-          ],
+          FormaPagamento.cartao => _pagarNaLoja(
+            t,
+            'Pague na maquininha da loja na entrega ou retirada.',
+          ),
+          FormaPagamento.boleto => _pagarNaLoja(
+            t,
+            'A loja envia o boleto depois de confirmar o pedido.',
+          ),
+          FormaPagamento.dinheiro => _pagarNaLoja(
+            t,
+            'Pague em dinheiro na entrega ou retirada.',
+          ),
           FormaPagamento.crediario => _crediario(t),
         },
         const SizedBox(height: Espaco.s3),
@@ -479,19 +498,25 @@ class _QuemPagaState extends State<QuemPaga> {
     ];
   }
 
-  /// Com o código na tela o PIX marcado vale: a loja passa a ver a forma no pedido.
-  void _gravarPixMarcado() {
+  List<Widget> _pagarNaLoja(TextTheme t, String texto) {
+    _gravarFormaMarcada();
+    return [Text(texto, style: t.bodyMedium)];
+  }
+
+  /// Com a tela de pagar aberta a forma marcada vale: a loja passa a ver no pedido.
+  void _gravarFormaMarcada() {
     final p = widget.pedido;
-    if (_pixGravado ||
+    final forma = _forma;
+    if (_formaGravada ||
         p.formaPagamento != null ||
         p.pagamentoConfirmadoEm != null ||
         p.pagamentoInformadoEm != null) {
       return;
     }
-    _pixGravado = true;
+    _formaGravada = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
-        await widget.escolherPagamento(FormaPagamento.pix, null);
+        await widget.escolherPagamento(forma, null);
       } on Exception {
         // Só falta a forma no pedido: o pagamento segue igual
       }
@@ -511,7 +536,7 @@ class _QuemPagaState extends State<QuemPaga> {
       return [Text('Combine o pagamento com a loja.', style: t.bodyMedium)];
     }
     final pix = dados.codigo;
-    _gravarPixMarcado();
+    _gravarFormaMarcada();
     return [
       Text('PIX da loja', style: t.titleSmall),
       const SizedBox(height: Espaco.s3),

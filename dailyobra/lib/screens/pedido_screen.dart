@@ -159,6 +159,7 @@ class _PedidoScreenState extends State<PedidoScreen> {
     final atual = _passos.indexOf(pedido.status);
     final entregue = pedido.status == StatusPedido.entregue;
     final pago = pedido.pagamentoConfirmadoEm != null;
+    final formas = p.loja?.formasPagamento ?? formasPadrao;
     return ListView(
       padding: const EdgeInsets.fromLTRB(
         Espaco.s4,
@@ -251,7 +252,11 @@ class _PedidoScreenState extends State<PedidoScreen> {
             documentoDoPerfil: PerfilService.instance.documento,
             saldoDisponivel: CarteiraService.instance.disponivel,
             saldoNoPedido: p.saldoAplicado,
-            pix: () => NegociacaoService.instance.pixDoPedido(pedido.id),
+            formas: formas,
+            formaSugerida: p.formaEscolhida,
+            pix: () async => formas.contains(FormaPagamento.pix)
+                ? NegociacaoService.instance.pixDoPedido(pedido.id)
+                : null,
             pagarEuMesmo: (doc) =>
                 NegociacaoService.instance.pagarEuMesmo(pedido.id, doc),
             usarSaldo: (usar) =>

@@ -52,11 +52,33 @@ void main() {
     expect(sem.prazoStatus, isNull);
   });
 
+  group('formas que a loja recebe', () {
+    Loja loja(Object? formas) => Loja.fromJson({'id': 'l', 'nome': 'Loja', 'cidade': 'Sinop', 'uf': 'MT', 'formas_pagamento': formas});
+
+    test('lê as formas na ordem do app', () {
+      expect(loja(['dinheiro', 'pix']).formasPagamento, [FormaPagamento.pix, FormaPagamento.dinheiro]);
+    });
+
+    test('ignora forma que este app ainda não conhece', () {
+      expect(loja(['pix', 'fiado']).formasPagamento, [FormaPagamento.pix]);
+    });
+
+    test('sem a informação vale o que o app já oferecia', () {
+      expect(loja(null).formasPagamento, formasPadrao);
+      expect(loja(<String>[]).formasPagamento, formasPadrao);
+    });
+  });
+
+  test('boleto e dinheiro vêm do banco', () {
+    expect(FormaPagamento.fromCodigo('boleto'), FormaPagamento.boleto);
+    expect(FormaPagamento.fromCodigo('dinheiro'), FormaPagamento.dinheiro);
+  });
+
   test('rótulos das formas e prazos do crediário', () {
     expect(FormaPagamento.pix.rotulo, 'PIX');
     expect(FormaPagamento.cartao.rotulo, 'Cartão na loja');
     expect(FormaPagamento.crediario.rotulo, 'Crediário da loja');
-    expect(FormaPagamento.fromCodigo('boleto'), isNull);
+    expect(FormaPagamento.fromCodigo('cheque'), isNull);
     expect(StatusPrazo.fromCodigo('aprovado'), StatusPrazo.aprovado);
     expect(prazosCrediario, ['28', '28/35', '28/35/42']);
   });

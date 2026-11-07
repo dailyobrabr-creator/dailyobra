@@ -206,7 +206,7 @@ class PropostasLojaService extends ChangeNotifier {
 
   static const _colunas =
       'id, orcamento_id, loja_id, construtor_id, modo, status, subtotal_anunciado, desconto, frete, total, '
-      'cashback_previsto, saldo_aplicado, mensagem_construtor, mensagem_loja, motivo_recusa, '
+      'cashback_previsto, saldo_aplicado, mensagem_construtor, mensagem_loja, motivo_recusa, forma_escolhida, '
       'oferta_valor, oferta_status, oferta_mensagem, oferta_motivo, oferta_em, valida_ate, criada_em, '
       'proposta_itens(item_id, nome, unidade, tier, quantidade, preco_anunciado, preco_ofertado), '
       'pedidos(id, status, total, pagamento_confirmado_em, entregue_em, criado_em, pagador, pagador_nome, '

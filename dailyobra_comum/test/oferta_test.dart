@@ -63,6 +63,11 @@ void main() {
     expect(p.ofertaPendente, isFalse);
   });
 
+  test('proposta traz a forma escolhida na cotação', () {
+    expect(PropostaResumo.fromJson({...linha(), 'forma_escolhida': 'boleto'}).formaEscolhida, FormaPagamento.boleto);
+    expect(PropostaResumo.fromJson(linha()).formaEscolhida, isNull);
+  });
+
   test('oferta só fica pendente com a proposta aberta', () {
     expect(PropostaResumo.fromJson(linha(oferta: pendente)).ofertaPendente, isTrue);
     expect(PropostaResumo.fromJson(linha(status: 'contraproposta', oferta: pendente)).ofertaPendente, isTrue);

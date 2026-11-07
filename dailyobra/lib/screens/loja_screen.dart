@@ -93,6 +93,10 @@ class _LojaScreenState extends State<LojaScreen> {
           'Outras unidades: ${loja.outrasUnidades}',
         ),
       if (loja.horario.isNotEmpty) linha(Icons.schedule_outlined, loja.horario),
+      linha(
+        Icons.payments_outlined,
+        loja.formasPagamento.map((f) => f.rotulo).join(', '),
+      ),
       if (loja.descricao.isNotEmpty) ...[
         const SizedBox(height: Espaco.s3),
         Text(

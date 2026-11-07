@@ -14,11 +14,24 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'apoio.dart';
 
-void preparar({List<Oferta>? ofertas, double saldo = 0}) {
+const lojaDoBoleto = Loja(
+  id: 'a',
+  nome: 'Casa do Construtor',
+  cidade: 'Maringá',
+  uf: 'PR',
+  freteFixo: 50,
+  formasPagamento: [FormaPagamento.boleto, FormaPagamento.dinheiro],
+);
+
+void preparar({
+  List<Oferta>? ofertas,
+  double saldo = 0,
+  List<Loja> lojas = const [lojaA, lojaB, lojaC],
+}) {
   CatalogoService.instance.definirParaTeste(
     categorias: categoriasTeste,
     itens: itensTeste,
-    lojas: const [lojaA, lojaB, lojaC],
+    lojas: lojas,
     ofertas: ofertas ?? ofertasTeste,
   );
   PerfilService.instance.definirParaTeste(
@@ -86,6 +99,179 @@ void main() {
         await rolarAte(tester, find.text('Depósito Bom Preço'));
         await rolarAte(tester, find.text('Ferragens Sarandi'));
         await rolarAteOFim(tester);
+      });
+
+      group('forma de pagamento', () {
+        final oferta = Oferta(lojaId: 'a', itemId: tijolo.id, preco: 1.20);
+
+        Future<void> cotar(WidgetTester tester) async {
+          preparar(ofertas: [oferta], lojas: const [lojaDoBoleto]);
+          NegociacaoService.instance.definirParaTeste(
+            resultadoEnvio: const ResultadoEnvio(
+              orcamentoId: 'o1',
+              precosAtualizados: false,
+              lojas: 1,
+            ),
+          );
+          CarrinhoService.instance.adicionar(tijolo.id, 1000);
+          await abrir(tester, const OrcamentosScreen(), escuro: escuro);
+        }
+
+        Future<void> fecharPedido(WidgetTester tester) async {
+          await tester.tap(find.widgetWithText(FilledButton, 'Fechar pedido'));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.widgetWithText(FilledButton, 'Confirmar pedido'),
+          );
+          await tester.pumpAndSettle();
+        }
+
+        testWidgets('a loja mostra só o que ela recebe', (tester) async {
+          await cotar(tester);
+          await rolarAte(tester, find.byKey(const Key('forma-a-boleto')));
+          expect(find.byKey(const Key('forma-a-dinheiro')), findsOneWidget);
+          expect(find.byKey(const Key('forma-a-pix')), findsNothing);
+          expect(find.byKey(const Key('forma-a-crediario')), findsNothing);
+          expect(tester.takeException(), isNull);
+        });
+
+        testWidgets('sem escolher vai a primeira forma da loja', (
+          tester,
+        ) async {
+          await cotar(tester);
+          await fecharPedido(tester);
+          expect(NegociacaoService.instance.formasDoEnvioDeTeste, {
+            'a': FormaPagamento.boleto,
+          });
+        });
+
+        testWidgets('a forma escolhida vai no envio', (tester) async {
+          await cotar(tester);
+          await rolarAte(tester, find.byKey(const Key('forma-a-dinheiro')));
+          await tester.tap(find.byKey(const Key('forma-a-dinheiro')));
+          await tester.pumpAndSettle();
+          await fecharPedido(tester);
+          expect(NegociacaoService.instance.formasDoEnvioDeTeste, {
+            'a': FormaPagamento.dinheiro,
+          });
+        });
+
+        testWidgets('cada loja escolhe a sua', (tester) async {
+          preparar();
+          CarrinhoService.instance
+            ..adicionar(tijolo.id, 1000)
+            ..adicionar(cimento.id, 20);
+          await abrir(tester, const OrcamentosScreen(), escuro: escuro);
+          await rolarAte(tester, find.byKey(const Key('forma-a-cartao')));
+          await tester.tap(find.byKey(const Key('forma-a-cartao')));
+          await tester.pumpAndSettle();
+          await rolarAte(tester, find.byKey(const Key('forma-c-pix')));
+          final pix = tester.widget<ChoiceChip>(
+            find.byKey(const Key('forma-c-pix')),
+          );
+          expect(pix.selected, isTrue, reason: 'a outra loja não muda');
+        });
+      });
+
+      group('proposta', () {
+        final oferta = Oferta(lojaId: 'a', itemId: tijolo.id, preco: 1.20);
+
+        Future<void> abrirProposta(WidgetTester tester) async {
+          preparar(ofertas: [oferta]);
+          NegociacaoService.instance.definirParaTeste(
+            resultadoEnvio: const ResultadoEnvio(
+              orcamentoId: 'o1',
+              precosAtualizados: false,
+              lojas: 1,
+            ),
+          );
+          CarrinhoService.instance.adicionar(tijolo.id, 1000);
+          await abrir(tester, const OrcamentosScreen(), escuro: escuro);
+          await tester.tap(find.widgetWithText(OutlinedButton, 'Proposta'));
+          await tester.pumpAndSettle();
+        }
+
+        testWidgets('só aparece em menor preço global', (tester) async {
+          preparar(ofertas: [oferta]);
+          CarrinhoService.instance.adicionar(tijolo.id, 1000);
+          await abrir(tester, const OrcamentosScreen(), escuro: escuro);
+          expect(
+            find.widgetWithText(OutlinedButton, 'Proposta'),
+            findsOneWidget,
+          );
+          await tester.tap(find.text('Melhor por loja'));
+          await tester.pumpAndSettle();
+          expect(find.widgetWithText(OutlinedButton, 'Proposta'), findsNothing);
+          expect(
+            find.widgetWithText(FilledButton, 'Fechar pedido'),
+            findsOneWidget,
+          );
+          await tester.tap(find.text('Menor preço global'));
+          await tester.pumpAndSettle();
+          expect(
+            find.widgetWithText(OutlinedButton, 'Proposta'),
+            findsOneWidget,
+          );
+        });
+
+        testWidgets('o valor proposto vai por loja', (tester) async {
+          await abrirProposta(tester);
+          await tester.enterText(
+            find.byKey(const Key('proposta-a')),
+            '1000,50',
+          );
+          await tester.tap(find.text('Enviar para 1 loja'));
+          await tester.pumpAndSettle();
+          expect(NegociacaoService.instance.ofertasDoEnvioDeTeste, {
+            'a': 1000.5,
+          });
+          expect(find.textContaining('Proposta enviada'), findsOneWidget);
+        });
+
+        testWidgets('em branco vai pelo preço anunciado', (tester) async {
+          await abrirProposta(tester);
+          await tester.tap(find.text('Enviar para 1 loja'));
+          await tester.pumpAndSettle();
+          expect(NegociacaoService.instance.ofertasDoEnvioDeTeste, isEmpty);
+        });
+
+        testWidgets('valor acima do total não envia', (tester) async {
+          await abrirProposta(tester);
+          await tester.enterText(find.byKey(const Key('proposta-a')), '99999');
+          await tester.tap(find.text('Enviar para 1 loja'));
+          await tester.pumpAndSettle();
+          expect(find.textContaining('precisa ser menor que'), findsOneWidget);
+          expect(find.text('Enviar para 1 loja'), findsOneWidget);
+          expect(CarrinhoService.instance.vazio, isFalse);
+        });
+
+        testWidgets('valor abaixo do frete não envia', (tester) async {
+          await abrirProposta(tester);
+          await tester.enterText(find.byKey(const Key('proposta-a')), '10');
+          await tester.tap(find.text('Enviar para 1 loja'));
+          await tester.pumpAndSettle();
+          expect(find.textContaining('maior que o frete'), findsOneWidget);
+        });
+
+        testWidgets('avisa quando o valor não entrou em alguma loja', (
+          tester,
+        ) async {
+          await abrirProposta(tester);
+          NegociacaoService.instance.definirParaTeste(
+            resultadoEnvio: const ResultadoEnvio(
+              orcamentoId: 'o1',
+              precosAtualizados: false,
+              lojas: 1,
+              ofertasFora: 1,
+            ),
+          );
+          await tester.tap(find.text('Enviar para 1 loja'));
+          await tester.pumpAndSettle();
+          expect(
+            find.textContaining('o valor proposto não entrou em 1 loja'),
+            findsOneWidget,
+          );
+        });
       });
 
       testWidgets('melhor por loja mostra uma loja e o que ela não tem', (

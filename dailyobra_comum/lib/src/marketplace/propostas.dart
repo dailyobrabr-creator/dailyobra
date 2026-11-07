@@ -164,6 +164,7 @@ class PropostaResumo {
     required this.itens,
     this.loja,
     this.mensagemConstrutor,
+    this.formaEscolhida,
     this.mensagemLoja,
     this.motivoRecusa,
     this.pedido,
@@ -190,6 +191,9 @@ class PropostaResumo {
   final double cashbackPrevisto;
   final double saldoAplicado;
   final String? mensagemConstrutor;
+
+  /// Forma de pagamento que o construtor escolheu para esta loja na cotação.
+  final FormaPagamento? formaEscolhida;
   final String? mensagemLoja;
   final String? motivoRecusa;
   final DateTime validaAte;
@@ -244,6 +248,7 @@ class PropostaResumo {
       cashbackPrevisto: lerValor(j['cashback_previsto']),
       saldoAplicado: lerValor(j['saldo_aplicado']),
       mensagemConstrutor: j['mensagem_construtor'] as String?,
+      formaEscolhida: FormaPagamento.fromCodigo(j['forma_escolhida'] as String?),
       mensagemLoja: j['mensagem_loja'] as String?,
       motivoRecusa: j['motivo_recusa'] as String?,
       validaAte: DateTime.parse(j['valida_ate'] as String).toLocal(),

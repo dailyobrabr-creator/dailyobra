@@ -476,6 +476,8 @@ class SecaoPagamento extends StatefulWidget {
 class _SecaoPagamentoState extends State<SecaoPagamento> with _Gravacao {
   final _servico = LojaService.instance;
   late final _chave = TextEditingController(text: _servico.dados.chavePix);
+  late final _atuais = _servico.minhaLoja?.formasPagamento ?? formasPadrao;
+  late final _formas = {..._atuais};
 
   @override
   void dispose() {
@@ -490,10 +492,26 @@ class _SecaoPagamentoState extends State<SecaoPagamento> with _Gravacao {
         return avisar(context, erro);
       }
     }
-    if (chave == (_servico.dados.chavePix ?? '')) {
-      return avisar(context, 'Nada mudou.');
+    if (_formas.isEmpty) {
+      return avisar(context, 'Escolha pelo menos uma forma de pagamento.');
     }
-    await gravar(() => _servico.salvarChavePix(chave.isEmpty ? null : chave));
+    final mudouChave = chave != (_servico.dados.chavePix ?? '');
+    final mudouFormas =
+        _formas.length != _atuais.length || !_atuais.every(_formas.contains);
+    if (!mudouChave && !mudouFormas) return avisar(context, 'Nada mudou.');
+    await gravar(() async {
+      if (mudouFormas) {
+        await _servico.atualizar({
+          'formas_pagamento': [
+            for (final f in FormaPagamento.values)
+              if (_formas.contains(f)) f.codigo,
+          ],
+        });
+      }
+      if (mudouChave) {
+        await _servico.salvarChavePix(chave.isEmpty ? null : chave);
+      }
+    });
   }
 
   @override
@@ -508,6 +526,26 @@ class _SecaoPagamentoState extends State<SecaoPagamento> with _Gravacao {
         controller: _chave,
         maxLength: 77,
         ajuda: 'CPF, CNPJ, e-mail, celular com +55 ou chave aleatória',
+      ),
+      const SizedBox(height: Espaco.s4),
+      Text(
+        'Formas que a loja recebe',
+        style: Theme.of(context).textTheme.titleSmall,
+      ),
+      const SizedBox(height: Espaco.s2),
+      Wrap(
+        spacing: Espaco.s2,
+        runSpacing: Espaco.s2,
+        children: [
+          for (final f in FormaPagamento.values)
+            FilterChip(
+              key: ValueKey('recebe-${f.codigo}'),
+              label: Text(f.rotulo),
+              selected: _formas.contains(f),
+              onSelected: (marcada) =>
+                  setState(() => marcada ? _formas.add(f) : _formas.remove(f)),
+            ),
+        ],
       ),
     ],
   );

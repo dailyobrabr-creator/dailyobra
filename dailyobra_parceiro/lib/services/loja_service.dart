@@ -155,7 +155,7 @@ class LojaService extends ChangeNotifier {
   static const _colunas =
       'id, nome, cnpj, descricao, logo_path, capa_path, banner_path, whatsapp, endereco, cidade, uf, horario, '
       'frete_fixo, pedido_minimo, aberta, status, criada_em, estoque_atualizado_em, '
-      'cep, logradouro, numero, complemento, bairro, outras_unidades';
+      'cep, logradouro, numero, complemento, bairro, outras_unidades, formas_pagamento';
 
   Future<void> carregar() async {
     final uid = _db.auth.currentUser?.id;

@@ -206,12 +206,12 @@ class PropostasLojaService extends ChangeNotifier {
 
   static const _colunas =
       'id, orcamento_id, loja_id, construtor_id, modo, status, subtotal_anunciado, desconto, frete, total, '
-      'cashback_previsto, saldo_aplicado, mensagem_construtor, mensagem_loja, motivo_recusa, forma_escolhida, '
+      'cashback_previsto, saldo_aplicado, mensagem_construtor, mensagem_loja, motivo_recusa, forma_escolhida, parcelas, '
       'oferta_valor, oferta_status, oferta_mensagem, oferta_motivo, oferta_em, valida_ate, criada_em, '
       'proposta_itens(item_id, nome, unidade, tier, quantidade, preco_anunciado, preco_ofertado), '
       'pedidos(id, status, total, pagamento_confirmado_em, entregue_em, criado_em, pagador, pagador_nome, '
       'pagador_whatsapp, link_codigo, documento_informado_em, pagamento_informado_em, forma_pagamento, prazo, '
-      'prazo_status, prazo_respondido_em, pedido_faturamento(numero, lancado_em))';
+      'prazo_status, prazo_respondido_em, parcelas, pedido_faturamento(numero, lancado_em))';
 
   void iniciar(String lojaId) {
     if (_teste) return;

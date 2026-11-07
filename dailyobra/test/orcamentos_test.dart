@@ -141,7 +141,7 @@ void main() {
           await cotar(tester);
           await fecharPedido(tester);
           expect(NegociacaoService.instance.formasDoEnvioDeTeste, {
-            'a': FormaPagamento.boleto,
+            'a': const EscolhaPagamento(FormaPagamento.boleto),
           });
         });
 
@@ -152,7 +152,7 @@ void main() {
           await tester.pumpAndSettle();
           await fecharPedido(tester);
           expect(NegociacaoService.instance.formasDoEnvioDeTeste, {
-            'a': FormaPagamento.dinheiro,
+            'a': const EscolhaPagamento(FormaPagamento.dinheiro),
           });
         });
 
@@ -170,6 +170,97 @@ void main() {
             find.byKey(const Key('forma-c-pix')),
           );
           expect(pix.selected, isTrue, reason: 'a outra loja não muda');
+        });
+      });
+
+      group('parcelas e duplicata', () {
+        const lojaParcelada = Loja(
+          id: 'a',
+          nome: 'Casa do Construtor',
+          cidade: 'Maringá',
+          uf: 'PR',
+          freteFixo: 50,
+          formasPagamento: [
+            FormaPagamento.cartao,
+            FormaPagamento.boleto,
+            FormaPagamento.duplicata,
+          ],
+          parcelasCartao: 10,
+          parcelasBoleto: 3,
+        );
+        final oferta = Oferta(lojaId: 'a', itemId: tijolo.id, preco: 1.20);
+
+        Future<void> cotar(
+          WidgetTester tester, {
+          Map<String, String> duplicatas = const {},
+        }) async {
+          preparar(ofertas: [oferta], lojas: const [lojaParcelada]);
+          NegociacaoService.instance.definirParaTeste(
+            resultadoEnvio: const ResultadoEnvio(
+              orcamentoId: 'o1',
+              precosAtualizados: false,
+              lojas: 1,
+            ),
+            duplicatas: duplicatas,
+          );
+          CarrinhoService.instance.adicionar(tijolo.id, 1000);
+          await abrir(tester, const OrcamentosScreen(), escuro: escuro);
+        }
+
+        testWidgets('o cartão mostra o valor de cada parcela', (tester) async {
+          await cotar(tester);
+          final campo = find.byKey(const Key('parcelas-a-cartao'));
+          await rolarAte(tester, campo);
+          await tester.tap(campo);
+          await tester.pumpAndSettle();
+          // 1.200 + 50 de frete em 10x
+          expect(
+            find.text('10x de ${brl.format(125)} sem juros').last,
+            findsOneWidget,
+          );
+          await tester.tap(
+            find.text('3x de ${brl.format(416.67)} sem juros').last,
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.widgetWithText(FilledButton, 'Fechar pedido'));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.widgetWithText(FilledButton, 'Confirmar pedido'),
+          );
+          await tester.pumpAndSettle();
+          expect(NegociacaoService.instance.formasDoEnvioDeTeste, {
+            'a': const EscolhaPagamento(FormaPagamento.cartao, parcelas: 3),
+          });
+        });
+
+        testWidgets('o boleto vai até o limite dele', (tester) async {
+          await cotar(tester);
+          await rolarAte(tester, find.byKey(const Key('forma-a-boleto')));
+          await tester.tap(find.byKey(const Key('forma-a-boleto')));
+          await tester.pumpAndSettle();
+          final campo = find.byKey(const Key('parcelas-a-boleto'));
+          await rolarAte(tester, campo);
+          await tester.tap(campo);
+          await tester.pumpAndSettle();
+          expect(find.textContaining('3x de'), findsWidgets);
+          expect(find.textContaining('4x de'), findsNothing);
+        });
+
+        testWidgets('duplicata só aparece depois de a loja liberar', (
+          tester,
+        ) async {
+          await cotar(tester);
+          await rolarAte(tester, find.byKey(const Key('forma-a-cartao')));
+          expect(find.byKey(const Key('forma-a-duplicata')), findsNothing);
+        });
+
+        testWidgets('duplicata liberada mostra o prazo', (tester) async {
+          await cotar(tester, duplicatas: {'a': '28/35'});
+          await rolarAte(tester, find.byKey(const Key('forma-a-duplicata')));
+          expect(find.text('Duplicata (28/35 dias)'), findsOneWidget);
+          await tester.tap(find.byKey(const Key('forma-a-duplicata')));
+          await tester.pumpAndSettle();
+          expect(find.byKey(const Key('parcelas-a-duplicata')), findsNothing);
         });
       });
 

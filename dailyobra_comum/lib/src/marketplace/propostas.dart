@@ -58,6 +58,7 @@ class PedidoResumo {
     this.prazo,
     this.prazoStatus,
     this.prazoRespondidoEm,
+    this.parcelas,
     this.erpNumero,
     this.erpLancadoEm,
   });
@@ -72,8 +73,8 @@ class PedidoResumo {
   final String? erpNumero;
   final DateTime? erpLancadoEm;
 
-  /// Pode entrar no Santri: pagamento confirmado ou crediário com o prazo aprovado. É a mesma regra de registrar_faturamento.
-  bool get prontoParaFaturar => pagamentoConfirmadoEm != null || (formaPagamento == FormaPagamento.crediario && prazoStatus == StatusPrazo.aprovado);
+  /// Pode entrar no Santri: pagamento confirmado, ou crediário e duplicata com o prazo aprovado. É a regra de registrar_faturamento.
+  bool get prontoParaFaturar => pagamentoConfirmadoEm != null || ((formaPagamento == FormaPagamento.crediario || formaPagamento == FormaPagamento.duplicata) && prazoStatus == StatusPrazo.aprovado);
 
   /// Quem paga (nulo até o construtor escolher). O CPF/CNPJ de quem paga fica em pedido_documentos, só para a loja.
   final Pagador? pagador;
@@ -94,6 +95,9 @@ class PedidoResumo {
   final String? prazo;
   final StatusPrazo? prazoStatus;
   final DateTime? prazoRespondidoEm;
+
+  /// Em quantas vezes no cartão ou no boleto; nulo nas outras formas.
+  final int? parcelas;
 
   SituacaoPagamento get situacaoPagamento {
     if (status == StatusPedido.cancelado) return SituacaoPagamento.cancelado;
@@ -121,6 +125,7 @@ class PedidoResumo {
     prazo: j['prazo'] as String?,
     prazoStatus: StatusPrazo.fromCodigo(j['prazo_status'] as String?),
     prazoRespondidoEm: _data(j['prazo_respondido_em']),
+    parcelas: (j['parcelas'] as num?)?.toInt(),
     erpNumero: _faturamento(j['pedido_faturamento'])?['numero'] as String?,
     erpLancadoEm: _data(_faturamento(j['pedido_faturamento'])?['lancado_em']),
   );
@@ -165,6 +170,7 @@ class PropostaResumo {
     this.loja,
     this.mensagemConstrutor,
     this.formaEscolhida,
+    this.parcelasEscolhidas,
     this.mensagemLoja,
     this.motivoRecusa,
     this.pedido,
@@ -194,6 +200,7 @@ class PropostaResumo {
 
   /// Forma de pagamento que o construtor escolheu para esta loja na cotação.
   final FormaPagamento? formaEscolhida;
+  final int? parcelasEscolhidas;
   final String? mensagemLoja;
   final String? motivoRecusa;
   final DateTime validaAte;
@@ -249,6 +256,7 @@ class PropostaResumo {
       saldoAplicado: lerValor(j['saldo_aplicado']),
       mensagemConstrutor: j['mensagem_construtor'] as String?,
       formaEscolhida: FormaPagamento.fromCodigo(j['forma_escolhida'] as String?),
+      parcelasEscolhidas: (j['parcelas'] as num?)?.toInt(),
       mensagemLoja: j['mensagem_loja'] as String?,
       motivoRecusa: j['motivo_recusa'] as String?,
       validaAte: DateTime.parse(j['valida_ate'] as String).toLocal(),

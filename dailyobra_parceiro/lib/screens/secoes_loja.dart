@@ -2,6 +2,7 @@ import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../services/clientes_service.dart';
 import '../services/loja_service.dart';
 import 'componentes.dart';
 import 'editor_horario.dart';
@@ -622,6 +623,272 @@ class _PixAutomaticoState extends State<_PixAutomatico> with _Gravacao {
       },
     );
   }
+}
+
+/// Até quantas vezes a loja parcela no cartão e no boleto, sem juros. O construtor vê o valor da parcela na cotação.
+class SecaoParcelamento extends StatefulWidget {
+  const SecaoParcelamento({super.key});
+
+  @override
+  State<SecaoParcelamento> createState() => _SecaoParcelamentoState();
+}
+
+class _SecaoParcelamentoState extends State<SecaoParcelamento> with _Gravacao {
+  final _servico = LojaService.instance;
+  late int _cartao = _servico.minhaLoja?.parcelasCartao ?? 1;
+  late int _boleto = _servico.minhaLoja?.parcelasBoleto ?? 1;
+
+  Future<void> _salvar() async {
+    final loja = _servico.minhaLoja;
+    if (_cartao == (loja?.parcelasCartao ?? 1) &&
+        _boleto == (loja?.parcelasBoleto ?? 1)) {
+      return avisar(context, 'Nada mudou.');
+    }
+    await gravar(
+      () => _servico.atualizar({
+        'parcelas_cartao': _cartao,
+        'parcelas_boleto': _boleto,
+      }),
+    );
+  }
+
+  Widget _vezes(
+    String chave,
+    String rotulo,
+    int valor,
+    ValueChanged<int> mudou,
+  ) => DropdownButtonFormField<int>(
+    key: ValueKey(chave),
+    initialValue: valor,
+    isExpanded: true,
+    decoration: InputDecoration(labelText: rotulo),
+    items: [
+      for (var n = 1; n <= 12; n++)
+        DropdownMenuItem(
+          value: n,
+          child: Text(n == 1 ? 'À vista' : 'Em até ${n}x sem juros'),
+        ),
+    ],
+    onChanged: (n) {
+      if (n != null) setState(() => mudou(n));
+    },
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final formas = _servico.minhaLoja?.formasPagamento ?? formasPadrao;
+    final semForma = [
+      for (final f in [FormaPagamento.cartao, FormaPagamento.boleto])
+        if (!formas.contains(f)) f.rotulo,
+    ];
+    return _Formulario(
+      salvando: salvando,
+      onSalvar: _salvar,
+      campos: [
+        Text(
+          'O construtor escolhe em quantas vezes paga, até o limite que você definir. O valor de cada parcela aparece na cotação.',
+          style: t.bodySmall?.copyWith(color: context.cores.textoSuave),
+        ),
+        const SizedBox(height: Espaco.s4),
+        _vezes(
+          'parcelas-cartao',
+          'Cartão na loja',
+          _cartao,
+          (n) => _cartao = n,
+        ),
+        const SizedBox(height: Espaco.s3),
+        _vezes('parcelas-boleto', 'Boleto', _boleto, (n) => _boleto = n),
+        if (semForma.isNotEmpty) ...[
+          const SizedBox(height: Espaco.s3),
+          Aviso(
+            'Marque ${semForma.join(' e ')} em Recebimento para o parcelamento aparecer.',
+            tom: TomSelo.info,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Duplicata depende da análise de crédito da loja: só aparece para o cliente que a loja liberar, no prazo escolhido.
+class SecaoDuplicata extends StatefulWidget {
+  const SecaoDuplicata({super.key});
+
+  @override
+  State<SecaoDuplicata> createState() => _SecaoDuplicataState();
+}
+
+class _SecaoDuplicataState extends State<SecaoDuplicata> with _Gravacao {
+  final _servico = LojaService.instance;
+  final _clientes = ClientesService.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!_clientes.carregado) _clientes.carregar();
+  }
+
+  String _nome(String construtorId) {
+    for (final c in _clientes.lista) {
+      if (c.construtorId == construtorId) return c.exibicao;
+    }
+    return 'Cliente';
+  }
+
+  Future<void> _liberar() async {
+    final liberados = {for (final d in _servico.duplicatas) d.construtorId};
+    final candidatos = [
+      for (final c in _clientes.lista)
+        if (!liberados.contains(c.construtorId)) c,
+    ];
+    if (candidatos.isEmpty) {
+      return avisar(
+        context,
+        'Nenhum cliente para liberar. Quem já pediu orçamento à loja aparece aqui.',
+      );
+    }
+    final escolha = await showDialog<(String, String)>(
+      context: context,
+      builder: (_) => _DialogoDuplicata(clientes: candidatos),
+    );
+    if (escolha == null) return;
+    await gravar(() => _servico.liberarDuplicata(escolha.$1, escolha.$2));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final c = context.cores;
+    return ListenableBuilder(
+      listenable: Listenable.merge([_servico, _clientes]),
+      builder: (context, _) {
+        final gere = _servico.meuPapel.gere;
+        final formas = _servico.minhaLoja?.formasPagamento ?? formasPadrao;
+        final duplicatas = _servico.duplicatas;
+        return ListView(
+          padding: const EdgeInsets.all(Espaco.s4),
+          children: [
+            Text(
+              'A duplicata só aparece para o cliente que você liberar, depois de analisar o crédito dele.',
+              style: t.bodySmall?.copyWith(color: c.textoSuave),
+            ),
+            if (!formas.contains(FormaPagamento.duplicata)) ...[
+              const SizedBox(height: Espaco.s3),
+              const Aviso(
+                'Marque Duplicata em Recebimento para ela aparecer aos clientes liberados.',
+                tom: TomSelo.info,
+              ),
+            ],
+            if (gere) ...[
+              const SizedBox(height: Espaco.s4),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton.tonalIcon(
+                  key: const ValueKey('liberar-duplicata'),
+                  onPressed: salvando ? null : _liberar,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Liberar para um cliente'),
+                ),
+              ),
+            ],
+            const SizedBox(height: Espaco.s4),
+            if (duplicatas.isEmpty)
+              const EstadoVazio(
+                icone: Icons.request_page_outlined,
+                titulo: 'Nenhum cliente com duplicata',
+                texto: 'Libere depois de analisar o crédito do cliente.',
+              )
+            else
+              Painel(
+                titulo: 'Clientes liberados',
+                child: Column(
+                  children: [
+                    for (final d in duplicatas)
+                      ListTile(
+                        title: Text(_nome(d.construtorId)),
+                        subtitle: Text('Prazo de ${d.prazo} dias'),
+                        trailing: gere
+                            ? TextButton(
+                                onPressed: salvando
+                                    ? null
+                                    : () => gravar(
+                                        () => _servico.retirarDuplicata(
+                                          d.construtorId,
+                                        ),
+                                      ),
+                                child: const Text('Retirar'),
+                              )
+                            : null,
+                      ),
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _DialogoDuplicata extends StatefulWidget {
+  const _DialogoDuplicata({required this.clientes});
+  final List<ClienteLoja> clientes;
+
+  @override
+  State<_DialogoDuplicata> createState() => _DialogoDuplicataState();
+}
+
+class _DialogoDuplicataState extends State<_DialogoDuplicata> {
+  late String _cliente = widget.clientes.first.construtorId;
+  String _prazo = prazosCrediario.first;
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Liberar duplicata'),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        DropdownButtonFormField<String>(
+          key: const ValueKey('duplicata-cliente'),
+          initialValue: _cliente,
+          isExpanded: true,
+          decoration: const InputDecoration(labelText: 'Cliente'),
+          items: [
+            for (final c in widget.clientes)
+              DropdownMenuItem(value: c.construtorId, child: Text(c.exibicao)),
+          ],
+          onChanged: (v) {
+            if (v != null) setState(() => _cliente = v);
+          },
+        ),
+        const SizedBox(height: Espaco.s3),
+        DropdownButtonFormField<String>(
+          key: const ValueKey('duplicata-prazo'),
+          initialValue: _prazo,
+          isExpanded: true,
+          decoration: const InputDecoration(labelText: 'Prazo'),
+          items: [
+            for (final p in prazosCrediario)
+              DropdownMenuItem(value: p, child: Text('$p dias')),
+          ],
+          onChanged: (v) {
+            if (v != null) setState(() => _prazo = v);
+          },
+        ),
+      ],
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancelar'),
+      ),
+      FilledButton(
+        onPressed: () => Navigator.pop(context, (_cliente, _prazo)),
+        child: const Text('Liberar'),
+      ),
+    ],
+  );
 }
 
 class SecaoAparencia extends StatelessWidget {

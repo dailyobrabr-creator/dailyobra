@@ -24,6 +24,7 @@ enum FormaPagamento {
   pix('pix', 'PIX'),
   cartao('cartao', 'Cartão na loja'),
   boleto('boleto', 'Boleto'),
+  duplicata('duplicata', 'Duplicata'),
   dinheiro('dinheiro', 'Dinheiro'),
   crediario('crediario', 'Crediário da loja');
 
@@ -33,6 +34,35 @@ enum FormaPagamento {
 
   static FormaPagamento? fromCodigo(String? c) => values.where((v) => v.codigo == c).firstOrNull;
 }
+
+/// Forma e parcelas escolhidas para uma loja na cotação.
+class EscolhaPagamento {
+  const EscolhaPagamento(this.forma, {this.parcelas = 1});
+  final FormaPagamento forma;
+  final int parcelas;
+
+  Map<String, Object> toJson() => {'forma': forma.codigo, 'parcelas': parcelas};
+
+  @override
+  bool operator ==(Object other) => other is EscolhaPagamento && other.forma == forma && other.parcelas == parcelas;
+
+  @override
+  int get hashCode => Object.hash(forma, parcelas);
+
+  @override
+  String toString() => 'EscolhaPagamento(${forma.codigo}, $parcelas)';
+}
+
+/// Valor de cada parcela sem juros, em centavos.
+double valorDaParcela(double total, int parcelas) =>
+    parcelas <= 1 ? total : ((total / parcelas) * 100).roundToDouble() / 100;
+
+/// Como a forma aparece: "Cartão na loja em 3x", "Duplicata (28/35 dias)".
+String rotuloDoPagamento(FormaPagamento forma, {int? parcelas, String? prazo}) => switch (forma) {
+      FormaPagamento.cartao || FormaPagamento.boleto when (parcelas ?? 1) > 1 => '${forma.rotulo} em ${parcelas}x',
+      FormaPagamento.duplicata || FormaPagamento.crediario when prazo != null => '${forma.rotulo} ($prazo dias)',
+      _ => forma.rotulo,
+    };
 
 /// O que a loja recebe enquanto não escolheu as formas dela.
 const formasPadrao = [FormaPagamento.pix, FormaPagamento.cartao, FormaPagamento.crediario];

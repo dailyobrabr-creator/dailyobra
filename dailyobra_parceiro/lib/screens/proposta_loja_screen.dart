@@ -154,7 +154,10 @@ class _PropostaLojaScreenState extends State<PropostaLojaScreen> {
                 titulo: 'Forma de pagamento',
                 child: Padding(
                   padding: const EdgeInsets.all(Espaco.s4),
-                  child: Text(forma.rotulo, style: t.bodyMedium),
+                  child: Text(
+                    rotuloDoPagamento(forma, parcelas: p.parcelasEscolhidas),
+                    style: t.bodyMedium,
+                  ),
                 ),
               ),
             ],

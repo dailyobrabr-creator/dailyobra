@@ -8,6 +8,7 @@ import 'clientes_screen.dart';
 import 'componentes.dart';
 import 'equipe_screen.dart';
 import 'faturamento_screen.dart';
+import 'financeiro_screen.dart';
 import 'mesa_screen.dart';
 import 'secoes_loja.dart';
 
@@ -27,7 +28,6 @@ enum SecaoLoja {
     'Frete e valor mínimo do pedido',
     Icons.local_shipping_outlined,
   ),
-  pagamento('Pagamento', 'Chave PIX da loja', Icons.payments_outlined),
   equipe(
     'Equipe',
     'Gerentes e vendedores que usam o app',
@@ -69,7 +69,6 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
       buscarCep: widget.buscarCep,
     ),
     SecaoLoja.entrega => const SecaoEntrega(),
-    SecaoLoja.pagamento => const SecaoPagamento(),
     SecaoLoja.equipe => const EquipeScreen(),
     SecaoLoja.aparencia => SecaoAparencia(tema: widget.tema),
     SecaoLoja.conta => const SecaoConta(),
@@ -156,6 +155,23 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                           context,
                           MaterialPageRoute(
                             builder: (_) => const FaturamentoScreen(),
+                          ),
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(
+                          Icons.account_balance_wallet_outlined,
+                        ),
+                        title: const Text('Financeiro'),
+                        subtitle: const Text(
+                          'Recebimento, parcelamento e duplicata',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const FinanceiroScreen(),
                           ),
                         ),
                       ),

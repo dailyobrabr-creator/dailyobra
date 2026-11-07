@@ -33,6 +33,26 @@ enum PapelLoja {
 }
 
 /// Dados de cadastro que só a loja vê (o construtor vê o resumo em [Loja]).
+/// Cliente que a loja liberou para pagar com duplicata.
+class DuplicataLiberada {
+  const DuplicataLiberada({
+    required this.construtorId,
+    required this.prazo,
+    this.liberadaEm,
+  });
+
+  factory DuplicataLiberada.fromJson(Map<String, dynamic> j) =>
+      DuplicataLiberada(
+        construtorId: j['construtor_id'] as String,
+        prazo: j['prazo'] as String,
+        liberadaEm: DateTime.tryParse((j['liberada_em'] as String?) ?? '')
+            ?.toLocal(),
+      );
+  final String construtorId;
+  final String prazo;
+  final DateTime? liberadaEm;
+}
+
 class DadosLoja {
   const DadosLoja({
     this.cnpj = '',
@@ -111,6 +131,14 @@ class LojaService extends ChangeNotifier {
   @visibleForTesting
   final chavesDeTeste = <String?>[];
 
+  /// Clientes com duplicata liberada pela loja.
+  List<DuplicataLiberada> _duplicatas = const [];
+  List<DuplicataLiberada> get duplicatas => _duplicatas;
+
+  /// O que [liberarDuplicata] e [retirarDuplicata] mandariam ao banco (prazo nulo é retirar).
+  @visibleForTesting
+  final duplicatasDeTeste = <(String, String?)>[];
+
   /// O que [ligarPixAutomatico] mandaria ao servidor, quando montado por [definirParaTeste].
   @visibleForTesting
   final asaasDeTeste = <String?>[];
@@ -128,7 +156,10 @@ class LojaService extends ChangeNotifier {
     PapelLoja papel = PapelLoja.dono,
     DadosLoja dados = const DadosLoja(cnpj: '11222333000181'),
     List<MembroLoja> equipe = const [],
+    List<DuplicataLiberada> duplicatas = const [],
   }) {
+    _duplicatas = duplicatas;
+    duplicatasDeTeste.clear();
     _loja = loja;
     _papel = papel;
     _dados = dados;
@@ -155,7 +186,7 @@ class LojaService extends ChangeNotifier {
   static const _colunas =
       'id, nome, cnpj, descricao, logo_path, capa_path, banner_path, whatsapp, endereco, cidade, uf, horario, '
       'frete_fixo, pedido_minimo, aberta, status, criada_em, estoque_atualizado_em, '
-      'cep, logradouro, numero, complemento, bairro, outras_unidades, formas_pagamento';
+      'cep, logradouro, numero, complemento, bairro, outras_unidades, formas_pagamento, parcelas_cartao, parcelas_boleto';
 
   Future<void> carregar() async {
     final uid = _db.auth.currentUser?.id;
@@ -183,6 +214,14 @@ class LojaService extends ChangeNotifier {
             .select('carteira')
             .eq('loja_id', j['id'] as String)
             .maybeSingle();
+        final duplicatas = await _db
+            .from('loja_duplicatas')
+            .select('construtor_id, prazo, liberada_em')
+            .eq('loja_id', j['id'] as String)
+            .order('liberada_em', ascending: false);
+        _duplicatas = [
+          for (final d in duplicatas) DuplicataLiberada.fromJson(d),
+        ];
         _dados = DadosLoja(
           cnpj: (j['cnpj'] as String?)?.trim() ?? '',
           endereco: (j['endereco'] as String?) ?? '',
@@ -260,6 +299,41 @@ class LojaService extends ChangeNotifier {
         await tabela.upsert({'loja_id': loja.id, 'chave': chave});
       }
     });
+    await carregar();
+  }
+
+  /// Libera duplicata para o construtor no prazo, depois da análise de crédito da loja.
+  Future<void> liberarDuplicata(String construtorId, String prazo) async {
+    final loja = _loja;
+    if (loja == null) return;
+    if (_teste) {
+      duplicatasDeTeste.add((construtorId, prazo));
+      return;
+    }
+    await comMensagem(
+      () => _db.from('loja_duplicatas').upsert({
+        'loja_id': loja.id,
+        'construtor_id': construtorId,
+        'prazo': prazo,
+      }),
+    );
+    await carregar();
+  }
+
+  Future<void> retirarDuplicata(String construtorId) async {
+    final loja = _loja;
+    if (loja == null) return;
+    if (_teste) {
+      duplicatasDeTeste.add((construtorId, null));
+      return;
+    }
+    await comMensagem(
+      () => _db
+          .from('loja_duplicatas')
+          .delete()
+          .eq('loja_id', loja.id)
+          .eq('construtor_id', construtorId),
+    );
     await carregar();
   }
 

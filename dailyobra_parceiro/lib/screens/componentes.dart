@@ -8,6 +8,7 @@ enum Aba {
   pedidos,
   mesa,
   faturamento,
+  financeiro,
   produtos,
   sincronizacao,
   anuncios,

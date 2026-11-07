@@ -14,6 +14,7 @@ import 'componentes.dart';
 import 'configuracoes_screen.dart';
 import 'equipe_screen.dart';
 import 'faturamento_screen.dart';
+import 'financeiro_screen.dart';
 import 'inicio_screen.dart';
 import 'layout_parceiros.dart';
 import 'mesa_screen.dart';
@@ -99,6 +100,7 @@ class _NavegacaoScreenState extends State<NavegacaoScreen> {
                   const PedidosScreen(),
                   const MesaScreen(),
                   const FaturamentoScreen(),
+                  const FinanceiroScreen(),
                   const ProdutosScreen(),
                   if (_sincronizacaoAberta)
                     const AtualizarEstoqueScreen()

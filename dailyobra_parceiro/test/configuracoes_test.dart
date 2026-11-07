@@ -1,5 +1,6 @@
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:dailyobra_parceiro/screens/configuracoes_screen.dart';
+import 'package:dailyobra_parceiro/screens/financeiro_screen.dart';
 import 'package:dailyobra_parceiro/services/loja_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,11 +12,13 @@ const secoes = [
   'Perfil da loja',
   'Endereço e horário',
   'Entrega e pedido mínimo',
-  'Pagamento',
   'Equipe',
   'Aparência',
   'Conta',
 ];
+
+Future<void> abrirFinanceiro(WidgetTester tester, {required bool escuro}) =>
+    abrir(tester, const FinanceiroScreen(), escuro: escuro);
 
 Finder campoDoEndereco(String nome) => find.descendant(
   of: find.byKey(Key('endereco-$nome')),
@@ -152,7 +155,7 @@ void main() {
 
       testWidgets('pagamento salva a chave pix em loja_pix', (tester) async {
         preparar();
-        await abrirConfiguracoes(tester, escuro: escuro, secao: 'Pagamento');
+        await abrirFinanceiro(tester, escuro: escuro);
         final campo = find.byKey(const ValueKey('chave-pix'));
         await tester.enterText(campo, '66999990000');
         await salvar(tester);
@@ -179,7 +182,7 @@ void main() {
             chavePix: '+5566999990000',
           ),
         );
-        await abrirConfiguracoes(tester, escuro: escuro, secao: 'Pagamento');
+        await abrirFinanceiro(tester, escuro: escuro);
         expect(find.text('+5566999990000'), findsOneWidget);
       });
 
@@ -187,7 +190,7 @@ void main() {
         tester,
       ) async {
         preparar();
-        await abrirConfiguracoes(tester, escuro: escuro, secao: 'Pagamento');
+        await abrirFinanceiro(tester, escuro: escuro);
         await tester.enterText(
           find.byKey(const ValueKey('chave-pix')),
           '11.222.333/0001-81',
@@ -199,7 +202,7 @@ void main() {
 
       testWidgets('marca as formas que a loja recebe', (tester) async {
         preparar();
-        await abrirConfiguracoes(tester, escuro: escuro, secao: 'Pagamento');
+        await abrirFinanceiro(tester, escuro: escuro);
         await rolarAte(tester, find.byKey(const ValueKey('recebe-boleto')));
         await tester.tap(find.byKey(const ValueKey('recebe-boleto')));
         await tester.pumpAndSettle();
@@ -217,7 +220,7 @@ void main() {
 
       testWidgets('a loja não fica sem forma de pagamento', (tester) async {
         preparar();
-        await abrirConfiguracoes(tester, escuro: escuro, secao: 'Pagamento');
+        await abrirFinanceiro(tester, escuro: escuro);
         for (final f in ['pix', 'cartao', 'crediario']) {
           await rolarAte(tester, find.byKey(ValueKey('recebe-$f')));
           await tester.tap(find.byKey(ValueKey('recebe-$f')));
@@ -234,7 +237,7 @@ void main() {
 
       testWidgets('pix automático: cola a chave e liga', (tester) async {
         preparar();
-        await abrirConfiguracoes(tester, escuro: escuro, secao: 'Pagamento');
+        await abrirFinanceiro(tester, escuro: escuro);
         await rolarAte(tester, find.text('Ligar PIX automático'));
         await tester.tap(find.text('Ligar PIX automático'));
         await tester.pumpAndSettle();
@@ -272,7 +275,7 @@ void main() {
             carteiraAsaas: '7bafd95a-e783-4a62-9be1-23999af742c6',
           ),
         );
-        await abrirConfiguracoes(tester, escuro: escuro, secao: 'Pagamento');
+        await abrirFinanceiro(tester, escuro: escuro);
         expect(find.byKey(const ValueKey('asaas-chave')), findsNothing);
         await rolarAte(tester, find.text('Desligar PIX automático'));
         await tester.tap(find.text('Desligar PIX automático'));
@@ -434,12 +437,12 @@ void main() {
           1366,
           escuro: escuro,
         );
-        expect(find.byKey(const ValueKey('chave-pix')), findsNothing);
-        await tester.tap(find.text('Pagamento').first);
+        expect(find.byType(Segmentado<ThemeMode>), findsNothing);
+        await tester.tap(find.text('Aparência').first);
         await tester.pumpAndSettle();
-        expect(find.byKey(const ValueKey('chave-pix')), findsOneWidget);
+        expect(find.byType(Segmentado<ThemeMode>), findsOneWidget);
         // A lista continua na tela: a seção abriu ao lado, não por cima
-        expect(find.text('Aparência'), findsOneWidget);
+        expect(find.text('Conta'), findsOneWidget);
         expect(tester.takeException(), isNull);
       });
     });

@@ -33,11 +33,29 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
   /// Forma de pagamento escolhida em cada loja; sem escolha vale a primeira que a loja recebe.
   final _formas = <String, FormaPagamento>{};
 
-  FormaPagamento _formaDe(Loja loja) {
+  /// Parcelas escolhidas em cada loja, até o que ela permite.
+  final _parcelas = <String, int>{};
+
+  /// O que a loja recebe deste construtor: a duplicata só depois de a loja liberar.
+  List<FormaPagamento> _formasDe(Loja loja) => [
+    for (final f in loja.formasPagamento)
+      if (f != FormaPagamento.duplicata ||
+          NegociacaoService.instance.duplicataDaLoja(loja.id) != null)
+        f,
+  ];
+
+  FormaPagamento? _formaDe(Loja loja) {
+    final formas = _formasDe(loja);
+    if (formas.isEmpty) return null;
     final escolhida = _formas[loja.id];
-    return escolhida != null && loja.formasPagamento.contains(escolhida)
+    return escolhida != null && formas.contains(escolhida)
         ? escolhida
-        : loja.formasPagamento.first;
+        : formas.first;
+  }
+
+  int _parcelasDe(Loja loja, FormaPagamento? forma) {
+    if (forma == null) return 1;
+    return (_parcelas[loja.id] ?? 1).clamp(1, loja.maximoDeParcelas(forma));
   }
 
   @override
@@ -100,7 +118,14 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
         obraId: ObrasService.instance
             .obra(CarrinhoService.instance.obraId ?? '')
             ?.id,
-        formas: {for (final g in r.grupos) g.loja.id: _formaDe(g.loja)},
+        formas: {
+          for (final g in r.grupos)
+            if (_formaDe(g.loja) case final forma?)
+              g.loja.id: EscolhaPagamento(
+                forma,
+                parcelas: _parcelasDe(g.loja, forma),
+              ),
+        },
         ofertas: ofertas,
       );
       CarrinhoService.instance.limpar();
@@ -291,8 +316,14 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
             _GrupoCotado(
               grupo: g,
               fixadas: fixadas,
+              formas: _formasDe(g.loja),
               forma: _formaDe(g.loja),
+              parcelas: _parcelasDe(g.loja, _formaDe(g.loja)),
+              prazoDuplicata: NegociacaoService.instance.duplicataDaLoja(
+                g.loja.id,
+              ),
               onForma: (f) => setState(() => _formas[g.loja.id] = f),
+              onParcelas: (n) => setState(() => _parcelas[g.loja.id] = n),
               onTrocar: (item) => _trocarLoja(item, fixadas[item.id]),
             ),
             const SizedBox(height: Espaco.s3),
@@ -607,14 +638,22 @@ class _GrupoCotado extends StatelessWidget {
   const _GrupoCotado({
     required this.grupo,
     required this.fixadas,
+    required this.formas,
     required this.forma,
+    required this.parcelas,
+    required this.prazoDuplicata,
     required this.onForma,
+    required this.onParcelas,
     required this.onTrocar,
   });
   final GrupoLoja grupo;
   final Map<String, String> fixadas;
-  final FormaPagamento forma;
+  final List<FormaPagamento> formas;
+  final FormaPagamento? forma;
+  final int parcelas;
+  final String? prazoDuplicata;
   final ValueChanged<FormaPagamento> onForma;
+  final ValueChanged<int> onParcelas;
   final ValueChanged<ItemCatalogo> onTrocar;
 
   @override
@@ -669,15 +708,47 @@ class _GrupoCotado extends StatelessWidget {
                   spacing: Espaco.s2,
                   runSpacing: Espaco.s2,
                   children: [
-                    for (final f in loja.formasPagamento)
+                    for (final f in formas)
                       ChoiceChip(
                         key: Key('forma-${loja.id}-${f.codigo}'),
-                        label: Text(f.rotulo),
+                        label: Text(
+                          f == FormaPagamento.duplicata
+                              ? rotuloDoPagamento(f, prazo: prazoDuplicata)
+                              : f.rotulo,
+                        ),
                         selected: f == forma,
                         onSelected: (_) => onForma(f),
                       ),
                   ],
                 ),
+                if (formas.isEmpty)
+                  Text(
+                    'A loja recebe só por duplicata, liberada depois da análise de crédito dela.',
+                    style: t.bodySmall?.copyWith(color: c.textoSuave),
+                  ),
+                if (forma case final f? when loja.maximoDeParcelas(f) > 1) ...[
+                  const SizedBox(height: Espaco.s3),
+                  DropdownButtonFormField<int>(
+                    key: Key('parcelas-${loja.id}-${f.codigo}'),
+                    initialValue: parcelas,
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: 'Parcelas'),
+                    items: [
+                      for (var n = 1; n <= loja.maximoDeParcelas(f); n++)
+                        DropdownMenuItem(
+                          value: n,
+                          child: Text(
+                            n == 1
+                                ? 'À vista, ${brl.format(grupo.total)}'
+                                : '${n}x de ${brl.format(valorDaParcela(grupo.total, n))} sem juros',
+                          ),
+                        ),
+                    ],
+                    onChanged: (n) {
+                      if (n != null) onParcelas(n);
+                    },
+                  ),
+                ],
                 if (grupo.abaixoMinimo) ...[
                   const SizedBox(height: Espaco.s2),
                   Aviso(

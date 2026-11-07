@@ -29,6 +29,10 @@ class QuemPaga extends StatefulWidget {
     required this.abrirBanco,
     this.formas = formasPadrao,
     this.formaSugerida,
+    this.parcelasCartao = 1,
+    this.parcelasBoleto = 1,
+    this.prazoDuplicata,
+    this.escolherParcelas,
   });
   final PedidoResumo pedido;
   final String nomeLoja;
@@ -61,6 +65,17 @@ class QuemPaga extends StatefulWidget {
 
   /// A forma escolhida na cotação.
   final FormaPagamento? formaSugerida;
+
+  /// Até quantas vezes a loja parcela no cartão e no boleto.
+  final int parcelasCartao;
+  final int parcelasBoleto;
+
+  /// Prazo da duplicata que a loja liberou para este construtor.
+  final String? prazoDuplicata;
+
+  /// Troca as parcelas no cartão ou no boleto; sem ela, a tela não mostra a escolha.
+  final Future<void> Function(FormaPagamento forma, int parcelas)?
+  escolherParcelas;
 
   @override
   State<QuemPaga> createState() => _QuemPagaState();
@@ -438,10 +453,21 @@ class _QuemPagaState extends State<QuemPaga> {
           FormaPagamento.cartao => _pagarNaLoja(
             t,
             'Pague na maquininha da loja na entrega ou retirada.',
+            maximo: widget.parcelasCartao,
           ),
           FormaPagamento.boleto => _pagarNaLoja(
             t,
             'A loja envia o boleto depois de confirmar o pedido.',
+            maximo: widget.parcelasBoleto,
+          ),
+          FormaPagamento.duplicata => _pagarNaLoja(
+            t,
+            widget.pedido.formaPagamento == FormaPagamento.duplicata &&
+                    widget.pedido.prazo != null
+                ? 'Duplicata liberada pela loja, em ${widget.pedido.prazo} dias. Nada a pagar agora.'
+                : widget.prazoDuplicata == null
+                ? 'A loja ainda não liberou duplicata para você.'
+                : 'Duplicata liberada pela loja, em ${widget.prazoDuplicata} dias. Nada a pagar agora.',
           ),
           FormaPagamento.dinheiro => _pagarNaLoja(
             t,
@@ -498,9 +524,43 @@ class _QuemPagaState extends State<QuemPaga> {
     ];
   }
 
-  List<Widget> _pagarNaLoja(TextTheme t, String texto) {
+  List<Widget> _pagarNaLoja(TextTheme t, String texto, {int maximo = 1}) {
     _gravarFormaMarcada();
-    return [Text(texto, style: t.bodyMedium)];
+    final escolher = widget.escolherParcelas;
+    final total = widget.pedido.total;
+    final forma = _forma;
+    return [
+      Text(texto, style: t.bodyMedium),
+      if (maximo > 1 && escolher != null) ...[
+        const SizedBox(height: Espaco.s3),
+        DropdownButtonFormField<int>(
+          key: Key('parcelas-${forma.codigo}'),
+          initialValue:
+              (widget.pedido.formaPagamento == forma
+                      ? widget.pedido.parcelas ?? 1
+                      : 1)
+                  .clamp(1, maximo),
+          isExpanded: true,
+          decoration: const InputDecoration(labelText: 'Parcelas'),
+          items: [
+            for (var n = 1; n <= maximo; n++)
+              DropdownMenuItem(
+                value: n,
+                child: Text(
+                  n == 1
+                      ? 'À vista, ${brl.format(total)}'
+                      : '${n}x de ${brl.format(valorDaParcela(total, n))} sem juros',
+                ),
+              ),
+          ],
+          onChanged: _ocupado
+              ? null
+              : (n) {
+                  if (n != null) _ocupar(() => escolher(forma, n));
+                },
+        ),
+      ],
+    ];
   }
 
   /// Com a tela de pagar aberta a forma marcada vale: a loja passa a ver no pedido.

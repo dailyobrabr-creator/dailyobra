@@ -159,7 +159,15 @@ class _PedidoScreenState extends State<PedidoScreen> {
     final atual = _passos.indexOf(pedido.status);
     final entregue = pedido.status == StatusPedido.entregue;
     final pago = pedido.pagamentoConfirmadoEm != null;
-    final formas = p.loja?.formasPagamento ?? formasPadrao;
+    final prazoDuplicata = NegociacaoService.instance.duplicataDaLoja(p.lojaId);
+    final daLoja = [
+      for (final f in p.loja?.formasPagamento ?? formasPadrao)
+        if (f != FormaPagamento.duplicata ||
+            prazoDuplicata != null ||
+            pedido.formaPagamento == FormaPagamento.duplicata)
+          f,
+    ];
+    final formas = daLoja.isEmpty ? formasPadrao : daLoja;
     return ListView(
       padding: const EdgeInsets.fromLTRB(
         Espaco.s4,
@@ -254,6 +262,11 @@ class _PedidoScreenState extends State<PedidoScreen> {
             saldoNoPedido: p.saldoAplicado,
             formas: formas,
             formaSugerida: p.formaEscolhida,
+            parcelasCartao: p.loja?.parcelasCartao ?? 1,
+            parcelasBoleto: p.loja?.parcelasBoleto ?? 1,
+            prazoDuplicata: prazoDuplicata,
+            escolherParcelas: (forma, n) => NegociacaoService.instance
+                .escolherPagamento(pedido.id, forma, parcelas: n),
             pix: () async => formas.contains(FormaPagamento.pix)
                 ? NegociacaoService.instance.pixDoPedido(pedido.id)
                 : null,

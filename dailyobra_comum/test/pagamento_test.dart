@@ -69,6 +69,44 @@ void main() {
     });
   });
 
+  group('parcelas e duplicata', () {
+    test('valor de cada parcela, em centavos', () {
+      expect(valorDaParcela(1250, 3), 416.67);
+      expect(valorDaParcela(1250, 1), 1250);
+      expect(valorDaParcela(100, 0), 100);
+    });
+
+    test('como a forma aparece', () {
+      expect(rotuloDoPagamento(FormaPagamento.cartao, parcelas: 3), 'Cartão na loja em 3x');
+      expect(rotuloDoPagamento(FormaPagamento.boleto, parcelas: 1), 'Boleto');
+      expect(rotuloDoPagamento(FormaPagamento.boleto), 'Boleto');
+      expect(rotuloDoPagamento(FormaPagamento.duplicata, prazo: '28/35'), 'Duplicata (28/35 dias)');
+      expect(rotuloDoPagamento(FormaPagamento.pix, parcelas: 3), 'PIX');
+    });
+
+    test('a escolha vai ao banco com forma e parcelas', () {
+      expect(const EscolhaPagamento(FormaPagamento.cartao, parcelas: 4).toJson(), {'forma': 'cartao', 'parcelas': 4});
+      expect(const EscolhaPagamento(FormaPagamento.pix), const EscolhaPagamento(FormaPagamento.pix));
+    });
+
+    test('a loja diz até quantas vezes parcela', () {
+      final loja = Loja.fromJson({'id': 'l', 'nome': 'Loja', 'cidade': 'Sinop', 'uf': 'MT', 'parcelas_cartao': 10, 'parcelas_boleto': 3});
+      expect(loja.maximoDeParcelas(FormaPagamento.cartao), 10);
+      expect(loja.maximoDeParcelas(FormaPagamento.boleto), 3);
+      expect(loja.maximoDeParcelas(FormaPagamento.pix), 1);
+      final antiga = Loja.fromJson({'id': 'l', 'nome': 'Loja', 'cidade': 'Sinop', 'uf': 'MT'});
+      expect(antiga.maximoDeParcelas(FormaPagamento.cartao), 1);
+    });
+
+    test('duplicata liberada já pode ir para o faturamento', () {
+      final p = PedidoResumo.fromJson(pedido({'forma_pagamento': 'duplicata', 'prazo': '28', 'prazo_status': 'aprovado', 'parcelas': null}));
+      expect(p.prontoParaFaturar, isTrue);
+      final cartao = PedidoResumo.fromJson(pedido({'forma_pagamento': 'cartao', 'parcelas': 3}));
+      expect(cartao.parcelas, 3);
+      expect(cartao.prontoParaFaturar, isFalse);
+    });
+  });
+
   test('boleto e dinheiro vêm do banco', () {
     expect(FormaPagamento.fromCodigo('boleto'), FormaPagamento.boleto);
     expect(FormaPagamento.fromCodigo('dinheiro'), FormaPagamento.dinheiro);

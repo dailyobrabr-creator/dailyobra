@@ -19,6 +19,12 @@ const List<_ItemMenu> _itens = [
     Icons.point_of_sale,
     'Faturamento / Caixa',
   ),
+  (
+    Aba.financeiro,
+    Icons.account_balance_wallet_outlined,
+    Icons.account_balance_wallet,
+    'Financeiro',
+  ),
   (Aba.produtos, Icons.sell_outlined, Icons.sell, 'Produtos'),
   (Aba.sincronizacao, Icons.sync_outlined, Icons.sync, 'Sincronização D+0'),
   (Aba.anuncios, Icons.campaign_outlined, Icons.campaign, 'Retail Media'),
@@ -36,6 +42,7 @@ const List<_ItemMenu> _itens = [
 const _foraDoCelular = {
   Aba.mesa,
   Aba.faturamento,
+  Aba.financeiro,
   Aba.sincronizacao,
   Aba.anuncios,
   Aba.clientes,
@@ -45,6 +52,7 @@ const _foraDoCelular = {
 const _soQuemGere = {
   Aba.mesa,
   Aba.faturamento,
+  Aba.financeiro,
   Aba.sincronizacao,
   Aba.anuncios,
 };

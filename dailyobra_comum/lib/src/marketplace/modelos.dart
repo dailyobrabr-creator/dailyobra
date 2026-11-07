@@ -105,6 +105,8 @@ class Loja {
     this.bairro = '',
     this.outrasUnidades = '',
     this.formasPagamento = formasPadrao,
+    this.parcelasCartao = 1,
+    this.parcelasBoleto = 1,
   });
   final String id;
   final String nome;
@@ -147,6 +149,16 @@ class Loja {
   /// Como a loja recebe, sempre com pelo menos uma forma.
   final List<FormaPagamento> formasPagamento;
 
+  /// Até quantas vezes a loja parcela, sem juros (1 é à vista).
+  final int parcelasCartao;
+  final int parcelasBoleto;
+
+  int maximoDeParcelas(FormaPagamento forma) => switch (forma) {
+        FormaPagamento.cartao => parcelasCartao,
+        FormaPagamento.boleto => parcelasBoleto,
+        _ => 1,
+      };
+
   factory Loja.fromJson(Map<String, dynamic> j) {
     final criada = _data(j['criada_em']);
     return Loja(
@@ -173,6 +185,8 @@ class Loja {
       bairro: (j['bairro'] as String?) ?? '',
       outrasUnidades: (j['outras_unidades'] as String?) ?? '',
       formasPagamento: _formasDaLoja(j['formas_pagamento']),
+      parcelasCartao: (j['parcelas_cartao'] as num?)?.toInt() ?? 1,
+      parcelasBoleto: (j['parcelas_boleto'] as num?)?.toInt() ?? 1,
     );
   }
 }

@@ -15,6 +15,7 @@ class Chamadas {
   final bancos = <Uri>[];
   final saldos = <bool>[];
   final formas = <(FormaPagamento, String?)>[];
+  final parcelas = <(FormaPagamento, int)>[];
 }
 
 const pixDaLoja =
@@ -69,6 +70,8 @@ Future<Chamadas> montar(
   Future<void> Function(FormaPagamento, String?)? escolher,
   List<FormaPagamento> formas = formasPadrao,
   FormaPagamento? sugerida,
+  int parcelasCartao = 1,
+  String? prazoDuplicata,
   String? documentoDoPerfil,
   double saldoDisponivel = 0,
   double saldoNoPedido = 0,
@@ -99,6 +102,9 @@ Future<Chamadas> montar(
           abrirBanco: (uri) async => ch.bancos.add(uri),
           formas: formas,
           formaSugerida: sugerida,
+          parcelasCartao: parcelasCartao,
+          prazoDuplicata: prazoDuplicata,
+          escolherParcelas: (f, n) async => ch.parcelas.add((f, n)),
         ),
       ),
     ),
@@ -637,6 +643,51 @@ void main() {
           findsOneWidget,
         );
         expect(ch.formas, [(FormaPagamento.boleto, null)]);
+      });
+
+      testWidgets('cartão parcelado troca as parcelas', (tester) async {
+        final ch = await montar(
+          tester,
+          escuro: escuro,
+          p: euPago(forma: FormaPagamento.cartao),
+          formas: const [FormaPagamento.cartao],
+          parcelasCartao: 4,
+        );
+        final campo = find.byKey(const Key('parcelas-cartao'));
+        await rolarAte(tester, campo);
+        await tester.tap(campo);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('2x de ${brl.format(225)} sem juros').last);
+        await tester.pumpAndSettle();
+        expect(ch.parcelas, [(FormaPagamento.cartao, 2)]);
+      });
+
+      testWidgets('cartão à vista não mostra parcelas', (tester) async {
+        await montar(
+          tester,
+          escuro: escuro,
+          p: euPago(forma: FormaPagamento.cartao),
+          formas: const [FormaPagamento.cartao],
+        );
+        expect(find.byKey(const Key('parcelas-cartao')), findsNothing);
+      });
+
+      testWidgets('duplicata liberada não cobra agora', (tester) async {
+        final ch = await montar(
+          tester,
+          escuro: escuro,
+          p: euPago(),
+          formas: const [FormaPagamento.duplicata],
+          prazoDuplicata: '28',
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.text(
+            'Duplicata liberada pela loja, em 28 dias. Nada a pagar agora.',
+          ),
+          findsOneWidget,
+        );
+        expect(ch.formas, [(FormaPagamento.duplicata, null)]);
       });
 
       testWidgets('crediário da cotação ainda pede o prazo', (tester) async {

@@ -161,7 +161,11 @@ class _PedidoLojaScreenState extends State<PedidoLojaScreen> {
                         forma == FormaPagamento.crediario &&
                                 pedido.prazo != null
                             ? 'Crediário: ${pedido.prazo} dias'
-                            : forma.rotulo,
+                            : rotuloDoPagamento(
+                                forma,
+                                parcelas: pedido.parcelas,
+                                prazo: pedido.prazo,
+                              ),
                       ),
                       if (prazo == StatusPrazo.pendente && gere) ...[
                         const SizedBox(height: Espaco.s2),

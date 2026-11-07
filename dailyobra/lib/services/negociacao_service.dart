@@ -47,7 +47,11 @@ class NegociacaoService extends ChangeNotifier {
 
   /// As formas de pagamento por loja que [enviar] mandaria ao banco.
   @visibleForTesting
-  Map<String, FormaPagamento> formasDoEnvioDeTeste = const {};
+  Map<String, EscolhaPagamento> formasDoEnvioDeTeste = const {};
+
+  /// Prazo da duplicata por loja, nas lojas que liberaram para este construtor.
+  Map<String, String> _duplicatas = const {};
+  String? duplicataDaLoja(String lojaId) => _duplicatas[lojaId];
 
   /// Os valores propostos por loja que [enviar] mandaria ao banco.
   @visibleForTesting
@@ -88,9 +92,11 @@ class NegociacaoService extends ChangeNotifier {
     ResultadoEnvio? resultadoEnvio,
     String? erro,
     String? pix,
+    Map<String, String> duplicatas = const {},
   }) {
     ofertasDeTeste.clear();
     _propostas = propostas;
+    _duplicatas = duplicatas;
     _resultadoTeste = resultadoEnvio;
     _erro = erro;
     _teste = true;
@@ -101,14 +107,14 @@ class NegociacaoService extends ChangeNotifier {
 
   static const _colunas =
       'id, orcamento_id, loja_id, modo, status, subtotal_anunciado, desconto, frete, total, '
-      'cashback_previsto, saldo_aplicado, mensagem_construtor, mensagem_loja, motivo_recusa, forma_escolhida, '
+      'cashback_previsto, saldo_aplicado, mensagem_construtor, mensagem_loja, motivo_recusa, forma_escolhida, parcelas, '
       'oferta_valor, oferta_status, oferta_mensagem, oferta_motivo, oferta_em, '
       'valida_ate, criada_em, '
-      'lojas(id, nome, descricao, logo_path, capa_path, whatsapp, cidade, uf, frete_fixo, pedido_minimo, aberta, criada_em, formas_pagamento), '
+      'lojas(id, nome, descricao, logo_path, capa_path, whatsapp, cidade, uf, frete_fixo, pedido_minimo, aberta, criada_em, formas_pagamento, parcelas_cartao, parcelas_boleto), '
       'proposta_itens(item_id, nome, unidade, tier, quantidade, preco_anunciado, preco_ofertado), '
       'pedidos(id, status, total, pagamento_confirmado_em, entregue_em, criado_em, pagador, pagador_nome, '
       'pagador_whatsapp, link_codigo, documento_informado_em, pagamento_informado_em, forma_pagamento, prazo, '
-      'prazo_status, prazo_respondido_em)';
+      'prazo_status, prazo_respondido_em, parcelas)';
 
   /// Chamado ao entrar: carrega e passa a ouvir as mudanças das propostas e pedidos do usuário.
   void iniciar() {
@@ -173,8 +179,16 @@ class NegociacaoService extends ChangeNotifier {
           .eq('construtor_id', uid)
           .order('criada_em', ascending: false)
           .limit(100);
+      final duplicatas = await _db
+          .from('loja_duplicatas')
+          .select('loja_id, prazo')
+          .eq('construtor_id', uid);
       if (meu != _pedido) return;
       _propostas = [for (final j in linhas) PropostaResumo.fromJson(j)];
+      _duplicatas = {
+        for (final d in duplicatas)
+          d['loja_id'] as String: d['prazo'] as String,
+      };
       _erro = null;
       _carregado = true;
     } catch (e) {
@@ -193,7 +207,7 @@ class NegociacaoService extends ChangeNotifier {
     required ResultadoCotacao cotacao,
     String? mensagem,
     String? obraId,
-    Map<String, FormaPagamento> formas = const {},
+    Map<String, EscolhaPagamento> formas = const {},
     Map<String, double> ofertas = const {},
   }) async {
     final itens = [
@@ -262,7 +276,7 @@ class NegociacaoService extends ChangeNotifier {
   /// A forma é uma preferência: se não gravar, o construtor escolhe de novo no pedido.
   Future<void> _gravarFormas(
     String orcamentoId,
-    Map<String, FormaPagamento> formas,
+    Map<String, EscolhaPagamento> formas,
   ) async {
     if (formas.isEmpty) return;
     try {
@@ -270,7 +284,7 @@ class NegociacaoService extends ChangeNotifier {
         'definir_formas_do_orcamento',
         params: {
           'p_orcamento': orcamentoId,
-          'p_formas': {for (final e in formas.entries) e.key: e.value.codigo},
+          'p_formas': {for (final e in formas.entries) e.key: e.value.toJson()},
         },
       );
     } on Exception {
@@ -350,10 +364,12 @@ class NegociacaoService extends ChangeNotifier {
     String pedidoId,
     FormaPagamento forma, {
     String? prazo,
+    int? parcelas,
   }) => _acao('escolher_pagamento', {
     'p_pedido': pedidoId,
     'p_forma': forma.codigo,
     'p_prazo': prazo,
+    'p_parcelas': ?parcelas,
   });
 
   /// Cria (ou troca) o link de pagamento do cliente e devolve o código.

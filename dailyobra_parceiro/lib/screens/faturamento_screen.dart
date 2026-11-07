@@ -110,7 +110,11 @@ String textoDaForma(PedidoResumo pedido) {
   if (forma == FormaPagamento.crediario && pedido.prazo != null) {
     return 'Crediário: ${pedido.prazo} dias';
   }
-  return forma.rotulo;
+  return rotuloDoPagamento(
+    forma,
+    parcelas: pedido.parcelas,
+    prazo: pedido.prazo,
+  );
 }
 
 (String, TomSelo) situacaoNoFaturamento(PedidoResumo pedido) {

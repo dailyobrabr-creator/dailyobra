@@ -5,6 +5,9 @@ import 'componentes.dart';
 
 typedef _ItemMenu = (Aba, IconData, IconData, String);
 
+/// A barra da loja segue a coluna do conteúdo: a logo fica alinhada com o título da página.
+const _larguraDoConteudo = 1320.0;
+
 const List<_ItemMenu> _itens = [
   (Aba.inicio, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard'),
   (Aba.propostas, Icons.inbox_outlined, Icons.inbox, 'Propostas'),
@@ -125,7 +128,7 @@ class LayoutParceiros extends StatelessWidget {
     final corpo = Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1320),
+        constraints: const BoxConstraints(maxWidth: _larguraDoConteudo),
         child: KeyedSubtree(
           key: const Key('conteudo-adaptativo'),
           child: conteudo,
@@ -187,6 +190,7 @@ class LayoutParceiros extends StatelessWidget {
           ),
         );
       case Formato.computador:
+        final tema = Theme.of(context);
         return Scaffold(
           body: Row(
             children: [
@@ -200,7 +204,19 @@ class LayoutParceiros extends StatelessWidget {
                 child: Column(
                   children: [
                     _BarraDaLoja(loja: loja),
-                    Expanded(child: corpo),
+                    // O título da página fica na cor do fundo: em tela larga uma faixa própria terminaria antes da barra
+                    Expanded(
+                      child: Theme(
+                        data: tema.copyWith(
+                          appBarTheme: tema.appBarTheme.copyWith(
+                            backgroundColor: c.fundo,
+                            titleTextStyle: tema.textTheme.titleLarge,
+                            shape: const Border(),
+                          ),
+                        ),
+                        child: corpo,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -334,30 +350,36 @@ class _BarraDaLoja extends StatelessWidget {
     return Material(
       key: const Key('barra-da-loja'),
       color: c.topo,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: Espaco.s8,
-          vertical: 18,
-        ),
-        child: Row(
-          children: [
-            if (loja != null) ...[
-              LogoLoja(loja: loja, tamanho: 36),
-              const SizedBox(width: Espaco.s3),
-              Expanded(
-                child: Text(
-                  loja.nome,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: t.titleMedium?.copyWith(
-                    color: c.textoSobreTopo,
-                    fontWeight: FontWeight.w700,
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _larguraDoConteudo),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Espaco.s4,
+              vertical: 14,
+            ),
+            child: Row(
+              children: [
+                if (loja != null) ...[
+                  LogoLoja(loja: loja, tamanho: 36, corDaBorda: Colors.white),
+                  const SizedBox(width: Espaco.s3),
+                  Expanded(
+                    child: Text(
+                      loja.nome,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: t.titleMedium?.copyWith(
+                        color: c.textoSobreTopo,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ] else
-              const SizedBox(height: 36),
-          ],
+                ] else
+                  const SizedBox(height: 36),
+              ],
+            ),
+          ),
         ),
       ),
     );

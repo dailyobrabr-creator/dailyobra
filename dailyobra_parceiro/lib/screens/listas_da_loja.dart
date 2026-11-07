@@ -2,6 +2,7 @@ import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
 
 import '../services/propostas_loja_service.dart';
+import 'componentes.dart';
 import 'inicio_screen.dart';
 import 'pedido_loja_screen.dart';
 import 'proposta_loja_screen.dart';
@@ -106,13 +107,24 @@ class _ListasDaLojaState extends State<ListasDaLoja> {
               ),
             ),
             body: aoLado
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SizedBox(width: 440, child: listas),
-                      VerticalDivider(width: 1, color: context.cores.borda),
-                      Expanded(child: _aberto(servico)),
-                    ],
+                ? ListaComDetalhe(
+                    lista: listas,
+                    detalhe: _aberto(servico),
+                    aviso: (i) {
+                      final aba = abas[i];
+                      final id = _aberta;
+                      if (!servico.carregado ||
+                          servico.erro != null ||
+                          aba.lista.isNotEmpty ||
+                          (id != null && servico.proposta(id) != null)) {
+                        return null;
+                      }
+                      return EstadoVazio(
+                        icone: widget.icone,
+                        titulo: aba.vazioTitulo,
+                        texto: aba.vazioTexto,
+                      );
+                    },
                   )
                 : listas,
           ),

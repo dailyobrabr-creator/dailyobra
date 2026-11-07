@@ -174,6 +174,11 @@ void main() {
       expect(tester.getSize(find.byType(Image)), const Size(48, 48));
     });
 
+    testWidgets('a borda pode seguir o fundo de fora do cartão', (tester) async {
+      await montar(tester, tema, const LogoLoja(loja: comLogo, corDaBorda: Colors.pink));
+      expect(decoracao(tester).border, Border.all(color: Colors.pink, width: 2));
+    });
+
     testWidgets('logo que não abre volta para as iniciais sobre a cor da loja', (tester) async {
       await montar(tester, tema, const LogoLoja(loja: comLogo, semFundo: true));
       final imagem = tester.widget<Image>(find.byType(Image));

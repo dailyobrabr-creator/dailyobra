@@ -193,13 +193,19 @@ class _ClientesScreenState extends State<ClientesScreen> {
               ),
             ),
             body: aoLado
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SizedBox(width: 440, child: listas),
-                      VerticalDivider(width: 1, color: context.cores.borda),
-                      Expanded(child: _aoLado(servico)),
-                    ],
+                ? ListaComDetalhe(
+                    lista: listas,
+                    detalhe: _aoLado(servico),
+                    aviso: (i) {
+                      final aba = abas[i];
+                      if (!servico.carregado ||
+                          servico.erro != null ||
+                          aba.lista.isNotEmpty ||
+                          servico.lista.any((c) => c.construtorId == _aberto)) {
+                        return null;
+                      }
+                      return _vazio(servico, aba.filtro);
+                    },
                   )
                 : listas,
           ),

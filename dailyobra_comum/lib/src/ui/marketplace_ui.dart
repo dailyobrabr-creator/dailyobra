@@ -59,9 +59,12 @@ class ImagemProduto extends StatelessWidget {
 /// Logo redonda da loja, sobre um disco branco porque a imagem pode ser transparente; sem logo, as iniciais do nome
 /// sobre a cor da marca.
 class LogoLoja extends StatelessWidget {
-  const LogoLoja({super.key, required this.loja, this.tamanho = 48, this.semFundo = false});
+  const LogoLoja({super.key, required this.loja, this.tamanho = 48, this.semFundo = false, this.corDaBorda});
   final Loja loja;
   final double tamanho;
+
+  /// Fora de um cartão, como na barra laranja do painel; o padrão é a cor do cartão.
+  final Color? corDaBorda;
 
   /// Tira o disco branco: nos cartões de produto fica só o ícone.
   final bool semFundo;
@@ -89,7 +92,7 @@ class LogoLoja extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: disco,
-        border: disco == null ? null : Border.all(color: c.superficie, width: 2),
+        border: disco == null ? null : Border.all(color: corDaBorda ?? c.superficie, width: 2),
       ),
       alignment: Alignment.center,
       child: logo == null

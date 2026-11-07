@@ -656,6 +656,37 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
+      testWidgets('lista vazia no computador não repete o aviso', (
+        tester,
+      ) async {
+        preparar(propostas: []);
+        await abrirLargura(tester, const PedidosScreen(), 1366, escuro: escuro);
+        expect(find.text('Nenhum pedido em andamento'), findsOneWidget);
+        expect(find.text('Escolha um pedido'), findsNothing);
+        expect(find.byType(VerticalDivider), findsNothing);
+        expect(
+          tester.getCenter(find.text('Nenhum pedido em andamento')).dx,
+          683,
+          reason: 'o aviso fica no meio da tela',
+        );
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('trocar para uma aba vazia esconde a coluna do lado', (
+        tester,
+      ) async {
+        preparar();
+        await abrirLargura(tester, const PedidosScreen(), 1366, escuro: escuro);
+        expect(find.text('Escolha um pedido'), findsOneWidget);
+        await tester.tap(find.text('Cancelados'));
+        await tester.pumpAndSettle();
+        expect(find.text('Escolha um pedido'), findsNothing);
+        expect(find.text('Nenhum pedido cancelado'), findsOneWidget);
+        await tester.tap(find.textContaining('Em andamento'));
+        await tester.pumpAndSettle();
+        expect(find.text('Escolha um pedido'), findsOneWidget);
+      });
+
       testWidgets('pedido aberto ao lado tem as ações no pé', (tester) async {
         preparar();
         await abrirLargura(tester, const PedidosScreen(), 1366, escuro: escuro);

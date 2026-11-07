@@ -77,6 +77,66 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
+      testWidgets('tela larga: a logo alinha com o título da página', (
+        tester,
+      ) async {
+        await abrirLargura(
+          tester,
+          LayoutParceiros(
+            aba: Aba.pedidos,
+            onAba: abas.add,
+            novas: 0,
+            loja: minhaLoja,
+            conteudo: Scaffold(
+              appBar: AppBar(title: const Text('Página')),
+              body: const SizedBox(),
+            ),
+          ),
+          1920,
+          escuro: escuro,
+        );
+        expect(
+          tester.getTopLeft(find.byType(LogoLoja)).dx,
+          tester.getTopLeft(find.text('Página')).dx,
+        );
+        expect(
+          tester.getSize(find.byKey(const Key('barra-da-loja'))).width,
+          1920 - 248,
+        );
+      });
+
+      testWidgets('tela larga: o título da página não tem faixa própria', (
+        tester,
+      ) async {
+        await abrirLargura(
+          tester,
+          LayoutParceiros(
+            aba: Aba.pedidos,
+            onAba: abas.add,
+            novas: 0,
+            loja: minhaLoja,
+            conteudo: Scaffold(
+              appBar: AppBar(title: const Text('Página')),
+              body: const SizedBox(),
+            ),
+          ),
+          1920,
+          escuro: escuro,
+        );
+        final faixa = tester.widget<Material>(
+          find
+              .descendant(
+                of: find.byType(AppBar),
+                matching: find.byType(Material),
+              )
+              .first,
+        );
+        expect(
+          faixa.color,
+          Theme.of(tester.element(find.byType(AppBar))).scaffoldBackgroundColor,
+        );
+      });
+
       testWidgets('computador: menu lateral e barra da loja', (tester) async {
         await montar(tester, 1366);
         expect(find.byKey(const Key('menu-lateral')), findsOneWidget);

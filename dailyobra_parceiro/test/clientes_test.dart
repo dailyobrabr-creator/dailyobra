@@ -431,6 +431,21 @@ void main() {
         expect(find.text('Não deu para abrir o WhatsApp.'), findsOneWidget);
       });
 
+      testWidgets('sem clientes o computador mostra um aviso só', (
+        tester,
+      ) async {
+        preparar([]);
+        await abrirLargura(
+          tester,
+          const ClientesScreen(),
+          1366,
+          escuro: escuro,
+        );
+        expect(find.text('Escolha um cliente'), findsNothing);
+        expect(find.byType(VerticalDivider), findsNothing);
+        expect(tester.takeException(), isNull);
+      });
+
       testWidgets('computador abre o cliente ao lado da lista', (tester) async {
         preparar([ana, carlos], propostas: [propostaDe('c1', 'p1')]);
         await abrirLargura(

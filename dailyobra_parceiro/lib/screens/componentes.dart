@@ -23,6 +23,58 @@ void irParaAba(BuildContext context, Aba aba) {
   abaAtual.value = aba;
 }
 
+/// No computador, a lista à esquerda e o detalhe à direita. Com a aba vazia e nada aberto, um aviso só ocupa a tela,
+/// em vez de dois avisos de vazio lado a lado.
+class ListaComDetalhe extends StatelessWidget {
+  const ListaComDetalhe({
+    super.key,
+    required this.lista,
+    required this.detalhe,
+    required this.aviso,
+  });
+  final Widget lista;
+  final Widget detalhe;
+
+  /// O aviso da aba aberta; nulo mostra a lista e o detalhe.
+  final Widget? Function(int aba) aviso;
+
+  @override
+  Widget build(BuildContext context) {
+    final abas = DefaultTabController.of(context);
+    return AnimatedBuilder(
+      animation: abas,
+      builder: (context, _) {
+        final mensagem = aviso(abas.index);
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            // Só escondida: mudar a largura das abas no meio da troca deixaria a tela na aba errada
+            Offstage(
+              offstage: mensagem != null,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(width: 440, child: lista),
+                  VerticalDivider(width: 1, color: context.cores.borda),
+                  Expanded(child: detalhe),
+                ],
+              ),
+            ),
+            if (mensagem != null)
+              Align(
+                alignment: Alignment.topCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: Espaco.s4),
+                  child: mensagem,
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 /// Telas abertas por cima da navegação: no computador o conteúdo fica numa coluna de no máximo
 /// 760 px. Com `heightFactor: 1` serve no `body` e no `bottomNavigationBar` do `Scaffold`.
 class ColunaCentral extends StatelessWidget {

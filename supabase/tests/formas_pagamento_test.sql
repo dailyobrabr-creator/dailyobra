@@ -76,9 +76,6 @@ begin
 end $$;
 create function pg_temp.orcamento_de(prop text) returns text language sql as $$
   select orcamento_id::text from public.propostas where id = prop::uuid $$;
-create function pg_temp.definir(k text, prop text, forma text, loja text) returns void language sql as $$
-  select pg_temp.tentar(k, format('select public.definir_formas_do_orcamento(%L, %L)', pg_temp.orcamento_de(prop),
-    jsonb_build_object(pg_temp.pegar(loja), forma))) $$;
 select pg_temp.guardar('p1', pg_temp.proposta(pg_temp.pegar('A')::uuid)::text);
 select pg_temp.guardar('orc1', pg_temp.orcamento_de(pg_temp.pegar('p1')));
 select pg_temp.guardar('p2', pg_temp.proposta(pg_temp.pegar('B')::uuid)::text);

@@ -14,6 +14,7 @@ class ResultadoEnvio {
     required this.precosAtualizados,
     required this.lojas,
     this.ofertasFora = 0,
+    this.pagadorFora = false,
   });
   final String orcamentoId;
 
@@ -23,6 +24,9 @@ class ResultadoEnvio {
 
   /// Propostas de valor que não entraram: a proposta foi, sem o valor pedido.
   final int ofertasFora;
+
+  /// O cliente escolhido para pagar não ficou ligado ao orçamento.
+  final bool pagadorFora;
 }
 
 /// Propostas e pedidos do construtor. Toda regra (preço, validade, estados, saldo) é do servidor;
@@ -52,6 +56,10 @@ class NegociacaoService extends ChangeNotifier {
   /// Prazo da duplicata por loja, nas lojas que liberaram para este construtor.
   Map<String, String> _duplicatas = const {};
   String? duplicataDaLoja(String lojaId) => _duplicatas[lojaId];
+
+  /// O cliente que [enviar] ligaria ao orçamento para pagar.
+  @visibleForTesting
+  String? clienteDoEnvioDeTeste;
 
   /// Os valores propostos por loja que [enviar] mandaria ao banco.
   @visibleForTesting
@@ -209,6 +217,7 @@ class NegociacaoService extends ChangeNotifier {
     String? obraId,
     Map<String, EscolhaPagamento> formas = const {},
     Map<String, double> ofertas = const {},
+    String? clienteId,
   }) async {
     final itens = [
       for (final g in cotacao.grupos)
@@ -227,6 +236,7 @@ class NegociacaoService extends ChangeNotifier {
       obraDeTeste = obraId;
       formasDoEnvioDeTeste = formas;
       ofertasDoEnvioDeTeste = ofertas;
+      clienteDoEnvioDeTeste = clienteId;
       return _resultadoTeste!;
     }
     final r = await comMensagem(
@@ -247,6 +257,17 @@ class NegociacaoService extends ChangeNotifier {
     final orcamentoId = mapa['orcamento_id'] as String;
     final enviadas = (mapa['propostas'] as List? ?? const []).cast<Map>();
     await _gravarFormas(orcamentoId, formas);
+    var pagadorFora = false;
+    if (clienteId != null) {
+      try {
+        await _db.rpc(
+          'definir_pagador_do_orcamento',
+          params: {'p_orcamento': orcamentoId, 'p_cliente': clienteId},
+        );
+      } on Exception {
+        pagadorFora = true;
+      }
+    }
     var ofertasFora = 0;
     for (final p in enviadas) {
       final valor = ofertas[p['loja_id']];
@@ -270,6 +291,7 @@ class NegociacaoService extends ChangeNotifier {
       precosAtualizados: mapa['precos_atualizados'] == true,
       lojas: enviadas.length,
       ofertasFora: ofertasFora,
+      pagadorFora: pagadorFora,
     );
   }
 

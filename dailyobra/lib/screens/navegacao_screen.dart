@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../services/carrinho_service.dart';
 import '../services/carteira_service.dart';
+import '../services/clientes_service.dart';
 import '../services/catalogo_service.dart';
 import '../services/economia_service.dart';
 import '../services/negociacao_service.dart';
@@ -36,6 +37,7 @@ class _NavegacaoScreenState extends State<NavegacaoScreen> {
     CarrinhoService.instance.carregar();
     CarteiraService.instance.carregar();
     NegociacaoService.instance.iniciar();
+    ClientesService.instance.carregar();
     NovidadesService.instance.carregar();
     EconomiaService.instance.carregar();
   }
@@ -44,6 +46,7 @@ class _NavegacaoScreenState extends State<NavegacaoScreen> {
   void dispose() {
     // Saiu da conta: nada do usuário anterior fica na memória
     NegociacaoService.instance.parar();
+    ClientesService.instance.limpar();
     CarteiraService.instance.limpar();
     NovidadesService.instance.limpar();
     EconomiaService.instance.limpar();

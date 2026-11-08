@@ -4,6 +4,7 @@ import 'package:dailyobra/screens/proposta_screen.dart';
 import 'package:dailyobra/services/carrinho_service.dart';
 import 'package:dailyobra/services/carteira_service.dart';
 import 'package:dailyobra/services/catalogo_service.dart';
+import 'package:dailyobra/services/clientes_service.dart';
 import 'package:dailyobra/services/negociacao_service.dart';
 import 'package:dailyobra/services/obras_service.dart';
 import 'package:dailyobra/services/perfil_service.dart';
@@ -41,7 +42,15 @@ void preparar({
   );
   CarteiraService.instance.definirParaTeste(disponivel: saldo);
   NegociacaoService.instance.definirParaTeste();
+  ClientesService.instance.definirParaTeste();
 }
+
+const maria = ClienteDoConstrutor(
+  id: 'cli1',
+  nome: 'Maria Lima',
+  whatsapp: '66999990000',
+  documento: '52998224725',
+);
 
 PropostaResumo proposta({
   StatusProposta status = StatusProposta.contraproposta,
@@ -170,6 +179,143 @@ void main() {
             find.byKey(const Key('forma-c-pix')),
           );
           expect(pix.selected, isTrue, reason: 'a outra loja não muda');
+        });
+      });
+
+      group('quem paga', () {
+        final oferta = Oferta(lojaId: 'a', itemId: tijolo.id, preco: 1.20);
+
+        Future<void> cotar(
+          WidgetTester tester, {
+          List<ClienteDoConstrutor> clientes = const [],
+        }) async {
+          preparar(ofertas: [oferta]);
+          ClientesService.instance.definirParaTeste(lista: clientes);
+          NegociacaoService.instance.definirParaTeste(
+            resultadoEnvio: const ResultadoEnvio(
+              orcamentoId: 'o1',
+              precosAtualizados: false,
+              lojas: 1,
+            ),
+          );
+          CarrinhoService.instance.adicionar(tijolo.id, 1000);
+          await abrir(tester, const OrcamentosScreen(), escuro: escuro);
+          await tester.tap(find.text('Meu cliente'));
+          await tester.pumpAndSettle();
+        }
+
+        Future<void> fecharPedido(WidgetTester tester) async {
+          await tester.tap(find.widgetWithText(FilledButton, 'Fechar pedido'));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.widgetWithText(FilledButton, 'Confirmar pedido'),
+          );
+          await tester.pumpAndSettle();
+        }
+
+        testWidgets('sem cliente escolhido não envia', (tester) async {
+          await cotar(tester);
+          expect(find.text('Escolha o cliente que vai pagar.'), findsWidgets);
+          final botao = tester.widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Fechar pedido'),
+          );
+          expect(botao.onPressed, isNull);
+        });
+
+        testWidgets('o cliente cadastrado vai no envio e paga por PIX', (
+          tester,
+        ) async {
+          await cotar(tester, clientes: [maria]);
+          await tester.tap(find.byType(DropdownButtonFormField<String>));
+          await tester.pumpAndSettle();
+          await tester.tap(find.textContaining('Maria Lima').last);
+          await tester.pumpAndSettle();
+          await rolarAte(tester, find.byKey(const Key('forma-a-pix')));
+          expect(find.byKey(const Key('forma-a-cartao')), findsNothing);
+          await fecharPedido(tester);
+          expect(NegociacaoService.instance.clienteDoEnvioDeTeste, 'cli1');
+          expect(NegociacaoService.instance.formasDoEnvioDeTeste, {
+            'a': const EscolhaPagamento(FormaPagamento.pix),
+          });
+        });
+
+        testWidgets('cadastra o cliente pela cotação', (tester) async {
+          await cotar(tester);
+          await tester.tap(find.byKey(const Key('novo-cliente')));
+          await tester.pumpAndSettle();
+          await tester.enterText(
+            find.byKey(const ValueKey('novo-cliente-nome')),
+            'Maria Lima',
+          );
+          await tester.enterText(
+            find.byKey(const ValueKey('novo-cliente-whatsapp')),
+            '(66) 99999-0000',
+          );
+          await tester.enterText(
+            find.byKey(const ValueKey('novo-cliente-documento')),
+            '529.982.247-25',
+          );
+          await tester.tap(find.widgetWithText(FilledButton, 'Salvar'));
+          await tester.pumpAndSettle();
+          expect(ClientesService.instance.adicionadosDeTeste, [
+            ('Maria Lima', '66999990000', '52998224725'),
+          ]);
+          await fecharPedido(tester);
+          expect(NegociacaoService.instance.clienteDoEnvioDeTeste, 'novo-1');
+        });
+
+        testWidgets('documento inválido não cadastra', (tester) async {
+          await cotar(tester);
+          await tester.tap(find.byKey(const Key('novo-cliente')));
+          await tester.pumpAndSettle();
+          await tester.enterText(
+            find.byKey(const ValueKey('novo-cliente-nome')),
+            'Maria Lima',
+          );
+          await tester.enterText(
+            find.byKey(const ValueKey('novo-cliente-whatsapp')),
+            '66999990000',
+          );
+          await tester.enterText(
+            find.byKey(const ValueKey('novo-cliente-documento')),
+            '111.111.111-11',
+          );
+          await tester.tap(find.widgetWithText(FilledButton, 'Salvar'));
+          await tester.pumpAndSettle();
+          expect(
+            find.text('CPF ou CNPJ inválido. Confira os números.'),
+            findsOneWidget,
+          );
+          expect(ClientesService.instance.adicionadosDeTeste, isEmpty);
+        });
+
+        testWidgets('eu pago segue sem cliente', (tester) async {
+          await cotar(tester, clientes: [maria]);
+          await tester.tap(find.text('Eu, construtor'));
+          await tester.pumpAndSettle();
+          await fecharPedido(tester);
+          expect(NegociacaoService.instance.clienteDoEnvioDeTeste, isNull);
+        });
+
+        testWidgets('avisa quando o cliente não ficou ligado', (tester) async {
+          await cotar(tester, clientes: [maria]);
+          NegociacaoService.instance.definirParaTeste(
+            resultadoEnvio: const ResultadoEnvio(
+              orcamentoId: 'o1',
+              precosAtualizados: false,
+              lojas: 1,
+              pagadorFora: true,
+            ),
+          );
+          await tester.tap(find.byType(DropdownButtonFormField<String>));
+          await tester.pumpAndSettle();
+          await tester.tap(find.textContaining('Maria Lima').last);
+          await tester.pumpAndSettle();
+          await fecharPedido(tester);
+          expect(
+            find.textContaining('o cliente não ficou ligado'),
+            findsOneWidget,
+          );
         });
       });
 

@@ -1,6 +1,7 @@
 import 'package:dailyobra/screens/quem_paga.dart';
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:dailyobra/screens/qr_do_pix.dart';
+import 'package:dailyobra/services/clientes_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,6 +17,7 @@ class Chamadas {
   final saldos = <bool>[];
   final formas = <(FormaPagamento, String?)>[];
   final parcelas = <(FormaPagamento, int)>[];
+  final salvos = <(String, String, String)>[];
 }
 
 const pixDaLoja =
@@ -72,6 +74,7 @@ Future<Chamadas> montar(
   FormaPagamento? sugerida,
   int parcelasCartao = 1,
   String? prazoDuplicata,
+  List<ClienteDoConstrutor> clientes = const [],
   String? documentoDoPerfil,
   double saldoDisponivel = 0,
   double saldoNoPedido = 0,
@@ -105,6 +108,8 @@ Future<Chamadas> montar(
           parcelasCartao: parcelasCartao,
           prazoDuplicata: prazoDuplicata,
           escolherParcelas: (f, n) async => ch.parcelas.add((f, n)),
+          clientes: clientes,
+          salvarCliente: (n, z, d) async => ch.salvos.add((n, z, d)),
         ),
       ),
     ),
@@ -643,6 +648,41 @@ void main() {
           findsOneWidget,
         );
         expect(ch.formas, [(FormaPagamento.boleto, null)]);
+      });
+
+      testWidgets('cliente cadastrado preenche o link', (tester) async {
+        final ch = await montar(
+          tester,
+          escuro: escuro,
+          clientes: const [
+            ClienteDoConstrutor(
+              id: 'cli1',
+              nome: 'Maria Lima',
+              whatsapp: '66999990000',
+              documento: '52998224725',
+            ),
+          ],
+        );
+        await tester.tap(find.text('Enviar para o cliente'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('cliente-cadastrado')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Maria Lima').last);
+        await tester.pumpAndSettle();
+        await rolarAte(tester, find.text('Enviar pelo WhatsApp'));
+        await tester.tap(find.text('Enviar pelo WhatsApp'));
+        await tester.pumpAndSettle();
+        expect(ch.links, [('Maria Lima', '66999990000', '52998224725')]);
+        expect(ch.salvos, [('Maria Lima', '66999990000', '52998224725')]);
+      });
+
+      testWidgets('sem clientes cadastrados não mostra a lista', (
+        tester,
+      ) async {
+        await montar(tester, escuro: escuro);
+        await tester.tap(find.text('Enviar para o cliente'));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('cliente-cadastrado')), findsNothing);
       });
 
       testWidgets('cartão parcelado troca as parcelas', (tester) async {

@@ -2,6 +2,7 @@ import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../services/clientes_service.dart' show ClienteDoConstrutor;
 import 'componentes.dart';
 import 'qr_do_pix.dart';
 
@@ -33,6 +34,8 @@ class QuemPaga extends StatefulWidget {
     this.parcelasBoleto = 1,
     this.prazoDuplicata,
     this.escolherParcelas,
+    this.clientes = const [],
+    this.salvarCliente,
   });
   final PedidoResumo pedido;
   final String nomeLoja;
@@ -72,6 +75,13 @@ class QuemPaga extends StatefulWidget {
 
   /// Prazo da duplicata que a loja liberou para este construtor.
   final String? prazoDuplicata;
+
+  /// Clientes já cadastrados pelo construtor, para enviar o link sem digitar de novo.
+  final List<ClienteDoConstrutor> clientes;
+
+  /// Guarda no cadastro o cliente novo que recebeu o link, quando tem CPF ou CNPJ.
+  final Future<void> Function(String nome, String whatsapp, String documento)?
+  salvarCliente;
 
   /// Troca as parcelas no cartão ou no boleto; sem ela, a tela não mostra a escolha.
   final Future<void> Function(FormaPagamento forma, int parcelas)?
@@ -248,6 +258,14 @@ class _QuemPagaState extends State<QuemPaga> {
     if (erro != null || erroDoc != null) return;
     await _ocupar(() async {
       final codigo = await widget.criarLink(nome, zap, doc);
+      final salvar = widget.salvarCliente;
+      if (doc != null && salvar != null) {
+        try {
+          await salvar(nome, zap, doc);
+        } on Exception {
+          // O link já foi; só o cadastro ficou para depois
+        }
+      }
       final enviado = (codigo: codigo, nome: nome, whatsapp: zap);
       if (!mounted) return;
       setState(() {
@@ -638,6 +656,31 @@ class _QuemPagaState extends State<QuemPaga> {
     final l = _link;
     if (l == null) {
       return [
+        if (widget.clientes.isNotEmpty) ...[
+          DropdownButtonFormField<String>(
+            key: const ValueKey('cliente-cadastrado'),
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'Cliente cadastrado'),
+            items: [
+              for (final cliente in widget.clientes)
+                DropdownMenuItem(
+                  value: cliente.id,
+                  child: Text(cliente.nome, overflow: TextOverflow.ellipsis),
+                ),
+            ],
+            onChanged: (id) {
+              for (final cliente in widget.clientes) {
+                if (cliente.id != id) continue;
+                setState(() {
+                  _nome.text = cliente.nome;
+                  _whatsapp.text = cliente.whatsapp;
+                  _documentoCliente.text = formatarDocumento(cliente.documento);
+                });
+              }
+            },
+          ),
+          const SizedBox(height: Espaco.s3),
+        ],
         CampoTexto(
           key: const ValueKey('cliente-nome'),
           rotulo: 'Nome do cliente',

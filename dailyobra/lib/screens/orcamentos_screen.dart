@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../services/carrinho_service.dart';
 import '../services/catalogo_service.dart';
+import '../services/clientes_service.dart';
 import '../services/negociacao_service.dart';
 import '../services/obras_service.dart';
 import 'componentes.dart';
@@ -36,13 +37,30 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
   /// Parcelas escolhidas em cada loja, até o que ela permite.
   final _parcelas = <String, int>{};
 
-  /// O que a loja recebe deste construtor: a duplicata só depois de a loja liberar.
-  List<FormaPagamento> _formasDe(Loja loja) => [
-    for (final f in loja.formasPagamento)
-      if (f != FormaPagamento.duplicata ||
-          NegociacaoService.instance.duplicataDaLoja(loja.id) != null)
-        f,
-  ];
+  /// Quem paga: o construtor, com a nota no documento dele, ou um cliente cadastrado.
+  bool _paraCliente = false;
+  String? _clienteId;
+
+  /// O que a loja recebe deste construtor: a duplicata só depois de a loja liberar. O cliente paga por PIX, pelo link.
+  List<FormaPagamento> _formasDe(Loja loja) => _paraCliente
+      ? [
+          if (loja.formasPagamento.contains(FormaPagamento.pix))
+            FormaPagamento.pix,
+        ]
+      : [
+          for (final f in loja.formasPagamento)
+            if (f != FormaPagamento.duplicata ||
+                NegociacaoService.instance.duplicataDaLoja(loja.id) != null)
+              f,
+        ];
+
+  Future<void> _novoCliente() async {
+    final cliente = await showDialog<ClienteDoConstrutor>(
+      context: context,
+      builder: (_) => const _DialogoCliente(),
+    );
+    if (cliente != null) setState(() => _clienteId = cliente.id);
+  }
 
   FormaPagamento? _formaDe(Loja loja) {
     final formas = _formasDe(loja);
@@ -118,6 +136,7 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
         obraId: ObrasService.instance
             .obra(CarrinhoService.instance.obraId ?? '')
             ?.id,
+        clienteId: _paraCliente ? _clienteId : null,
         formas: {
           for (final g in r.grupos)
             if (_formaDe(g.loja) case final forma?)
@@ -135,12 +154,15 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
           ? 'Pedido enviado'
           : 'Proposta enviada';
       setState(() {
-        _avisoEnvio = res.ofertasFora > 0
+        _avisoEnvio = res.pagadorFora
+            ? '$oQue para $quem, mas o cliente não ficou ligado. No pedido, toque em Enviar para o cliente.'
+            : res.ofertasFora > 0
             ? '$oQue para $quem, mas o valor proposto não entrou em ${res.ofertasFora == 1 ? '1 loja' : '${res.ofertasFora} lojas'}. Abra a proposta e faça a oferta de novo.'
             : res.precosAtualizados
             ? '$oQue para $quem. Os preços foram atualizados pelas lojas: confira os valores abaixo.'
             : '$oQue para $quem. As respostas aparecem aqui.';
-        _tomAviso = res.ofertasFora > 0 || res.precosAtualizados
+        _tomAviso =
+            res.pagadorFora || res.ofertasFora > 0 || res.precosAtualizados
             ? TomSelo.aviso
             : TomSelo.sucesso;
       });
@@ -288,8 +310,13 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
           for (final i in carrinho.itens) i.itemId: i.quantidade,
         };
         final abaixo = r.grupos.where((g) => g.abaixoMinimo).toList();
+        final semCliente =
+            _paraCliente &&
+            ClientesService.instance.cliente(_clienteId) == null;
         final motivo = r.grupos.isEmpty
             ? 'Nenhum produto do orçamento tem oferta agora.'
+            : semCliente
+            ? 'Escolha o cliente que vai pagar.'
             : abaixo.isNotEmpty
             ? 'Para enviar, complete o pedido mínimo da ${abaixo.map((g) => g.loja.nome).join(', ')} '
                   'ou troque os produtos de loja.'
@@ -310,6 +337,27 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
                 : 'Uma loja só, a que atende mais produtos pelo menor total.',
             style: t.bodySmall?.copyWith(color: c.textoSuave),
           ),
+          const SizedBox(height: Espaco.s4),
+          Text('Quem paga', style: t.titleSmall),
+          const SizedBox(height: Espaco.s2),
+          Segmentado<bool>(
+            key: const Key('quem-paga'),
+            valor: _paraCliente,
+            opcoes: const [(false, 'Eu, construtor'), (true, 'Meu cliente')],
+            onChanged: (v) => setState(() => _paraCliente = v),
+          ),
+          const SizedBox(height: Espaco.s2),
+          if (_paraCliente)
+            _ClienteQuePaga(
+              clienteId: _clienteId,
+              onEscolher: (id) => setState(() => _clienteId = id),
+              onNovo: _novoCliente,
+            )
+          else
+            Text(
+              'A nota sai no seu CPF ou CNPJ.',
+              style: t.bodySmall?.copyWith(color: c.textoSuave),
+            ),
         ];
         final grupos = <Widget>[
           for (final g in r.grupos) ...[
@@ -322,6 +370,9 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
               prazoDuplicata: NegociacaoService.instance.duplicataDaLoja(
                 g.loja.id,
               ),
+              semForma: _paraCliente
+                  ? 'A ${g.loja.nome} não recebe por PIX: combine com a loja como o cliente vai pagar.'
+                  : 'A loja recebe só por duplicata, liberada depois da análise de crédito dela.',
               onForma: (f) => setState(() => _formas[g.loja.id] = f),
               onParcelas: (n) => setState(() => _parcelas[g.loja.id] = n),
               onTrocar: (item) => _trocarLoja(item, fixadas[item.id]),
@@ -593,6 +644,179 @@ class _OrcamentosScreenState extends State<OrcamentosScreen>
 }
 
 /// Para qual obra é o orçamento: é assim que o pedido fechado entra no dinheiro dela.
+/// Escolhe o cliente que paga, entre os cadastrados, ou cadastra um novo.
+class _ClienteQuePaga extends StatelessWidget {
+  const _ClienteQuePaga({
+    required this.clienteId,
+    required this.onEscolher,
+    required this.onNovo,
+  });
+  final String? clienteId;
+  final ValueChanged<String> onEscolher;
+  final VoidCallback onNovo;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final c = context.cores;
+    final servico = ClientesService.instance;
+    return ListenableBuilder(
+      listenable: servico,
+      builder: (context, _) {
+        final escolhido = servico.cliente(clienteId);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (servico.lista.isNotEmpty)
+              DropdownButtonFormField<String>(
+                key: ValueKey('cliente-que-paga-${escolhido?.id}'),
+                initialValue: escolhido?.id,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Cliente cadastrado',
+                ),
+                items: [
+                  for (final cliente in servico.lista)
+                    DropdownMenuItem(
+                      value: cliente.id,
+                      child: Text(
+                        '${cliente.nome} · ${formatarDocumento(cliente.documento)}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+                onChanged: (id) {
+                  if (id != null) onEscolher(id);
+                },
+              ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                key: const Key('novo-cliente'),
+                onPressed: onNovo,
+                icon: const Icon(Icons.person_add_alt_outlined),
+                label: Text(
+                  servico.lista.isEmpty
+                      ? 'Cadastrar o cliente'
+                      : 'Cadastrar outro cliente',
+                ),
+              ),
+            ),
+            Text(
+              'A nota sai no nome do cliente, e o pedido já vem com o link de pagamento para enviar pelo WhatsApp.',
+              style: t.bodySmall?.copyWith(color: c.textoSuave),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _DialogoCliente extends StatefulWidget {
+  const _DialogoCliente();
+
+  @override
+  State<_DialogoCliente> createState() => _DialogoClienteState();
+}
+
+class _DialogoClienteState extends State<_DialogoCliente> {
+  final _nome = TextEditingController();
+  final _whatsapp = TextEditingController();
+  final _documento = TextEditingController();
+  String? _erro;
+  bool _salvando = false;
+
+  @override
+  void dispose() {
+    _nome.dispose();
+    _whatsapp.dispose();
+    _documento.dispose();
+    super.dispose();
+  }
+
+  Future<void> _salvar() async {
+    final nome = _nome.text.trim();
+    final zap = somenteDigitos(_whatsapp.text);
+    final doc = somenteDigitos(_documento.text);
+    final erro = nome.length < 2
+        ? 'Informe o nome do cliente.'
+        : zap.length < 10 || zap.length > 13
+        ? 'WhatsApp inválido. Use DDD + número.'
+        : !documentoValido(doc)
+        ? 'CPF ou CNPJ inválido. Confira os números.'
+        : null;
+    if (erro != null) return setState(() => _erro = erro);
+    setState(() {
+      _erro = null;
+      _salvando = true;
+    });
+    try {
+      final cliente = await ClientesService.instance.adicionar(
+        nome: nome,
+        whatsapp: zap,
+        documento: doc,
+      );
+      if (mounted) Navigator.pop(context, cliente);
+    } on FalhaComMensagem catch (e) {
+      if (mounted) {
+        setState(() {
+          _erro = e.mensagem;
+          _salvando = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Cliente que paga'),
+    content: SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          CampoTexto(
+            key: const ValueKey('novo-cliente-nome'),
+            rotulo: 'Nome',
+            controller: _nome,
+          ),
+          const SizedBox(height: Espaco.s3),
+          CampoTexto(
+            key: const ValueKey('novo-cliente-whatsapp'),
+            rotulo: 'WhatsApp',
+            controller: _whatsapp,
+            teclado: TextInputType.phone,
+            dica: '(66) 99999-0000',
+          ),
+          const SizedBox(height: Espaco.s3),
+          CampoTexto(
+            key: const ValueKey('novo-cliente-documento'),
+            rotulo: 'CPF ou CNPJ',
+            controller: _documento,
+            teclado: TextInputType.number,
+            ajuda: 'Vai na nota do pedido.',
+          ),
+          if (_erro case final erro?) ...[
+            const SizedBox(height: Espaco.s3),
+            Aviso(erro),
+          ],
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancelar'),
+      ),
+      FilledButton(
+        onPressed: _salvando ? null : _salvar,
+        child: const Text('Salvar'),
+      ),
+    ],
+  );
+}
+
 class _ObraDoOrcamento extends StatelessWidget {
   const _ObraDoOrcamento();
 
@@ -642,6 +866,7 @@ class _GrupoCotado extends StatelessWidget {
     required this.forma,
     required this.parcelas,
     required this.prazoDuplicata,
+    required this.semForma,
     required this.onForma,
     required this.onParcelas,
     required this.onTrocar,
@@ -652,6 +877,9 @@ class _GrupoCotado extends StatelessWidget {
   final FormaPagamento? forma;
   final int parcelas;
   final String? prazoDuplicata;
+
+  /// O que dizer quando não sobra forma para escolher.
+  final String semForma;
   final ValueChanged<FormaPagamento> onForma;
   final ValueChanged<int> onParcelas;
   final ValueChanged<ItemCatalogo> onTrocar;
@@ -723,7 +951,7 @@ class _GrupoCotado extends StatelessWidget {
                 ),
                 if (formas.isEmpty)
                   Text(
-                    'A loja recebe só por duplicata, liberada depois da análise de crédito dela.',
+                    semForma,
                     style: t.bodySmall?.copyWith(color: c.textoSuave),
                   ),
                 if (forma case final f? when loja.maximoDeParcelas(f) > 1) ...[

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/carteira_service.dart';
+import '../services/clientes_service.dart';
 import '../services/negociacao_service.dart';
 import '../services/perfil_service.dart';
 import 'componentes.dart';
@@ -284,6 +285,9 @@ class _PedidoScreenState extends State<PedidoScreen> {
             ),
             abrirLink: _abrirLink,
             abrirBanco: _abrirBanco,
+            clientes: ClientesService.instance.lista,
+            salvarCliente: (nome, zap, doc) => ClientesService.instance
+                .adicionar(nome: nome, whatsapp: zap, documento: doc),
           ),
         if (p.cashbackPrevisto > 0 &&
             pedido.status != StatusPedido.cancelado) ...[

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../services/loja_service.dart';
 import '../services/propostas_loja_service.dart';
+import '../services/sistema_gestao.dart';
 import 'anuncios_screen.dart';
 import 'clientes_screen.dart';
 import 'componentes.dart';
@@ -27,6 +28,11 @@ enum SecaoLoja {
     'Entrega e pedido mínimo',
     'Frete e valor mínimo do pedido',
     Icons.local_shipping_outlined,
+  ),
+  sistema(
+    'Sistema de gestão',
+    'Onde a loja lança as vendas',
+    Icons.dns_outlined,
   ),
   equipe(
     'Equipe',
@@ -69,6 +75,7 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
       buscarCep: widget.buscarCep,
     ),
     SecaoLoja.entrega => const SecaoEntrega(),
+    SecaoLoja.sistema => const SecaoSistema(),
     SecaoLoja.equipe => const EquipeScreen(),
     SecaoLoja.aparencia => SecaoAparencia(tema: widget.tema),
     SecaoLoja.conta => const SecaoConta(),
@@ -142,14 +149,11 @@ class _ConfiguracoesScreenState extends State<ConfiguracoesScreen> {
                       ListTile(
                         leading: const Icon(Icons.point_of_sale_outlined),
                         title: const Text('Faturamento / Caixa'),
-                        subtitle: Text(switch (PropostasLojaService
-                            .instance
-                            .paraFaturar
-                            .length) {
-                          0 => 'Nenhum pedido para lançar',
-                          1 => '1 pedido para lançar no Santri',
-                          final n => '$n pedidos para lançar no Santri',
-                        }),
+                        subtitle: Text(
+                          TextosDoSistema.daLoja().pedidosParaLancar(
+                            PropostasLojaService.instance.paraFaturar.length,
+                          ),
+                        ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => Navigator.push(
                           context,

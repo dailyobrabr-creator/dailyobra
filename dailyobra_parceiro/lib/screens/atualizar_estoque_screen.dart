@@ -137,7 +137,14 @@ class _AtualizarEstoqueScreenState extends State<AtualizarEstoqueScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: LojaService.instance,
+    builder: (context, _) => LojaService.instance.dados.usaSantri
+        ? _comSantri(context)
+        : const _SemSantri(),
+  );
+
+  Widget _comSantri(BuildContext context) {
     final a = _atualizacao;
     return Scaffold(
       appBar: AppBar(title: const Text('Atualizar pelo Santri')),
@@ -549,6 +556,47 @@ class _Contagem extends StatelessWidget {
           Text('$n', style: t.titleLarge),
           Text(rotulo, style: t.bodySmall?.copyWith(color: c.textoSuave)),
         ],
+      ),
+    );
+  }
+}
+
+/// Loja que não usa o Santri: a atualização do dia lê só o relatório dele, então os preços entram por planilha.
+class _SemSantri extends StatelessWidget {
+  const _SemSantri();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Atualizar estoque')),
+      body: ColunaCentral(
+        child: ListView(
+          padding: const EdgeInsets.all(Espaco.s4),
+          children: [
+            Text(switch (LojaService.instance.dados.sistemaGestao) {
+              final s? =>
+                'A atualização do dia lê o relatório de estoque do Santri, e a loja usa o $s. Atualize os preços por planilha (CSV ou Excel) exportada dele.',
+              null => 'A atualização do dia lê o relatório de estoque do Santri. Sem ele, atualize os preços por planilha (CSV ou Excel).',
+            }, style: t.bodyMedium),
+            const SizedBox(height: Espaco.s4),
+            FilledButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ImportarPlanilhaScreen(),
+                ),
+              ),
+              icon: const Icon(Icons.upload_file_outlined),
+              label: const Text('Importar planilha'),
+            ),
+            const SizedBox(height: Espaco.s3),
+            Text(
+              'Se a loja usa o Santri, escolha em Configurações > Sistema de gestão.',
+              style: t.bodySmall?.copyWith(color: context.cores.textoSuave),
+            ),
+          ],
+        ),
       ),
     );
   }

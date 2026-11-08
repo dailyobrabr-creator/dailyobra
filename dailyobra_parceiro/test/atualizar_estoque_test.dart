@@ -52,7 +52,11 @@ ArquivoPlanilha arquivo(String texto) =>
     ArquivoPlanilha('estoque.csv', Uint8List.fromList(utf8.encode(texto)));
 
 void preparar() {
-  LojaService.instance.definirParaTeste(loja: minhaLoja, papel: PapelLoja.dono);
+  LojaService.instance.definirParaTeste(
+    loja: minhaLoja,
+    papel: PapelLoja.dono,
+    dados: const DadosLoja(cnpj: '11222333000181', sistemaGestao: 'Santri'),
+  );
   OfertasService.instance.definirParaTeste(
     categorias: categoriasTeste,
     catalogo: const [cimento, tijolo, torneira, argamassa, cal, areia],
@@ -106,6 +110,24 @@ Finder naSugestao(String itemId, String texto) => find.descendant(
 void main() {
   for (final escuro in [false, true]) {
     group(escuro ? 'escuro' : 'claro', () {
+      testWidgets('loja sem Santri importa por planilha', (tester) async {
+        preparar();
+        LojaService.instance.definirParaTeste(
+          loja: minhaLoja,
+          dados: const DadosLoja(
+            cnpj: '11222333000181',
+            sistemaGestao: 'Bling',
+          ),
+        );
+        await abrir(tester, const AtualizarEstoqueScreen(), escuro: escuro);
+        expect(find.text('Atualizar estoque'), findsOneWidget);
+        expect(find.textContaining('a loja usa o Bling'), findsOneWidget);
+        expect(find.text('Escolher relatório'), findsNothing);
+        await tester.tap(find.text('Importar planilha'));
+        await tester.pumpAndSettle();
+        expect(find.byType(ImportarPlanilhaScreen), findsOneWidget);
+      });
+
       testWidgets('resumo do relatório', (tester) async {
         preparar();
         await lerRelatorio(tester, escuro: escuro);

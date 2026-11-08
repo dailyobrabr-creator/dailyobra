@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../services/loja_service.dart';
 import '../services/propostas_loja_service.dart';
+import '../services/sistema_gestao.dart';
 import 'componentes.dart';
 
 const _passos = [
@@ -422,7 +423,8 @@ class _DadosDaNotaState extends State<_DadosDaNota> {
         ),
         if (p.pagadorNome != null) _Dado('Nome', p.pagadorNome!),
         _Dado('CPF/CNPJ', documento),
-        if (p.erpNumero != null) _Dado('Venda no Santri', 'nº ${p.erpNumero}'),
+        if (p.erpNumero != null)
+          _Dado(TextosDoSistema.daLoja().dadoDoPedido, 'nº ${p.erpNumero}'),
         if (_falhou)
           Align(
             alignment: Alignment.centerRight,

@@ -68,6 +68,7 @@ class DadosLoja {
     this.complemento = '',
     this.bairro = '',
     this.outrasUnidades = '',
+    this.sistemaGestao,
   });
   final String cnpj;
   final String endereco;
@@ -90,6 +91,12 @@ class DadosLoja {
   final String complemento;
   final String bairro;
   final String outrasUnidades;
+
+  /// Sistema de gestão onde a loja lança as vendas; nulo é loja sem sistema ou que ainda não escolheu.
+  final String? sistemaGestao;
+
+  /// Só quem usa o Santri tem a atualização do dia pelo relatório de estoque.
+  bool get usaSantri => sistemaGestao?.trim().toLowerCase() == 'santri';
 }
 
 class MembroLoja {
@@ -186,7 +193,7 @@ class LojaService extends ChangeNotifier {
   static const _colunas =
       'id, nome, cnpj, descricao, logo_path, capa_path, banner_path, whatsapp, endereco, cidade, uf, horario, '
       'frete_fixo, pedido_minimo, aberta, status, criada_em, estoque_atualizado_em, '
-      'cep, logradouro, numero, complemento, bairro, outras_unidades, formas_pagamento, parcelas_cartao, parcelas_boleto';
+      'cep, logradouro, numero, complemento, bairro, outras_unidades, formas_pagamento, parcelas_cartao, parcelas_boleto, sistema_gestao';
 
   Future<void> carregar() async {
     final uid = _db.auth.currentUser?.id;
@@ -238,6 +245,7 @@ class LojaService extends ChangeNotifier {
           complemento: (j['complemento'] as String?) ?? '',
           bairro: (j['bairro'] as String?) ?? '',
           outrasUnidades: (j['outras_unidades'] as String?) ?? '',
+          sistemaGestao: j['sistema_gestao'] as String?,
         );
       }
       _erro = null;

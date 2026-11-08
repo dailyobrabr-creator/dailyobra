@@ -36,17 +36,24 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
       appBar: AppBar(
         title: const Text('Produtos e preços'),
         actions: [
-          if (LojaService.instance.meuPapel.gere)
-            IconButton(
-              tooltip: 'Atualizar pelo Santri',
-              icon: const Icon(Icons.inventory_2_outlined),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const AtualizarEstoqueScreen(),
-                ),
-              ),
-            ),
+          // Só quem usa o Santri: a atualização do dia lê o relatório dele
+          ListenableBuilder(
+            listenable: LojaService.instance,
+            builder: (context, _) =>
+                LojaService.instance.meuPapel.gere &&
+                    LojaService.instance.dados.usaSantri
+                ? IconButton(
+                    tooltip: 'Atualizar pelo Santri',
+                    icon: const Icon(Icons.inventory_2_outlined),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AtualizarEstoqueScreen(),
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
           if (LojaService.instance.meuPapel.gere)
             IconButton(
               tooltip: 'Importar planilha',
@@ -82,7 +89,7 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
           ];
           return Column(
             children: [
-              if (gere)
+              if (gere && LojaService.instance.dados.usaSantri)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(
                     Espaco.s4,

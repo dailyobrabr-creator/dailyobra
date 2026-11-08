@@ -5,6 +5,7 @@ import 'package:dailyobra_parceiro/screens/layout_parceiros.dart';
 import 'package:dailyobra_parceiro/screens/pedido_loja_screen.dart';
 import 'package:dailyobra_parceiro/services/loja_service.dart';
 import 'package:dailyobra_parceiro/services/propostas_loja_service.dart';
+import 'package:dailyobra_parceiro/services/sistema_gestao.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -87,8 +88,11 @@ final cancelado = pedido(
   pago: quando,
 );
 
-void preparar(List<PedidoResumo> pedidos) {
-  LojaService.instance.definirParaTeste(loja: minhaLoja);
+void preparar(List<PedidoResumo> pedidos, {String? sistema = 'Santri'}) {
+  LojaService.instance.definirParaTeste(
+    loja: minhaLoja,
+    dados: DadosLoja(cnpj: '11222333000181', sistemaGestao: sistema),
+  );
   PropostasLojaService.instance.definirParaTeste(
     propostas: [for (final p in pedidos) proposta(p)],
     construtores: const [
@@ -193,6 +197,7 @@ void main() {
 
   group('situação', () {
     test('explica cada pedido', () {
+      preparar(const []);
       expect(situacaoNoFaturamento(pago).$1, 'Pronto para lançar');
       expect(situacaoNoFaturamento(semPagar).$1, 'Aguardando pagamento');
       expect(situacaoNoFaturamento(prazoPendente).$1, 'Prazo para aprovar');
@@ -225,6 +230,23 @@ void main() {
     });
   });
 
+  group('textos do sistema', () {
+    test('contam os pedidos com o nome do sistema', () {
+      expect(
+        const TextosDoSistema('Santri').pedidosParaLancar(0),
+        'Nenhum pedido para lançar',
+      );
+      expect(
+        const TextosDoSistema('Santri').pedidosParaLancar(1),
+        '1 pedido para lançar no Santri',
+      );
+      expect(
+        const TextosDoSistema(null).pedidosParaLancar(2),
+        '2 pedidos para lançar',
+      );
+    });
+  });
+
   group('tela', () {
     for (final escuro in [false, true]) {
       for (final largura in [360.0, 1366.0]) {
@@ -243,6 +265,32 @@ void main() {
         });
       }
     }
+
+    testWidgets('sem sistema escolhido a loja registra a venda', (
+      tester,
+    ) async {
+      preparar([pago, canceladoLancado], sistema: null);
+      await abrirFaturamento(tester);
+      expect(find.textContaining('Santri'), findsNothing);
+      await tester.tap(find.text('Registrar venda'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('nota, recibo ou pedido'), findsOneWidget);
+      expect(find.textContaining('Número da venda'), findsOneWidget);
+      expect(find.textContaining('Santri'), findsNothing);
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+      await irPara(tester, 'Lançados');
+      expect(find.text('Cancelado: desfazer a venda'), findsOneWidget);
+    });
+
+    testWidgets('com outro sistema usa o nome dele', (tester) async {
+      preparar([pago], sistema: 'Bling');
+      await abrirFaturamento(tester);
+      await tester.tap(find.text('Lançar no Bling'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Número da venda no Bling'), findsOneWidget);
+      expect(find.textContaining('Santri'), findsNothing);
+    });
 
     testWidgets('sem pedido orienta', (tester) async {
       preparar(const []);

@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../services/clientes_service.dart';
 import '../services/loja_service.dart';
+import '../services/sistema_gestao.dart';
 import 'componentes.dart';
 import 'editor_horario.dart';
 
@@ -462,6 +463,107 @@ class _SecaoEntregaState extends State<SecaoEntrega> with _Gravacao {
         teclado: const TextInputType.numberWithOptions(decimal: true),
         ajuda: '0 = sem mínimo',
       ),
+    ],
+  );
+}
+
+/// Sistema de gestão da loja: o Faturamento fala o nome dele e só quem usa o Santri tem a atualização do dia pelo
+/// relatório de estoque.
+class SecaoSistema extends StatefulWidget {
+  const SecaoSistema({super.key});
+
+  @override
+  State<SecaoSistema> createState() => _SecaoSistemaState();
+}
+
+/// Escolhas que não são o nome de um sistema.
+const _semSistema = 'nenhum';
+const _outroSistema = 'outro';
+
+class _SecaoSistemaState extends State<SecaoSistema> with _Gravacao {
+  final _servico = LojaService.instance;
+  late String _escolha = switch (_servico.dados.sistemaGestao) {
+    null => _semSistema,
+    final s when sistemasDeGestao.contains(s) => s,
+    _ => _outroSistema,
+  };
+  late final _nome = TextEditingController(
+    text: _escolha == _outroSistema ? _servico.dados.sistemaGestao : '',
+  );
+  String? _erro;
+
+  @override
+  void dispose() {
+    _nome.dispose();
+    super.dispose();
+  }
+
+  Future<void> _salvar() async {
+    final String? sistema;
+    switch (_escolha) {
+      case _semSistema:
+        sistema = null;
+      case _outroSistema:
+        final nome = _nome.text.trim().replaceAll(RegExp(r'\s+'), ' ');
+        if (nome.length < 2) {
+          setState(() => _erro = 'Informe o nome do sistema.');
+          return;
+        }
+        // Quem digita "santri" usa o Santri da lista
+        sistema = sistemasDeGestao.firstWhere(
+          (s) => s.toLowerCase() == nome.toLowerCase(),
+          orElse: () => nome,
+        );
+      default:
+        sistema = _escolha;
+    }
+    setState(() => _erro = null);
+    if (sistema == _servico.dados.sistemaGestao) {
+      return avisar(context, 'Nada mudou.');
+    }
+    await gravar(() => _servico.atualizar({'sistema_gestao': sistema}));
+  }
+
+  @override
+  Widget build(BuildContext context) => _Formulario(
+    salvando: salvando,
+    onSalvar: _salvar,
+    campos: [
+      Text(
+        'Em qual sistema a loja lança as vendas? O Faturamento usa o nome dele, e só quem usa o Santri atualiza preço e estoque pelo relatório do dia.',
+        style: Theme.of(context).textTheme.bodyMedium,
+      ),
+      const SizedBox(height: Espaco.s3),
+      Wrap(
+        spacing: Espaco.s2,
+        runSpacing: Espaco.s2,
+        children: [
+          for (final (valor, rotulo) in [
+            for (final s in sistemasDeGestao) (s, s),
+            (_outroSistema, 'Outro sistema'),
+            (_semSistema, 'Não uso sistema'),
+          ])
+            ChoiceChip(
+              key: ValueKey('sistema-$valor'),
+              label: Text(rotulo),
+              selected: _escolha == valor,
+              onSelected: (_) => setState(() {
+                _escolha = valor;
+                _erro = null;
+              }),
+            ),
+        ],
+      ),
+      if (_escolha == _outroSistema) ...[
+        const SizedBox(height: Espaco.s4),
+        CampoTexto(
+          key: const ValueKey('sistema-nome'),
+          rotulo: 'Nome do sistema',
+          controller: _nome,
+          maxLength: tamanhoDoSistema,
+          erro: _erro,
+        ),
+      ],
     ],
   );
 }

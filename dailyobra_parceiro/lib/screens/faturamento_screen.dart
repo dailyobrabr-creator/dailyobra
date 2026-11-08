@@ -1,15 +1,17 @@
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
 
+import '../services/loja_service.dart';
 import '../services/propostas_loja_service.dart';
+import '../services/sistema_gestao.dart';
 import 'componentes.dart';
 import 'pedido_loja_screen.dart';
 
 const _larguraDaTabela = 760.0;
 const _tamanhoDoNumero = 40;
 
-/// Faturamento / Caixa: os pedidos que precisam entrar no Santri. A loja lança lá e registra aqui o número da venda;
-/// o DailyObra não escreve no Santri.
+/// Faturamento / Caixa: os pedidos que precisam entrar no sistema de gestão da loja. A loja lança lá e registra aqui
+/// o número da venda; o DailyObra não escreve no sistema dela.
 class FaturamentoScreen extends StatelessWidget {
   const FaturamentoScreen({super.key});
 
@@ -17,14 +19,15 @@ class FaturamentoScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final servico = PropostasLojaService.instance;
     return ListenableBuilder(
-      listenable: servico,
+      listenable: Listenable.merge([servico, LojaService.instance]),
       builder: (context, _) {
+        final textos = TextosDoSistema.daLoja();
         final abas = [
           (
             rotulo: 'Para lançar',
             lista: servico.paraFaturar,
             vazioTitulo: 'Nenhum pedido para lançar',
-            vazioTexto: 'Os pedidos pagos ou com prazo aprovado aparecem aqui para entrar no Santri.',
+            vazioTexto: textos.vazioParaLancar,
           ),
           (
             rotulo: 'Aguardando pagamento',
@@ -36,7 +39,7 @@ class FaturamentoScreen extends StatelessWidget {
             rotulo: 'Lançados',
             lista: servico.faturados,
             vazioTitulo: 'Nenhum pedido lançado',
-            vazioTexto: 'Os pedidos lançados no Santri ficam aqui, com o número da venda.',
+            vazioTexto: textos.vazioLancados,
           ),
         ];
         return DefaultTabController(
@@ -120,7 +123,7 @@ String textoDaForma(PedidoResumo pedido) {
 (String, TomSelo) situacaoNoFaturamento(PedidoResumo pedido) {
   if (pedido.erpNumero != null) {
     return pedido.status == StatusPedido.cancelado
-        ? ('Cancelado: estornar no Santri', TomSelo.erro)
+        ? (TextosDoSistema.daLoja().canceladoLancado, TomSelo.erro)
         : ('Lançado', TomSelo.sucesso);
   }
   if (pedido.prontoParaFaturar) return ('Pronto para lançar', TomSelo.aviso);
@@ -187,7 +190,7 @@ class _LinhaDoPedidoState extends State<_LinhaDoPedido> {
     if (await confirmar(
       context,
       titulo: 'Desfazer o lançamento?',
-      texto: 'O pedido volta para a fila. Se a venda já entrou no Santri, estorne por lá.',
+      texto: TextosDoSistema.daLoja().avisoDesfazer,
       acao: 'Desfazer',
     )) {
       await _executar(
@@ -273,7 +276,7 @@ class _LinhaDoPedidoState extends State<_LinhaDoPedido> {
         if (numero == null && pedido.prontoParaFaturar)
           FilledButton(
             onPressed: _ocupado ? null : _lancar,
-            child: const Text('Lançar no Santri'),
+            child: Text(TextosDoSistema.daLoja().botaoLancar),
           ),
         OutlinedButton(onPressed: _ver, child: const Text('Ver pedido')),
         if (numero != null)
@@ -320,7 +323,7 @@ class _LinhaDoPedidoState extends State<_LinhaDoPedido> {
   }
 }
 
-/// Pede o número da venda no Santri; devolve o número digitado.
+/// Pede o número da venda no sistema da loja; devolve o número digitado.
 class _JanelaDoLancamento extends StatefulWidget {
   const _JanelaDoLancamento({required this.pedido});
   final PedidoResumo pedido;
@@ -355,6 +358,7 @@ class _JanelaDoLancamentoState extends State<_JanelaDoLancamento> {
   @override
   Widget build(BuildContext context) {
     final pedido = widget.pedido;
+    final textos = TextosDoSistema.daLoja();
     return AlertDialog(
       title: Text('Lançar ${codigoDoPedido(pedido)}'),
       content: SizedBox(
@@ -363,12 +367,10 @@ class _JanelaDoLancamentoState extends State<_JanelaDoLancamento> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Lance a venda de ${brl.format(pedido.total)} no Santri e informe o número que ele gerou.',
-            ),
+            Text(textos.explicacaoDoLancamento(brl.format(pedido.total))),
             const SizedBox(height: Espaco.s3),
             CampoTexto(
-              rotulo: 'Número da venda no Santri',
+              rotulo: textos.rotuloDoNumero,
               controller: _numero,
               obrigatorio: true,
               erro: _erro,

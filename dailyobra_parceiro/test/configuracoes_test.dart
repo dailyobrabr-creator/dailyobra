@@ -12,6 +12,7 @@ const secoes = [
   'Perfil da loja',
   'Endereço e horário',
   'Entrega e pedido mínimo',
+  'Sistema de gestão',
   'Equipe',
   'Aparência',
   'Conta',
@@ -151,6 +152,128 @@ void main() {
         expect(find.text('Confira o frete e o pedido mínimo.'), findsOneWidget);
         expect(LojaService.instance.atualizacoesDeTeste, isEmpty);
         await esperarAviso(tester);
+      });
+
+      group('sistema de gestão', () {
+        bool marcado(WidgetTester tester, String valor) => tester
+            .widget<ChoiceChip>(find.byKey(ValueKey('sistema-$valor')))
+            .selected;
+
+        Future<void> escolher(WidgetTester tester, String valor) async {
+          await tester.tap(find.byKey(ValueKey('sistema-$valor')));
+          await tester.pump();
+        }
+
+        testWidgets('salva o sistema escolhido', (tester) async {
+          preparar();
+          await abrirConfiguracoes(
+            tester,
+            escuro: escuro,
+            secao: 'Sistema de gestão',
+          );
+          expect(marcado(tester, 'nenhum'), isTrue);
+          await escolher(tester, 'Bling');
+          await salvar(tester);
+          await tester.pumpAndSettle();
+          expect(LojaService.instance.atualizacoesDeTeste.single, {
+            'sistema_gestao': 'Bling',
+          });
+        });
+
+        testWidgets('outro sistema pede o nome', (tester) async {
+          preparar();
+          await abrirConfiguracoes(
+            tester,
+            escuro: escuro,
+            secao: 'Sistema de gestão',
+          );
+          await escolher(tester, 'outro');
+          await salvar(tester);
+          expect(find.text('Informe o nome do sistema.'), findsOneWidget);
+          expect(LojaService.instance.atualizacoesDeTeste, isEmpty);
+          await tester.enterText(
+            campoRotulado('Nome do sistema'),
+            '  Meu   ERP ',
+          );
+          await salvar(tester);
+          await tester.pumpAndSettle();
+          expect(LojaService.instance.atualizacoesDeTeste.single, {
+            'sistema_gestao': 'Meu ERP',
+          });
+        });
+
+        testWidgets('nome digitado igual ao da lista fica como na lista', (
+          tester,
+        ) async {
+          preparar();
+          await abrirConfiguracoes(
+            tester,
+            escuro: escuro,
+            secao: 'Sistema de gestão',
+          );
+          await escolher(tester, 'outro');
+          await tester.enterText(campoRotulado('Nome do sistema'), 'santri');
+          await salvar(tester);
+          await tester.pumpAndSettle();
+          expect(LojaService.instance.atualizacoesDeTeste.single, {
+            'sistema_gestao': 'Santri',
+          });
+        });
+
+        testWidgets('quem usa sistema pode marcar que não usa', (tester) async {
+          preparar(
+            dados: const DadosLoja(
+              cnpj: '11222333000181',
+              sistemaGestao: 'Linx',
+            ),
+          );
+          await abrirConfiguracoes(
+            tester,
+            escuro: escuro,
+            secao: 'Sistema de gestão',
+          );
+          expect(marcado(tester, 'Linx'), isTrue);
+          await escolher(tester, 'nenhum');
+          await salvar(tester);
+          await tester.pumpAndSettle();
+          expect(LojaService.instance.atualizacoesDeTeste.single, {
+            'sistema_gestao': null,
+          });
+        });
+
+        testWidgets('sistema fora da lista abre em outro', (tester) async {
+          preparar(
+            dados: const DadosLoja(
+              cnpj: '11222333000181',
+              sistemaGestao: 'Meu ERP',
+            ),
+          );
+          await abrirConfiguracoes(
+            tester,
+            escuro: escuro,
+            secao: 'Sistema de gestão',
+          );
+          expect(marcado(tester, 'outro'), isTrue);
+          expect(find.text('Meu ERP'), findsOneWidget);
+          await salvar(tester);
+          expect(find.text('Nada mudou.'), findsOneWidget);
+          expect(LojaService.instance.atualizacoesDeTeste, isEmpty);
+          await esperarAviso(tester);
+        });
+
+        testWidgets('vendedor só vê', (tester) async {
+          preparar(papel: PapelLoja.vendedor);
+          await abrirConfiguracoes(
+            tester,
+            escuro: escuro,
+            secao: 'Sistema de gestão',
+          );
+          expect(
+            find.text('Só o dono ou o gerente altera os dados da loja.'),
+            findsOneWidget,
+          );
+          expect(find.widgetWithText(FilledButton, 'Salvar'), findsNothing);
+        });
       });
 
       testWidgets('pagamento salva a chave pix em loja_pix', (tester) async {

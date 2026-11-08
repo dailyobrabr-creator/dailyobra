@@ -283,6 +283,7 @@ void main() {
           loja: minhaLoja,
           dados: DadosLoja(
             cnpj: '11222333000181',
+            sistemaGestao: 'Santri',
             estoqueAtualizadoEm: DateTime(
               hoje.year,
               hoje.month,
@@ -300,6 +301,13 @@ void main() {
         );
 
         preparar();
+        LojaService.instance.definirParaTeste(
+          loja: minhaLoja,
+          dados: const DadosLoja(
+            cnpj: '11222333000181',
+            sistemaGestao: 'Santri',
+          ),
+        );
         await abrir(tester, const ProdutosScreen(), escuro: escuro);
         expect(
           find.text('Estoque ainda não atualizado pelo Santri'),
@@ -312,9 +320,27 @@ void main() {
 
       testWidgets('vendedor não vê atualizar pelo santri', (tester) async {
         preparar(papel: PapelLoja.vendedor);
+        LojaService.instance.definirParaTeste(
+          loja: minhaLoja,
+          papel: PapelLoja.vendedor,
+          dados: const DadosLoja(
+            cnpj: '11222333000181',
+            sistemaGestao: 'Santri',
+          ),
+        );
         await abrir(tester, const ProdutosScreen(), escuro: escuro);
         expect(find.byTooltip('Atualizar pelo Santri'), findsNothing);
         expect(find.textContaining('pelo Santri'), findsNothing);
+      });
+
+      testWidgets('loja sem santri não vê atualizar pelo santri', (
+        tester,
+      ) async {
+        preparar();
+        await abrir(tester, const ProdutosScreen(), escuro: escuro);
+        expect(find.byTooltip('Atualizar pelo Santri'), findsNothing);
+        expect(find.textContaining('pelo Santri'), findsNothing);
+        expect(find.byTooltip('Importar planilha'), findsOneWidget);
       });
 
       testWidgets(

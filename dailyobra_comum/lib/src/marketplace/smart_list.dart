@@ -117,7 +117,7 @@ class _Indice {
     for (final t in _termos(normalizar(item.nome))) {
       if (_temDigito.hasMatch(t)) {
         medidas.add(t);
-      } else if (!_ehUnidade(t)) {
+      } else if (!_ehUnidade(t) && t.length > 1) {
         nome.add(t);
       }
     }
@@ -125,7 +125,7 @@ class _Indice {
       for (final t in _termos(normalizar(s))) {
         if (_temDigito.hasMatch(t)) {
           medidas.add(t);
-        } else if (!_ehUnidade(t)) {
+        } else if (!_ehUnidade(t) && t.length > 1) {
           sinonimos.add(t);
         }
       }
@@ -137,6 +137,7 @@ class _Indice {
   final sinonimos = <String>{};
   final nome = <String>{};
 
+  /// Letra solta ("d" de "d'água") fica fora: numa foto mal lida qualquer letra viraria produto.
   /// Medida em comum vale 3, sinônimo 2, palavra do nome 1, unidade igual 1. Sem nenhuma
   /// palavra em comum não pontua: "joelho 25mm" não deve virar qualquer produto de 25 mm.
   int pontuar(Set<String> termos, String? unidadeFalada) {

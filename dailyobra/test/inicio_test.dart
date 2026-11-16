@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dailyobra/screens/busca_screen.dart';
 import 'package:dailyobra/screens/categoria_screen.dart';
 import 'package:dailyobra/screens/inicio_screen.dart';
@@ -8,6 +10,7 @@ import 'package:dailyobra/services/carrinho_service.dart';
 import 'package:dailyobra/services/carteira_service.dart';
 import 'package:dailyobra/services/catalogo_service.dart';
 import 'package:dailyobra/services/economia_service.dart';
+import 'package:dailyobra/services/leitura_lista_service.dart';
 import 'package:dailyobra/services/negociacao_service.dart';
 import 'package:dailyobra/services/novidades_service.dart';
 import 'package:dailyobra/services/obras_service.dart';
@@ -179,6 +182,63 @@ void main() {
         expect(find.text('Qual destes?'), findsOneWidget);
         await tester.tap(find.text('Cimento CP II 50 kg'));
         await tester.pumpAndSettle();
+        expect(
+          find.widgetWithText(FilledButton, 'Adicionar 1 item ao orçamento'),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('smart list junta a foto no fim sem perder a escolha', (
+        tester,
+      ) async {
+        preparar();
+        LeituraListaService.instance.definirParaTeste(
+          tirarFoto: () async =>
+              ArquivoLista('Foto da lista', 'image/jpeg', Uint8List(10)),
+          ler: (_) async => '500 tijolos',
+        );
+        addTearDown(LeituraListaService.instance.definirParaTeste);
+        await abrir(
+          tester,
+          const SmartListScreen(texto: 'cimento argamassa'),
+          escuro: escuro,
+        );
+        await tester.tap(find.text('Cimento CP II 50 kg'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('lista-tirar-foto')));
+        await tester.pumpAndSettle();
+        expect(find.text('Tijolo cerâmico 8 furos'), findsOneWidget);
+        expect(find.text('Qual destes?'), findsNothing);
+        expect(find.byKey(const Key('miniatura-0')), findsOneWidget);
+        expect(find.text('1 material entrou na lista'), findsOneWidget);
+        expect(
+          find.widgetWithText(FilledButton, 'Adicionar 2 itens ao orçamento'),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('smart list: foto sem material avisa e não mexe na lista', (
+        tester,
+      ) async {
+        preparar();
+        LeituraListaService.instance.definirParaTeste(
+          escolher: () async => [
+            ArquivoLista('foto.jpg', 'image/jpeg', Uint8List(10)),
+          ],
+          ler: (_) async =>
+              throw const FalhaComMensagem('Não achamos materiais.'),
+        );
+        addTearDown(LeituraListaService.instance.definirParaTeste);
+        await abrir(
+          tester,
+          const SmartListScreen(texto: '100 sacos de cimento'),
+          escuro: escuro,
+        );
+        await tester.tap(find.byKey(const Key('lista-anexar')));
+        await tester.pumpAndSettle();
+        expect(find.text('Não achamos materiais.'), findsOneWidget);
+        expect(find.byKey(const Key('miniatura-0')), findsNothing);
         expect(
           find.widgetWithText(FilledButton, 'Adicionar 1 item ao orçamento'),
           findsOneWidget,

@@ -1,16 +1,27 @@
+import 'dart:math' as math;
+
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:flutter/material.dart';
 
 import '../services/carrinho_service.dart';
 import '../services/catalogo_service.dart';
+import '../services/leitura_lista_service.dart';
 import 'busca_screen.dart';
 import 'componentes.dart';
+import 'leitura_da_lista.dart';
 
 /// Resultado da lista inteligente: o que foi reconhecido (com quantidade editável), o que precisa
-/// de escolha e o que não está no catálogo.
+/// de escolha e o que não está no catálogo. Dá para ir juntando fotos e PDFs: cada um lido entra no fim da lista.
 class SmartListScreen extends StatefulWidget {
-  const SmartListScreen({super.key, required this.texto});
+  const SmartListScreen({
+    super.key,
+    required this.texto,
+    this.lidos = const [],
+  });
   final String texto;
+
+  /// Fotos e PDFs que já viraram a lista (vindas do Início).
+  final List<ArquivoLido> lidos;
 
   @override
   State<SmartListScreen> createState() => _SmartListScreenState();
@@ -22,8 +33,11 @@ class _SmartListScreenState extends State<SmartListScreen> {
     CatalogoService.instance.itens,
   );
 
-  /// Texto colado, editável ao lado dos itens no computador.
+  /// Texto da lista, editável ao lado dos itens no computador.
   late final _texto = TextEditingController(text: widget.texto);
+
+  late final _lidos = [...widget.lidos];
+  bool _lendo = false;
 
   @override
   void dispose() {
@@ -37,6 +51,48 @@ class _SmartListScreenState extends State<SmartListScreen> {
   void _reinterpretar(String texto) => setState(
     () => _linhas = interpretarLista(texto, CatalogoService.instance.itens),
   );
+
+  /// Lê a foto ou os arquivos e põe os materiais no fim da lista, sem perder as escolhas já feitas.
+  Future<void> _ler(Future<List<ArquivoLista>> Function() escolher) async {
+    try {
+      final arquivos = await escolher();
+      if (arquivos.isEmpty || !mounted) return;
+      setState(() => _lendo = true);
+      final r = await lerArquivosDaLista(arquivos);
+      if (!mounted) return;
+      if (r.lidos.isNotEmpty) {
+        final atual = _texto.text.trimRight();
+        _texto.text = atual.isEmpty ? r.texto : '$atual\n${r.texto}';
+        final novas = interpretarLista(r.texto, CatalogoService.instance.itens);
+        setState(() {
+          _linhas = [..._linhas, ...novas];
+          _lidos.addAll(r.lidos);
+        });
+        final n = novas.length;
+        avisar(
+          context,
+          avisoDaLeitura(r) ??
+              (n == 1
+                  ? '1 material entrou na lista'
+                  : '$n materiais entraram na lista'),
+        );
+      } else {
+        final aviso = avisoDaLeitura(r);
+        if (aviso != null) avisar(context, aviso);
+      }
+    } on FalhaComMensagem catch (e) {
+      if (mounted) avisar(context, e.mensagem);
+    } finally {
+      if (mounted) setState(() => _lendo = false);
+    }
+  }
+
+  Future<void> _tirarFoto() => _ler(() async {
+    final foto = await LeituraListaService.instance.tirarFoto();
+    return [?foto];
+  });
+
+  Future<void> _anexar() => _ler(LeituraListaService.instance.escolher);
 
   void _adicionar() {
     final carrinho = CarrinhoService.instance;
@@ -64,12 +120,14 @@ class _SmartListScreenState extends State<SmartListScreen> {
     final produtos = somarPorItem(_linhas).length;
     final largo = formatoDoContexto(context) == Formato.computador;
     final vazio = EstadoVazio(
-      icone: Icons.playlist_remove,
+      icone: Icons.playlist_add,
       titulo: 'Nenhum material na lista',
-      texto:
-          '${largo ? 'Escreva' : 'Volte e escreva'} um material por linha, com a quantidade. Ex.: 100 sacos de cimento.',
+      texto: largo
+          ? 'Escreva um material por linha, com a quantidade, ou tire uma foto da lista.'
+          : 'Tire uma foto da lista ou anexe um PDF. Ex.: 100 sacos de cimento.',
     );
     final botao = FilledButton(
+      key: const Key('adicionar-ao-orcamento'),
       onPressed: _reconhecidas.isEmpty ? null : _adicionar,
       child: Text(
         produtos == 0
@@ -79,13 +137,25 @@ class _SmartListScreenState extends State<SmartListScreen> {
             : 'Adicionar $produtos itens ao orçamento',
       ),
     );
-    final resumo = Text(
-      [
-        rec == 1 ? '1 reconhecido' : '$rec reconhecidos',
-        if (esc > 0) esc == 1 ? '1 para escolher' : '$esc para escolher',
-        if (nao > 0) nao == 1 ? '1 não reconhecido' : '$nao não reconhecidos',
-      ].join(' · '),
-      style: t.bodyMedium?.copyWith(color: c.textoSuave),
+    final resumo = Wrap(
+      spacing: Espaco.s2,
+      runSpacing: Espaco.s1,
+      children: [
+        Selo(
+          rec == 1 ? '1 reconhecido' : '$rec reconhecidos',
+          tom: rec > 0 ? TomSelo.sucesso : TomSelo.neutro,
+        ),
+        if (esc > 0)
+          Selo(
+            esc == 1 ? '1 para escolher' : '$esc para escolher',
+            tom: TomSelo.info,
+          ),
+        if (nao > 0)
+          Selo(
+            nao == 1 ? '1 não reconhecido' : '$nao não reconhecidos',
+            tom: TomSelo.aviso,
+          ),
+      ],
     );
     final linhas = <Widget>[
       for (var i = 0; i < _linhas.length; i++) ...[
@@ -97,96 +167,268 @@ class _SmartListScreenState extends State<SmartListScreen> {
               setState(() => _linhas[i] = _linhas[i].comQuantidade(q)),
           onRemover: () => setState(() => _linhas = [..._linhas]..removeAt(i)),
         ),
-        const SizedBox(height: Espaco.s3),
+        if (i < _linhas.length - 1) const SizedBox(height: Espaco.s3),
       ],
     ];
+    final acoes = _AcoesDeFoto(
+      lendo: _lendo,
+      onTirarFoto: _tirarFoto,
+      onAnexar: _anexar,
+    );
 
     if (largo) {
+      final m = margemLateral(MediaQuery.sizeOf(context).width);
       return Scaffold(
-        appBar: AppBar(title: const Text('Lista inteligente')),
-        body: LayoutBuilder(
-          builder: (context, limites) {
-            final m = margemLateral(limites.maxWidth);
-            return Row(
+        appBar: AppBar(
+          title: const Text('Lista inteligente'),
+          // O título começa na mesma linha do conteúdo
+          titleSpacing: math.max(
+            0,
+            m -
+                ((ModalRoute.of(context)?.impliesAppBarDismissal ?? false)
+                    ? kToolbarHeight
+                    : 0),
+          ),
+        ),
+        body: ListView(
+          padding: EdgeInsets.fromLTRB(m, Espaco.s6, m, Espaco.s8),
+          children: [
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(
-                  width: m + 420,
-                  child: ListView(
-                    padding: EdgeInsets.fromLTRB(m, Espaco.s5, 0, Espaco.s8),
+                  width: 400,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text('Sua lista', style: t.titleMedium),
-                      const SizedBox(height: Espaco.s2),
-                      TextField(
-                        controller: _texto,
-                        minLines: 12,
-                        maxLines: null,
-                        keyboardType: TextInputType.multiline,
-                        onChanged: _reinterpretar,
-                        decoration: const InputDecoration(
-                          hintText: 'Um material por linha, com a quantidade.',
+                      const _Cabecalho('Sua lista'),
+                      Painel(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextField(
+                              controller: _texto,
+                              minLines: 10,
+                              maxLines: 18,
+                              keyboardType: TextInputType.multiline,
+                              onChanged: _reinterpretar,
+                              style: t.bodyLarge,
+                              decoration: const InputDecoration(
+                                hintText: 'Um material por linha, com a quantidade.\nEx.: 100 sacos de cimento',
+                                filled: false,
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                contentPadding: EdgeInsets.all(Espaco.s4),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.all(Espaco.s3),
+                              decoration: BoxDecoration(
+                                color: c.superficieSutil,
+                                border: Border(top: BorderSide(color: c.borda)),
+                              ),
+                              child: acoes,
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: Espaco.s1),
+                      const SizedBox(height: Espaco.s2),
                       Text(
-                        'Ao editar, a lista é lida de novo e as escolhas feitas ao lado recomeçam.',
-                        style: t.bodySmall?.copyWith(color: c.textoSuave),
+                        'Mudou o texto? A lista ao lado é lida de novo.',
+                        style: t.bodySmall,
                       ),
-                      const SizedBox(height: Espaco.s4),
-                      if (_linhas.isNotEmpty) botao,
+                      if (_lidos.isNotEmpty) ...[
+                        const SizedBox(height: Espaco.s5),
+                        Text('Fotos e arquivos lidos', style: t.labelLarge),
+                        const SizedBox(height: Espaco.s2),
+                        MiniaturasDaLista(lidos: _lidos),
+                      ],
                     ],
                   ),
                 ),
-                const SizedBox(width: Espaco.s6),
+                const SizedBox(width: Espaco.s8),
                 Expanded(
-                  child: ListView(
-                    padding: EdgeInsets.fromLTRB(0, Espaco.s5, m, Espaco.s8),
-                    children: _linhas.isEmpty
-                        ? [vazio]
-                        : [
-                            resumo,
-                            const SizedBox(height: Espaco.s3),
-                            ...linhas,
-                          ],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _Cabecalho(
+                        'Materiais encontrados',
+                        direita: _linhas.isEmpty ? null : resumo,
+                      ),
+                      if (_linhas.isEmpty) vazio else ...linhas,
+                    ],
                   ),
                 ),
               ],
-            );
-          },
+            ),
+          ],
         ),
+        bottomNavigationBar: _linhas.isEmpty
+            ? null
+            : _Rodape(
+                margem: m,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        produtos == 1
+                            ? '1 produto pronto para o orçamento'
+                            : '$produtos produtos prontos para o orçamento',
+                        style: t.bodyMedium?.copyWith(color: c.textoSuave),
+                      ),
+                    ),
+                    const SizedBox(width: Espaco.s4),
+                    SizedBox(width: 320, child: botao),
+                  ],
+                ),
+              ),
       );
     }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Lista inteligente')),
-      body: _linhas.isEmpty
-          ? vazio
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(
-                Espaco.s4,
-                Espaco.s4,
-                Espaco.s4,
-                Espaco.s8,
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(
+          Espaco.s4,
+          Espaco.s4,
+          Espaco.s4,
+          Espaco.s8,
+        ),
+        children: [
+          Painel(
+            child: Padding(
+              padding: const EdgeInsets.all(Espaco.s3),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  acoes,
+                  if (_lidos.isNotEmpty) ...[
+                    const SizedBox(height: Espaco.s3),
+                    MiniaturasDaLista(lidos: _lidos),
+                  ],
+                ],
               ),
-              children: [
-                resumo,
-                const SizedBox(height: Espaco.s3),
-                ...linhas,
-              ],
             ),
+          ),
+          const SizedBox(height: Espaco.s5),
+          if (_linhas.isEmpty)
+            vazio
+          else ...[
+            resumo,
+            const SizedBox(height: Espaco.s3),
+            ...linhas,
+          ],
+        ],
+      ),
       bottomNavigationBar: _linhas.isEmpty
           ? null
-          : SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  Espaco.s4,
-                  Espaco.s2,
-                  Espaco.s4,
-                  Espaco.s3,
-                ),
-                child: botao,
+          : _Rodape(margem: Espaco.s4, child: botao),
+    );
+  }
+}
+
+/// Título de coluna com a mesma altura dos dois lados, para as colunas começarem na mesma linha.
+class _Cabecalho extends StatelessWidget {
+  const _Cabecalho(this.titulo, {this.direita});
+  final String titulo;
+  final Widget? direita;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: Espaco.s3),
+    child: SizedBox(
+      height: 32,
+      child: Row(
+        children: [
+          Text(titulo, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(width: Espaco.s3),
+          const Spacer(),
+          ?direita,
+        ],
+      ),
+    ),
+  );
+}
+
+/// Tirar foto (abre a câmera direto) e anexar PDF ou fotos da galeria. Cada leitura entra no fim da lista.
+class _AcoesDeFoto extends StatelessWidget {
+  const _AcoesDeFoto({
+    required this.lendo,
+    required this.onTirarFoto,
+    required this.onAnexar,
+  });
+  final bool lendo;
+  final VoidCallback onTirarFoto;
+  final VoidCallback onAnexar;
+
+  @override
+  Widget build(BuildContext context) {
+    if (lendo) {
+      return SizedBox(
+        height: 40,
+        child: Row(
+          children: [
+            const SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: Espaco.s3),
+            Expanded(
+              child: Text(
+                'Lendo a lista…',
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
+          ],
+        ),
+      );
+    }
+    return Row(
+      children: [
+        Expanded(
+          child: FilledButton.tonalIcon(
+            key: const Key('lista-tirar-foto'),
+            onPressed: onTirarFoto,
+            icon: const Icon(Icons.photo_camera_outlined, size: 20),
+            label: const Text('Tirar foto'),
+          ),
+        ),
+        const SizedBox(width: Espaco.s2),
+        Expanded(
+          child: OutlinedButton.icon(
+            key: const Key('lista-anexar'),
+            onPressed: onAnexar,
+            icon: const Icon(Icons.attach_file_rounded, size: 20),
+            label: const Text('Anexar arquivo', maxLines: 1),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Faixa fixa embaixo com o botão principal, alinhada com o conteúdo.
+class _Rodape extends StatelessWidget {
+  const _Rodape({required this.margem, required this.child});
+  final double margem;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.cores;
+    return Container(
+      decoration: BoxDecoration(
+        color: c.superficie,
+        border: Border(top: BorderSide(color: c.borda)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(margem, Espaco.s3, margem, Espaco.s3),
+          child: child,
+        ),
+      ),
     );
   }
 }

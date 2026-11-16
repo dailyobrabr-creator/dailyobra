@@ -12,6 +12,7 @@ import '../services/obras_service.dart';
 import '../services/perfil_service.dart';
 import 'categoria_screen.dart';
 import 'componentes.dart';
+import 'leitura_da_lista.dart';
 import 'menu_da_conta.dart';
 import 'obra_form_screen.dart';
 import 'obra_screen.dart';
@@ -603,23 +604,44 @@ class _ListaInteligenteState extends State<_ListaInteligente> {
     );
   }
 
-  /// PDF ou foto com a lista: o aparelho lê os materiais do catálogo e a revisão da lista inteligente abre.
-  Future<void> _anexar() async {
-    final servico = LeituraListaService.instance;
+  /// Foto tirada agora ou arquivos (PDF ou fotos): o aparelho lê os materiais do catálogo e a revisão da lista
+  /// inteligente abre com as fotos, para conferir e ir juntando mais.
+  Future<void> _ler(Future<List<ArquivoLista>> Function() escolher) async {
     try {
-      final arquivo = await servico.escolher();
-      if (arquivo == null || !mounted) return;
+      final arquivos = await escolher();
+      if (arquivos.isEmpty || !mounted) return;
       setState(() => _lendo = true);
-      final texto = await servico.ler(arquivo);
+      final r = await lerArquivosDaLista(arquivos);
       if (!mounted) return;
-      _texto.text = texto;
-      _cotar();
+      final aviso = avisoDaLeitura(r);
+      if (r.lidos.isEmpty) {
+        if (aviso != null) avisar(context, aviso);
+        return;
+      }
+      final digitado = _texto.text.trim();
+      final texto = [if (digitado.isNotEmpty) digitado, r.texto].join('\n');
+      _texto.clear();
+      FocusScope.of(context).unfocus();
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SmartListScreen(texto: texto, lidos: r.lidos),
+        ),
+      );
+      if (aviso != null && mounted) avisar(context, aviso);
     } on FalhaComMensagem catch (e) {
       if (mounted) avisar(context, e.mensagem);
     } finally {
       if (mounted) setState(() => _lendo = false);
     }
   }
+
+  Future<void> _tirarFoto() => _ler(() async {
+    final foto = await LeituraListaService.instance.tirarFoto();
+    return [?foto];
+  });
+
+  Future<void> _anexar() => _ler(LeituraListaService.instance.escolher);
 
   @override
   Widget build(BuildContext context) {
@@ -636,10 +658,10 @@ class _ListaInteligenteState extends State<_ListaInteligente> {
         isDense: true,
         constraints: const BoxConstraints(minHeight: _alturaDoCotar),
         hintText: _lendo
-            ? 'Lendo o arquivo…'
+            ? 'Lendo a lista…'
             : widget.compacta
-            ? 'Cole a lista ou anexe'
-            : 'Cole a lista ou anexe um PDF ou foto',
+            ? 'Digite a lista'
+            : 'Digite a lista, tire uma foto ou anexe um PDF',
         hintMaxLines: 1,
         filled: false,
         border: InputBorder.none,
@@ -649,25 +671,48 @@ class _ListaInteligenteState extends State<_ListaInteligente> {
         contentPadding: const EdgeInsets.fromLTRB(Espaco.s4, 10, Espaco.s1, 10),
       ),
     );
-    final anexo = _lendo
-        ? const Padding(
-            padding: EdgeInsets.all(12),
-            child: SizedBox.square(
-              dimension: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
+    Widget icone(String dica, IconData i, VoidCallback onPressed, Key k) =>
+        IconButton(
+          key: k,
+          tooltip: dica,
+          onPressed: onPressed,
+          color: c.textoSuave,
+          constraints: const BoxConstraints.tightFor(
+            width: _alturaDoCotar,
+            height: _alturaDoCotar,
+          ),
+          style: IconButton.styleFrom(
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          icon: Icon(i, size: 22),
+        );
+    final anexos = _lendo
+        ? const SizedBox(
+            width: _alturaDoCotar,
+            height: _alturaDoCotar,
+            child: Center(
+              child: SizedBox.square(
+                dimension: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
             ),
           )
-        : IconButton(
-            tooltip: 'Adicionar arquivo (PDF ou foto)',
-            onPressed: _anexar,
-            constraints: const BoxConstraints.tightFor(
-              width: _alturaDoCotar,
-              height: _alturaDoCotar,
-            ),
-            style: IconButton.styleFrom(
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            icon: const Icon(Icons.attach_file_rounded),
+        : Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              icone(
+                'Tirar foto da lista',
+                Icons.photo_camera_outlined,
+                _tirarFoto,
+                const Key('cotar-foto'),
+              ),
+              icone(
+                'Anexar PDF ou fotos',
+                Icons.attach_file_rounded,
+                _anexar,
+                const Key('cotar-anexar'),
+              ),
+            ],
           );
     final botao = SizedBox(
       height: _alturaDoCotar,
@@ -706,7 +751,8 @@ class _ListaInteligenteState extends State<_ListaInteligente> {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(child: campo),
-          anexo,
+          anexos,
+          const SizedBox(width: Espaco.s1),
           botao,
         ],
       ),

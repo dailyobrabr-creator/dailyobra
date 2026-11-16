@@ -273,20 +273,65 @@ void main() {
       (tester) async {
         preparar();
         LeituraListaService.instance.definirParaTeste(
-          escolher: () async =>
-              ArquivoLista('lista.pdf', 'application/pdf', Uint8List(10)),
+          escolher: () async => [
+            ArquivoLista('lista.pdf', 'application/pdf', Uint8List(10)),
+          ],
           ler: (_) async => '10 sacos de cimento',
         );
         addTearDown(LeituraListaService.instance.definirParaTeste);
         await abrirLargura(tester, 360, escuro: escuro);
         await rolarAte(
           tester,
-          find.byTooltip('Adicionar arquivo (PDF ou foto)'),
+          find.byKey(const Key('cotar-anexar')),
         );
-        await tester.tap(find.byTooltip('Adicionar arquivo (PDF ou foto)'));
+        await tester.tap(find.byKey(const Key('cotar-anexar')));
         await tester.pumpAndSettle();
         expect(find.byType(SmartListScreen), findsOneWidget);
         expect(find.text('Cimento CP II 50 kg'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'foto tirada pelo app abre a lista com a miniatura (${escuro ? 'escuro' : 'claro'})',
+      (tester) async {
+        preparar();
+        LeituraListaService.instance.definirParaTeste(
+          tirarFoto: () async =>
+              ArquivoLista('Foto da lista', 'image/jpeg', Uint8List(10)),
+          ler: (_) async => '10 sacos de cimento',
+        );
+        addTearDown(LeituraListaService.instance.definirParaTeste);
+        await abrirLargura(tester, 360, escuro: escuro);
+        await rolarAte(tester, find.byKey(const Key('cotar-foto')));
+        await tester.tap(find.byKey(const Key('cotar-foto')));
+        await tester.pumpAndSettle();
+        expect(find.byType(SmartListScreen), findsOneWidget);
+        expect(find.text('Cimento CP II 50 kg'), findsOneWidget);
+        expect(find.byKey(const Key('miniatura-0')), findsOneWidget);
+        expect(find.text('1 item'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'desistir da câmera não faz nada (${escuro ? 'escuro' : 'claro'})',
+      (tester) async {
+        preparar();
+        var lidos = 0;
+        LeituraListaService.instance.definirParaTeste(
+          tirarFoto: () async => null,
+          ler: (_) async {
+            lidos++;
+            return '';
+          },
+        );
+        addTearDown(LeituraListaService.instance.definirParaTeste);
+        await abrirLargura(tester, 360, escuro: escuro);
+        await rolarAte(tester, find.byKey(const Key('cotar-foto')));
+        await tester.tap(find.byKey(const Key('cotar-foto')));
+        await tester.pumpAndSettle();
+        expect(find.byType(SmartListScreen), findsNothing);
+        expect(lidos, 0);
       },
     );
 
@@ -295,8 +340,9 @@ void main() {
       (tester) async {
         preparar();
         LeituraListaService.instance.definirParaTeste(
-          escolher: () async =>
-              ArquivoLista('foto.jpg', 'image/jpeg', Uint8List(10)),
+          escolher: () async => [
+            ArquivoLista('foto.jpg', 'image/jpeg', Uint8List(10)),
+          ],
           ler: (_) async => throw const FalhaComMensagem(
             'Não encontramos materiais de construção neste arquivo.',
           ),
@@ -305,9 +351,9 @@ void main() {
         await abrirLargura(tester, 360, escuro: escuro);
         await rolarAte(
           tester,
-          find.byTooltip('Adicionar arquivo (PDF ou foto)'),
+          find.byKey(const Key('cotar-anexar')),
         );
-        await tester.tap(find.byTooltip('Adicionar arquivo (PDF ou foto)'));
+        await tester.tap(find.byKey(const Key('cotar-anexar')));
         await tester.pumpAndSettle();
         expect(find.byType(SmartListScreen), findsNothing);
         expect(

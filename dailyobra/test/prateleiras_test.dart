@@ -346,7 +346,8 @@ void main() {
         tester.getCenter(botao).dx,
         greaterThan(tester.getCenter(campo).dx),
       );
-      expect(find.byTooltip('Adicionar arquivo (PDF ou foto)'), findsOneWidget);
+      expect(find.byTooltip('Tirar foto da lista'), findsOneWidget);
+      expect(find.byTooltip('Anexar PDF ou fotos'), findsOneWidget);
     });
 
     testWidgets('o botão fica com a mesma folga em cima, embaixo e ao lado', (

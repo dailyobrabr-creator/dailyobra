@@ -176,6 +176,15 @@ void main() {
       expect(materiaisDoTexto('2.5 m3 areia', catalogo), '2.5 m3 areia');
     });
 
+    test('letra solta lida da foto não vira produto', () {
+      const caixa = ItemCatalogo(
+        id: 'caixa-1000', nome: "Caixa d'água de polietileno 1.000 L", unidade: 'un', categoriaId: 'hidraulica', tier: 2,
+        sinonimos: ["caixa d'água", 'caixa dagua'],
+      );
+      expect(materiaisDoTexto('tum. F D fp O VOS', [...catalogo, caixa]), isEmpty);
+      expect(materiaisDoTexto("1 caixa d'água 1000 L", [...catalogo, caixa]), "1 caixa d'água 1000 L");
+    });
+
     test('sem nada do catálogo volta vazio', () {
       expect(materiaisDoTexto('Orçamento nº 123\nValidade 10 dias', catalogo), isEmpty);
     });

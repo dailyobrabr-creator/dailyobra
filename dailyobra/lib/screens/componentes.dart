@@ -254,6 +254,34 @@ class CampoData extends StatelessWidget {
   }
 }
 
+/// "saco" vira "sacos" quando a quantidade passa de 1; siglas ("un", "kg", "m³") ficam como estão.
+String unidadeNoPlural(String unidade, double quantidade) {
+  final u = unidade.trim();
+  final sigla =
+      u.length <= 2 ||
+      const {
+        'und',
+        'pct',
+        'pcs',
+        'lts',
+        'mts',
+        'kgs',
+        'cxs',
+        'scs',
+      }.contains(u.toLowerCase());
+  if (quantidade <= 1 ||
+      sigla ||
+      u.contains(' ') ||
+      RegExp(r'[\d²³.]').hasMatch(u)) {
+    return u;
+  }
+  if (u.endsWith('ão')) return '${u.substring(0, u.length - 2)}ões';
+  if (u.endsWith('el')) return '${u.substring(0, u.length - 2)}éis';
+  if (u.endsWith('r')) return '${u}es';
+  if (RegExp(r'[aeiouáéíóút]$').hasMatch(u)) return '${u}s';
+  return u;
+}
+
 /// − quantidade + ; tocar no número abre o teclado para digitar.
 class SeletorQuantidade extends StatelessWidget {
   const SeletorQuantidade({
@@ -306,7 +334,7 @@ class SeletorQuantidade extends StatelessWidget {
                   child: Text(
                     unidade == null
                         ? formatarQuantidade(valor)
-                        : '${formatarQuantidade(valor)} $unidade',
+                        : '${formatarQuantidade(valor)} ${unidadeNoPlural(unidade!, valor)}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleSmall

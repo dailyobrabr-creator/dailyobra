@@ -338,6 +338,16 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text(tijolo.nome), findsNothing);
         expect(find.text('Adicionar 1 item ao orçamento'), findsOneWidget);
+        // As duas colunas começam na mesma linha e o título da barra alinha com o conteúdo
+        expect(
+          tester.getTopLeft(find.text('Sua lista')).dy,
+          tester.getTopLeft(find.text('Materiais encontrados')).dy,
+        );
+        expect(
+          tester.getTopLeft(find.text('Lista inteligente')).dx,
+          closeTo(tester.getTopLeft(find.text('Sua lista')).dx, 1),
+        );
+        expect(find.byKey(const Key('lista-tirar-foto')), findsOneWidget);
         expect(tester.takeException(), isNull);
       });
 

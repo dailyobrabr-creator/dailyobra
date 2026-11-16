@@ -603,7 +603,7 @@ class _ListaInteligenteState extends State<_ListaInteligente> {
     );
   }
 
-  /// PDF ou foto com a lista: o servidor lê os materiais e a revisão da lista inteligente abre.
+  /// PDF ou foto com a lista: o aparelho lê os materiais do catálogo e a revisão da lista inteligente abre.
   Future<void> _anexar() async {
     final servico = LeituraListaService.instance;
     try {

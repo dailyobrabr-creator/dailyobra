@@ -1,0 +1,3 @@
+Leitura de listas no próprio aparelho. Código aberto, sem serviço de fora:
+- tesseract.js 5.1.1 e tesseract.js-core 5.1.1 (Apache-2.0), por.traineddata (tessdata 4.0.0_best_int, Apache-2.0)
+- pdfjs-dist 4.10.38, build legacy (Apache-2.0)

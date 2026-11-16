@@ -183,6 +183,23 @@ class ReconhecedorDeProdutos {
   LinhaSmartList reconhecer(String nome) => _decidir(nome.trim(), null, null, normalizar(nome), _indices);
 }
 
+/// Numeração de item no começo da linha ("1. ", "2) ", "- ", "• "), que não é quantidade.
+final _numeracao = RegExp(r'^(?:[-•*·–]\s*|\d{1,3}[.)]\s+(?=\S))');
+
+/// Do texto tirado de um PDF ou foto no aparelho, só as linhas que viram produto do catálogo das lojas: cabeçalho,
+/// endereço, total e o resto do documento ficam de fora. A lista volta uma linha por material.
+String materiaisDoTexto(String texto, List<ItemCatalogo> catalogo) {
+  final indices = [for (final i in catalogo) _Indice(i)];
+  final saida = <String>[];
+  for (final bruta in texto.split(RegExp(r'\r?\n'))) {
+    final original = bruta.replaceAll(RegExp(r'\s+'), ' ').trim().replaceFirst(_numeracao, '').trim();
+    final n = normalizar(original);
+    if (!_temTexto.hasMatch(n)) continue;
+    if (_interpretarLinha(original, n, indices).tipo != TipoLinha.naoReconhecido) saida.add(original);
+  }
+  return saida.join('\n');
+}
+
 List<LinhaSmartList> interpretarLista(String texto, List<ItemCatalogo> catalogo) {
   final indices = [for (final i in catalogo) _Indice(i)];
   final linhas = <LinhaSmartList>[];

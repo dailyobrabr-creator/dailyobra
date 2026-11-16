@@ -160,4 +160,24 @@ void main() {
       expect(palavraPrincipal('2P+T'), isNull);
     });
   });
+
+  group('materiaisDoTexto', () {
+    test('fica só com o que é do catálogo', () {
+      const lido = 'CONSTRUTORA EXEMPLO LTDA\nRua das Acácias, 120 - Centro\nLista de materiais - Obra 7\n'
+          '1. 10 sacos de cimento\n2) areia 3 m3\n- ferro 5/16 20 barras\nTotal: 33 itens\nAssinatura do responsável';
+      expect(materiaisDoTexto(lido, catalogo), '10 sacos de cimento\nareia 3 m3\nferro 5/16 20 barras');
+    });
+
+    test('junta espaços e ignora linhas vazias', () {
+      expect(materiaisDoTexto('\n   tijolo    1000   un  \n\n', catalogo), 'tijolo 1000 un');
+    });
+
+    test('número com ponto continua sendo quantidade', () {
+      expect(materiaisDoTexto('2.5 m3 areia', catalogo), '2.5 m3 areia');
+    });
+
+    test('sem nada do catálogo volta vazio', () {
+      expect(materiaisDoTexto('Orçamento nº 123\nValidade 10 dias', catalogo), isEmpty);
+    });
+  });
 }

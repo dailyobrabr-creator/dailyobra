@@ -1,9 +1,10 @@
-import 'dart:convert';
-
 import 'package:dailyobra_comum/dailyobra_comum.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'catalogo_service.dart';
+import 'leitura_no_aparelho_io.dart'
+    if (dart.library.js_interop) 'leitura_no_aparelho_web.dart';
 
 /// Arquivo escolhido pelo construtor para ler a lista de materiais.
 class ArquivoLista {
@@ -30,15 +31,15 @@ String? tipoDoArquivo(String nome) {
   return _tipos[nome.substring(ponto + 1).toLowerCase()];
 }
 
-/// Lê a lista de materiais de um PDF ou foto pela função `ler-lista` do Supabase, que devolve
-/// uma linha por material no formato da lista inteligente.
+/// Lê a lista de materiais de um PDF ou foto no próprio aparelho (nada vai para serviço de fora) e fica só com
+/// as linhas que são produtos do catálogo das lojas, uma por material, no formato da lista inteligente.
 class LeituraListaService {
   LeituraListaService._();
 
   static final instance = LeituraListaService._();
 
   Future<ArquivoLista?> Function() _escolher = _escolherNoAparelho;
-  Future<String> Function(ArquivoLista) _ler = _lerNoServidor;
+  Future<String> Function(ArquivoLista) _ler = _lerNoAparelho;
 
   @visibleForTesting
   void definirParaTeste({
@@ -46,7 +47,7 @@ class LeituraListaService {
     Future<String> Function(ArquivoLista)? ler,
   }) {
     _escolher = escolher ?? _escolherNoAparelho;
-    _ler = ler ?? _lerNoServidor;
+    _ler = ler ?? _lerNoAparelho;
   }
 
   /// Abre o seletor de arquivos; null quando a pessoa desiste.
@@ -75,34 +76,14 @@ class LeituraListaService {
     return ArquivoLista(arquivo.name, tipo, await arquivo.readAsBytes());
   }
 
-  static Future<String> _lerNoServidor(ArquivoLista arquivo) async {
-    try {
-      final resposta = await Supabase.instance.client.functions.invoke(
-        'ler-lista',
-        body: {
-          'nome': arquivo.nome,
-          'tipo': arquivo.tipo,
-          'base64': base64Encode(arquivo.bytes),
-        },
+  static Future<String> _lerNoAparelho(ArquivoLista arquivo) async {
+    final lido = await lerNoAparelho(arquivo.bytes, arquivo.tipo);
+    final texto = materiaisDoTexto(lido, CatalogoService.instance.itens);
+    if (texto.trim().isEmpty) {
+      throw const FalhaComMensagem(
+        'Não encontramos neste arquivo materiais do catálogo das lojas. Tente uma foto mais nítida ou cole o texto da lista.',
       );
-      final dados = resposta.data;
-      final texto = dados is Map ? dados['texto'] as String? : null;
-      if (texto == null || texto.trim().isEmpty) {
-        throw const FalhaComMensagem(
-          'Não encontramos materiais de construção neste arquivo.',
-        );
-      }
-      return texto;
-    } on FunctionException catch (e) {
-      final detalhes = e.details;
-      final erro = detalhes is Map ? detalhes['erro'] as String? : null;
-      throw FalhaComMensagem(
-        erro ?? 'Não deu para ler o arquivo agora. Tente de novo.',
-      );
-    } on FalhaComMensagem {
-      rethrow;
-    } catch (e) {
-      throw FalhaComMensagem(mensagemDoServidor(e));
     }
+    return texto;
   }
 }

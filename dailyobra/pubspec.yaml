@@ -49,9 +49,12 @@ dependencies:
   url_launcher: ^6.3.3
   qr: ^3.0.2
   speech_to_text: ^7.5.0
+  flutter_inappwebview: ^6.1.5
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
 
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -67,12 +70,21 @@ dev_dependencies:
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
+# Cópia com o build.gradle ajustado para o AGP 9 (ver ../terceiros/LEIAME.md)
+dependency_overrides:
+  flutter_inappwebview_android:
+    path: ../terceiros/flutter_inappwebview_android
+
 flutter:
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Leitura de foto e PDF no app Android: a mesma pasta do site, aberta num WebView escondido
+  assets:
+    - web/leitura/
 
 
   # To add assets to your application, add an assets section, like this:

@@ -1,7 +1,9 @@
 // Leitura da lista de materiais no próprio aparelho: o PDF.js tira o texto do PDF e o Tesseract lê fotos e
-// páginas escaneadas. Os arquivos ficam nesta pasta e nada sai do navegador. Carregado só quando alguém anexa.
+// páginas escaneadas. Os arquivos ficam nesta pasta e nada sai do aparelho. O app Android usa a mesma pasta,
+// aberta escondida pela pagina.html. Os .js do PDF.js eram .mjs: o Android só entrega módulo com extensão .js.
 (function () {
-  const base = new URL('leitura/', document.baseURI).href;
+  // Pasta deste arquivo: no site é /leitura/; no app Android a página fica dentro do APK (pagina.html)
+  const base = new URL('./', document.currentScript.src).href;
   const MAX_PAGINAS = 20;
   let trabalhador = null;
 
@@ -108,8 +110,8 @@
   }
 
   async function lerPdf(bytes) {
-    const pdfjs = await import(base + 'pdf.min.mjs');
-    pdfjs.GlobalWorkerOptions.workerSrc = base + 'pdf.worker.min.mjs';
+    const pdfjs = await import(base + 'pdf.min.js');
+    pdfjs.GlobalWorkerOptions.workerSrc = base + 'pdf.worker.min.js';
     const doc = await pdfjs.getDocument({ data: bytes }).promise;
     if (doc.numPages > MAX_PAGINAS) {
       throw new Error('O PDF passa de ' + MAX_PAGINAS + ' páginas. Envie só as páginas da lista.');

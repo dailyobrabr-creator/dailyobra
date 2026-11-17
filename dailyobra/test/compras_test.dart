@@ -17,7 +17,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'apoio.dart';
 
-final dia = DateTime(2026, 11, 20);
+// Dia depois do fim da promoção do apoio (hoje + 3), para o preço voltar ao normal em qualquer data
+final dia = daquiTresDias.isBefore(DateTime(2026, 11, 20))
+    ? DateTime(2026, 11, 20)
+    : daquiTresDias.add(const Duration(days: 1));
 const parametros = ParametrosObra(area: '120');
 const parametrosAlto = ParametrosObra(area: '120', padrao: Padrao.alto);
 final etapas = Calculo.de(parametros).resultado!.etapas;
